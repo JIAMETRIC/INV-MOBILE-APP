@@ -3,6 +3,12 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+// Per-weight subpaths: the package root would bundle all 18 Inter styles.
+import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
+import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { ThemeProvider, useTheme } from './providers';
 import { NavProvider, useNav } from './navigation';
 import { useBreakpoint } from '../ui/useBreakpoint';
@@ -37,6 +43,12 @@ function Root() {
   const bp = useBreakpoint();
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState('');
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  // A font failure must not lock the app out: carry on with the system font.
+  const fontsReady = fontsLoaded || !!fontError;
+  // Until Inter is registered, start-up text uses the system font.
+  const t = <S extends { fontSize: number; lineHeight: number }>(s: S) =>
+    fontsReady ? s : { fontSize: s.fontSize, lineHeight: s.lineHeight };
 
   useEffect(() => {
     void (async () => {
@@ -52,13 +64,13 @@ function Root() {
     })();
   }, []);
 
-  if (state === 'loading') {
+  if (state === 'loading' || !fontsReady) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', gap: space[3] }}>
         <StatusBar style={theme.dark ? 'light' : 'dark'} />
         <ActivityIndicator color={theme.accent} size="large" />
-        <Text style={[type.title, { color: theme.text }]}>Invoice ERP</Text>
-        <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Unlocking database…</Text>
+        <Text style={[t(type.title), { color: theme.text }]}>Invoice ERP</Text>
+        <Text style={[t(type.bodyMedium), { color: theme.textMuted }]}>Unlocking database…</Text>
       </View>
     );
   }
@@ -67,8 +79,8 @@ function Root() {
       <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: space[5], gap: space[2] }}>
         <StatusBar style={theme.dark ? 'light' : 'dark'} />
         <Ionicons name="alert-circle-outline" size={40} color={theme.error} />
-        <Text style={[type.heading, { color: theme.text }]}>Cannot open the database</Text>
-        <Text style={[type.bodyMedium, { color: theme.textMuted, textAlign: 'center' }]}>{error}</Text>
+        <Text style={[t(type.heading), { color: theme.text }]}>Cannot open the database</Text>
+        <Text style={[t(type.bodyMedium), { color: theme.textMuted, textAlign: 'center' }]}>{error}</Text>
       </View>
     );
   }

@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { elevation, radius, space, touch, type } from './tokens';
+import { elevation, font, radius, space, touch, type } from './tokens';
 import type { Theme } from './tokens';
 import { ripple } from './components';
 
@@ -74,7 +74,7 @@ export function BottomTabs({ active, onSelect, theme }: {
               />
             </Indicator>
             <Text style={[type.labelMedium, {
-              color: on ? theme.text : theme.textMuted, fontWeight: on ? '700' : '500',
+              color: on ? theme.text : theme.textMuted, fontFamily: on ? font.bold : font.medium,
             }]}>
               {t.label}
             </Text>

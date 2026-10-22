@@ -1,6 +1,7 @@
 import { gray } from '../ui/tokens';
 import { formatDateDisplay, formatPaise } from '../data/money';
 import type { Invoice, InvoiceLine, Settings } from '../data/types';
+import { INTER_PDF_FONT_CSS } from './pdfFonts';
 
 export type PageSize = 'A4' | 'Letter';
 
@@ -35,12 +36,14 @@ export function buildInvoiceHtml(
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
 <style>
+  ${INTER_PDF_FONT_CSS}
   @page { size: ${dims}; margin: 0; }
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 10mm 9mm;
     color: ${gray[1000]}; background: ${gray[0]};
-    font-family: 'Courier New', monospace; font-size: 9.5px; line-height: 1.35;
+    /* Inter is embedded (Latin + rupee); other scripts fall back per glyph. */
+    font-family: 'Inter', 'Roboto', sans-serif; font-size: 9.5px; line-height: 1.4;
   }
   .grid { display: flex; justify-content: space-between; }
   .head { border-bottom: 2px solid ${gray[1000]}; padding-bottom: 6px; margin-bottom: 8px; }

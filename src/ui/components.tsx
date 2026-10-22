@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { elevation, radius, shadow, space, touch, type, status as statusIcons } from './tokens';
+import { elevation, font, radius, shadow, space, touch, type, status as statusIcons } from './tokens';
 import type { Theme } from './tokens';
 import type { InvoiceStatus } from '../data/types';
 
@@ -239,7 +239,7 @@ export function MoneyText({ paiseText, theme, strong, small }: {
     <Text
       style={[
         small ? { ...type.number, fontSize: 14, lineHeight: 20 } : type.number,
-        strong ? { fontWeight: '700', color: theme.accentDeep } : { color: theme.text },
+        strong ? { fontFamily: font.bold, color: theme.accentDeep } : { color: theme.text },
         { textAlign: 'right' },
       ]}
     >

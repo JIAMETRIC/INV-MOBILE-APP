@@ -66,3 +66,15 @@ use this Box Shadows for KPI Cards and Buttons: --primaryShadow: 0 4px 8px rgba(
 
 1. --secondaryShadow: 0 8px 16px rgba(20, 71, 108, 0.2);
 ```
+
+## Prompt 9
+
+```
+What Fonts Used?
+```
+
+## Prompt 10
+
+```
+Suggest a custom font for the app and the invoice PDF, then add it with expo-font.
+```

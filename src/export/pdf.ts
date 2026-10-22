@@ -40,6 +40,8 @@ export async function exportInvoicePdf(invoiceId: number, pageSize: PageSize = '
   const safeNo = inv!.invoice_no.replace(/[^A-Za-z0-9_-]/g, '-');
   const generated = await Print.printToFileAsync({ html, base64: false });
   const target = new File(docsDir('Invoices'), `${safeNo}.pdf`);
+  // Re-sharing an invoice regenerates it; moveSync refuses to overwrite.
+  if (target.exists) target.delete();
   new File(generated.uri).moveSync(target);
   return target;
 }

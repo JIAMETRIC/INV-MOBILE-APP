@@ -70,3 +70,26 @@ Added `brand.action` / `brand.onAction` and theme roles `fab` / `onFab`; `FAB` u
 | Share PDF pressed (`input motionevent DOWN`, then `CANCEL`, so nothing was shared) | `#CCD8E2 → #E8EDF3` (darker and longer) |
 
 The button's `overflow: hidden` (kept for the ripple) does not clip the shadow.
+
+## Prompt 9 — What fonts are used (2026-10-22, session 13)
+
+Answered in chat: there were no custom fonts. Screens used Roboto (the Android system font); the PDF asked for Courier New with a monospace fallback; Ionicons for icons; `type.code` was unused.
+
+## Prompt 10 — Inter for the app and the PDF (2026-10-22, session 13)
+
+**Diffs**
+
+- `package.json`: `@expo-google-fonts/inter` ^0.4.2 (`npx expo install`).
+- `src/shell/App.tsx`: `useFonts` (4 subpath imports); the loading screen waits for fonts (or a font error) and uses the system font meanwhile.
+- `src/ui/tokens.ts`: `font` map; `type.*` use `fontFamily`, with no `fontWeight`, and tighter tracking.
+- `src/ui/components.tsx` (MoneyText strong) and `src/ui/Nav.tsx` (active tab label): `fontWeight: '700'` → `fontFamily: font.bold`.
+- `scripts/build-pdf-fonts.py` (new) generates `src/export/pdfFonts.ts` (new, 42 KB): two `@font-face` rules with WOFF2 data URIs (400: 15 KB, 700: 16 KB).
+- `src/export/pdfTemplate.ts`: injects `INTER_PDF_FONT_CSS`; body font `'Inter', 'Roboto', sans-serif`, line-height 1.35 → 1.4.
+- `src/export/pdf.ts`: **bug fix found while verifying.** A second "Share PDF" for the same invoice failed with "FileSystemFile.moveSync … Destination already exists"; it now deletes the old `<no>.pdf` before moving.
+
+**Verification**
+
+- `tsc --noEmit` OK; `test:integration`, `test:money`, `test:xlsx` all pass.
+- fonttools: Inter has U+20B9 (₹) and the `tnum` feature.
+- Emulator (Metro `--clear`): Dashboard renders in Inter (flagged "1", ₹ glyph), with no font warnings in logcat.
+- PDF: "Share PDF" on PRE-001 → file replaced (19:37, 13 KB, previously 75 KB). `pdffonts` shows `Inter-Bold` + `Inter-Regular` (CID TrueType, embedded subset); the old file showed `CutiveMono-Regular` + `Roboto-Regular`. Rendered with `pdftoppm`: Inter throughout, ₹ in "TOTAL (₹)", bold headings and total; "Amount in words" italic is a synthesized oblique (no italic face embedded).

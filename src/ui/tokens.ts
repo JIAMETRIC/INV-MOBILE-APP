@@ -120,20 +120,31 @@ export const maxReadWidth = 720;
 
 const mono = Platform.select({ android: 'monospace', default: 'monospace' });
 
+// Inter (SIL OFL 1.1, @expo-google-fonts/inter), loaded in shell/App.tsx.
+// Each weight is its own family: on Android, fontWeight with a single-weight
+// custom family can be synthesised, so styles pick the family, not a weight.
+export const font = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+} as const;
+
 // M3 type scale under the legacy key names: display = headlineMedium,
 // title = titleLarge, heading = titleMedium, body = bodyLarge,
-// label = labelLarge, caption = bodySmall.
+// label = labelLarge, caption = bodySmall. Tracking is tightened from M3's
+// Roboto values, which read loose in Inter.
 export const type = {
-  display: { fontSize: 28, lineHeight: 36, fontWeight: '600' as const },
-  title: { fontSize: 22, lineHeight: 28, fontWeight: '600' as const },
-  heading: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const, letterSpacing: 0.15 },
-  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const, letterSpacing: 0.5 },
-  bodyMedium: { fontSize: 14, lineHeight: 20, fontWeight: '400' as const, letterSpacing: 0.25 },
-  label: { fontSize: 14, lineHeight: 20, fontWeight: '500' as const, letterSpacing: 0.1 },
-  labelMedium: { fontSize: 12, lineHeight: 16, fontWeight: '500' as const, letterSpacing: 0.5 },
-  caption: { fontSize: 12, lineHeight: 16, fontWeight: '400' as const, letterSpacing: 0.4 },
+  display: { fontSize: 28, lineHeight: 36, fontFamily: font.semibold, letterSpacing: -0.2 },
+  title: { fontSize: 22, lineHeight: 28, fontFamily: font.semibold, letterSpacing: -0.1 },
+  heading: { fontSize: 16, lineHeight: 24, fontFamily: font.semibold, letterSpacing: 0 },
+  body: { fontSize: 16, lineHeight: 24, fontFamily: font.regular, letterSpacing: 0.1 },
+  bodyMedium: { fontSize: 14, lineHeight: 20, fontFamily: font.regular, letterSpacing: 0.1 },
+  label: { fontSize: 14, lineHeight: 20, fontFamily: font.medium, letterSpacing: 0.1 },
+  labelMedium: { fontSize: 12, lineHeight: 16, fontFamily: font.medium, letterSpacing: 0.3 },
+  caption: { fontSize: 12, lineHeight: 16, fontFamily: font.regular, letterSpacing: 0.2 },
   number: {
-    fontSize: 16, lineHeight: 24, fontWeight: '500' as const,
+    fontSize: 16, lineHeight: 24, fontFamily: font.medium,
     fontVariant: ['tabular-nums'] as ['tabular-nums'],
   },
   code: { fontSize: 14, lineHeight: 20, fontFamily: mono },
