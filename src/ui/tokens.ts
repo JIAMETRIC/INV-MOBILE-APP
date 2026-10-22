@@ -19,28 +19,59 @@ export type Theme = {
   accent: string; accentDeep: string; accentSoft: string; accentOn: string;
   primaryContainer: string; onPrimaryContainer: string;
   secondaryContainer: string; onSecondaryContainer: string;
-  error: string; errorContainer: string; onErrorContainer: string;
-  headerFrom: string; headerTo: string; onHeader: string;
+  error: string; onError: string; errorContainer: string; onErrorContainer: string;
+  // M3 inverse roles (snackbar): dark container on the light theme and vice versa.
+  inverseSurface: string; inverseOnSurface: string; inversePrimary: string;
+  headerFrom: string; headerTo: string; onHeader: string; onHeaderMuted: string;
+  // Printed invoice paper: always white, in both themes.
+  paper: string;
   tone: { info: Tone; success: Tone; warning: Tone; neutral: Tone };
   dark: boolean;
 };
 
-// U2 — JIAMETRIC brand (#2596be / #5bc1da / navy #0c476f) mapped onto Material 3
-// colour roles. Every text/fill pair is >= 4.5:1 (WCAG AA); measured ratios are
-// in MOBILE_APP_CONVERSION_TRACKING.md (Prompt 21).
+// Root brand colours. Both themes below are built from these, so a rebrand
+// starts here. Source brand: JIAMETRIC blue #2596be, cyan #5bc1da, navy #0c476f.
+// The raw blue and cyan fail WCAG AA as text or fills under text, so the
+// themes use the AA-tuned variants. Re-check contrast after changing any of
+// them (measured ratios: MOBILE_APP_CONVERSION_TRACKING.md, Prompt 21).
+export const brand = {
+  navy: '#0C476F', // brand navy: light header start, strong borders
+  navyDeep: '#0A2236', // dark header start
+  blue: '#1F7FA6', // light header end
+  primary: '#00668B', // brand blue darkened for AA on white
+  primaryDark: '#7FCFF3', // brand cyan lightened for AA on dark surfaces
+  primaryDarkSoft: '#9BDCF0', // dark-theme deep accent
+  onPrimaryDark: '#003549', // text on primaryDark fills
+  container: '#C4E7FF', // light primary container / info badge
+  onContainer: '#001E2C', // text on container
+  containerDark: '#004C69', // dark primary container / info badge
+} as const;
+
+export const white = gray[0];
+
+// '#00668B', 0.14 -> 'rgba(0,102,139,0.14)'
+export function alpha(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+// U2 — the brand mapped onto Material 3 colour roles. Every text/fill pair is
+// >= 4.5:1 (WCAG AA).
 export const light: Theme = {
-  bg: '#F2F7FB', surface: '#FFFFFF', surfaceAlt: '#E6EEF4', surfaceContainer: '#EBF2F7',
-  border: '#DBE7EE', borderStrong: '#0C476F', outline: '#71787E',
+  bg: '#F2F7FB', surface: white, surfaceAlt: '#E6EEF4', surfaceContainer: '#EBF2F7',
+  border: '#DBE7EE', borderStrong: brand.navy, outline: '#71787E',
   text: '#10232F', textMuted: '#53606A', textDisabled: '#A9B1B6',
-  inverse: '#FFFFFF', fillStrong: '#00668B', onFillStrong: '#FFFFFF',
-  focus: '#00668B', overlay: 'rgba(12,30,44,0.45)', ripple: 'rgba(0,102,139,0.14)',
-  accent: '#00668B', accentDeep: '#0C476F', accentSoft: '#E3F3F9', accentOn: '#FFFFFF',
-  primaryContainer: '#C4E7FF', onPrimaryContainer: '#001E2C',
+  inverse: white, fillStrong: brand.primary, onFillStrong: white,
+  focus: brand.primary, overlay: 'rgba(12,30,44,0.45)', ripple: alpha(brand.primary, 0.14),
+  accent: brand.primary, accentDeep: brand.navy, accentSoft: '#E3F3F9', accentOn: white,
+  primaryContainer: brand.container, onPrimaryContainer: brand.onContainer,
   secondaryContainer: '#D3E5F2', onSecondaryContainer: '#0C1D29',
-  error: '#BA1A1A', errorContainer: '#FFDAD6', onErrorContainer: '#410002',
-  headerFrom: '#0C476F', headerTo: '#1F7FA6', onHeader: '#FFFFFF',
+  error: '#BA1A1A', onError: white, errorContainer: '#FFDAD6', onErrorContainer: '#410002',
+  inverseSurface: '#26343E', inverseOnSurface: '#EEF4F8', inversePrimary: brand.primaryDark,
+  headerFrom: brand.navy, headerTo: brand.blue, onHeader: white, onHeaderMuted: alpha(white, 0.85),
+  paper: white,
   tone: {
-    info: { bg: '#C4E7FF', fg: '#001E2C' },
+    info: { bg: brand.container, fg: brand.onContainer },
     success: { bg: '#D7F5DD', fg: '#0F5223' },
     warning: { bg: '#FFE7C2', fg: '#5C3A00' },
     neutral: { bg: '#E3E8EC', fg: '#41484D' },
@@ -50,17 +81,19 @@ export const light: Theme = {
 
 export const dark: Theme = {
   bg: '#0C1520', surface: '#101C2B', surfaceAlt: '#1A2A3C', surfaceContainer: '#142233',
-  border: '#2A3A4C', borderStrong: '#7FCFF3', outline: '#8B9297',
+  border: '#2A3A4C', borderStrong: brand.primaryDark, outline: '#8B9297',
   text: '#DCE7F0', textMuted: '#A6B6C4', textDisabled: '#5A6C7D',
-  inverse: '#0C1520', fillStrong: '#7FCFF3', onFillStrong: '#003549',
-  focus: '#7FCFF3', overlay: 'rgba(0,0,0,0.6)', ripple: 'rgba(127,207,243,0.16)',
-  accent: '#7FCFF3', accentDeep: '#9BDCF0', accentSoft: '#123A4A', accentOn: '#04121A',
-  primaryContainer: '#004C69', onPrimaryContainer: '#C4E7FF',
+  inverse: '#0C1520', fillStrong: brand.primaryDark, onFillStrong: brand.onPrimaryDark,
+  focus: brand.primaryDark, overlay: 'rgba(0,0,0,0.6)', ripple: alpha(brand.primaryDark, 0.16),
+  accent: brand.primaryDark, accentDeep: brand.primaryDarkSoft, accentSoft: '#123A4A', accentOn: '#04121A',
+  primaryContainer: brand.containerDark, onPrimaryContainer: brand.container,
   secondaryContainer: '#24425A', onSecondaryContainer: '#D3E5F2',
-  error: '#FFB4AB', errorContainer: '#93000A', onErrorContainer: '#FFDAD6',
-  headerFrom: '#0A2236', headerTo: '#0C476F', onHeader: '#FFFFFF',
+  error: '#FFB4AB', onError: '#690005', errorContainer: '#93000A', onErrorContainer: '#FFDAD6',
+  inverseSurface: '#DCE7F0', inverseOnSurface: '#10232F', inversePrimary: brand.primary,
+  headerFrom: brand.navyDeep, headerTo: brand.navy, onHeader: white, onHeaderMuted: alpha(white, 0.85),
+  paper: white,
   tone: {
-    info: { bg: '#004C69', fg: '#C4E7FF' },
+    info: { bg: brand.containerDark, fg: brand.container },
     success: { bg: '#1E4D2B', fg: '#B6F0C1' },
     warning: { bg: '#5A4100', fg: '#FFDDA6' },
     neutral: { bg: '#2C3740', fg: '#C2CCD4' },

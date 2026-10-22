@@ -42,7 +42,7 @@ export function Button({
       : variant === 'tonal' ? (danger ? theme.errorContainer : theme.secondaryContainer)
         : 'transparent';
   const color =
-    variant === 'solid' ? (danger ? (theme.dark ? '#690005' : '#FFFFFF') : theme.onFillStrong)
+    variant === 'solid' ? (danger ? theme.onError : theme.onFillStrong)
       : variant === 'tonal' ? (danger ? theme.onErrorContainer : theme.onSecondaryContainer)
         : danger ? theme.error : theme.accent;
   return (
@@ -319,7 +319,7 @@ export function TopAppBar({ title, subtitle, onBack, actions, theme, large }: {
             <>
               <Text style={[type.title, { color: theme.onHeader }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
               {subtitle ? (
-                <Text style={[type.caption, { color: 'rgba(255,255,255,0.85)' }]} numberOfLines={1}>{subtitle}</Text>
+                <Text style={[type.caption, { color: theme.onHeaderMuted }]} numberOfLines={1}>{subtitle}</Text>
               ) : null}
             </>
           ) : null}
@@ -333,7 +333,7 @@ export function TopAppBar({ title, subtitle, onBack, actions, theme, large }: {
         <View style={{ paddingEnd: space[3] }}>
           <Text style={[type.display, { color: theme.onHeader }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
           {subtitle ? (
-            <Text style={[type.bodyMedium, { color: 'rgba(255,255,255,0.85)', marginTop: 2 }]} numberOfLines={1}>
+            <Text style={[type.bodyMedium, { color: theme.onHeaderMuted, marginTop: 2 }]} numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}

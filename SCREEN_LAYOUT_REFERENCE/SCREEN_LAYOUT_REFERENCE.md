@@ -617,7 +617,7 @@ Change one of these and **every screen that uses it changes**.
 | C8 | `Chip` | filter chip, height 32, check mark when on | filters, modes, sizes | components.tsx:456 |
 | C9 | `FAB` | extended FAB, absolute 16dp from bottom-end | S1, S2, S5 | components.tsx:493 |
 | C10 | `Sheet` | phone: bottom sheet (28 radius, drag handle, max 92% height); tablet: dialog (92% or 86% wide, max 560 / 720) | P1, P2, P3 | Sheet.tsx:21 |
-| C11 | `Snackbar` (`useSnackbar`) | 4s (6s with an action), max width 560, above the nav bar | all saves | Snackbar.tsx:18 |
+| C11 | `Snackbar` (`useSnackbar`) | 4s (6s with an action), max width 560, above the nav bar; colours `theme.inverse*` | all saves | Snackbar.tsx:18 |
 | C12 | `StatusGlyph` / `Badge` | status = icon + text + tone (Draft, Issued, Partial, Paid, Void) | lists, S3 | components.tsx:265 / 282 |
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | section heading with right slot · label/value row · tabular amount · icon + title + text | many | components.tsx:346 / 247 / 231 / 442 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
@@ -626,13 +626,15 @@ Change one of these and **every screen that uses it changes**.
 
 | Token | Values | Line |
 | --- | --- | --- |
-| `light` / `dark` themes | brand navy `#0C476F`, accent `#00668B` / `#7FCFF3`, header gradient, tone colours | 31 / 51 |
-| `space` | 0, 4, 8, 12, 16, 24, 32, 48, 64 (keys 0–8) | 71 |
-| `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 73 |
-| `touch` | min 48 · comfortable 56 | 75 |
-| `maxReadWidth` | 720 | 76 |
-| `type` | display 28 · title 22 · heading 16/600 · body 16 · bodyMedium 14 · label 14/500 · labelMedium 12 · caption 12 · number (tabular) | 83 |
-| `status` | icon / label / tone for each invoice status | 107 |
+| `brand` (root colours) | navy `#0C476F`, navyDeep, blue, primary `#00668B`, primaryDark `#7FCFF3`, containers. **Change these to rebrand**; see [THEME_AND_COLORS](../THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md) | 37 |
+| `alpha(hex, a)` / `white` | rgba helper (ripples, muted header text) / `gray[0]` | 53 / 50 |
+| `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper` | 60 / 82 |
+| `space` | 0, 4, 8, 12, 16, 24, 32, 48, 64 (keys 0–8) | 104 |
+| `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 106 |
+| `touch` | min 48 · comfortable 56 | 108 |
+| `maxReadWidth` | 720 | 109 |
+| `type` | display 28 · title 22 · heading 16/600 · body 16 · bodyMedium 14 · label 14/500 · labelMedium 12 · caption 12 · number (tabular) | 116 |
+| `status` | icon / label / tone for each invoice status | 140 |
 
 ---
 

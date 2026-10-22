@@ -38,10 +38,9 @@ export function SnackbarProvider({ children, theme, bottomOffset }: {
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const value = useMemo(() => show, [show]);
-  // Inverse surface per M3: dark container on light theme and vice versa.
-  const bg = theme.dark ? '#DCE7F0' : '#26343E';
-  const fg = theme.dark ? '#10232F' : '#EEF4F8';
-  const actionColor = theme.dark ? '#00668B' : '#7FCFF3';
+  const bg = theme.inverseSurface;
+  const fg = theme.inverseOnSurface;
+  const actionColor = theme.inversePrimary;
 
   return (
     <SnackContext.Provider value={value}>

@@ -449,14 +449,14 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
           </View>
         }
       />
-      <View style={{ flex: 1, borderWidth: 1, borderColor: theme.border, borderRadius: radius.md, overflow: 'hidden', minHeight: 400, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, borderWidth: 1, borderColor: theme.border, borderRadius: radius.md, overflow: 'hidden', minHeight: 400, backgroundColor: theme.paper }}>
         {Platform.OS === 'web'
           // Browser tier: the invoice HTML shares the page origin, so it is
           // scoped to a padded box instead of a WebView sandbox.
           // react-native-web's View renders a div and honours this prop, but
           // the RN type surface doesn't declare it.
           ? <View style={{ flex: 1 }} {...({ dangerouslySetInnerHTML: { __html: `<div style="padding:16px">${previewHtml}</div>` } } as object)} />
-          : <WebView originWhitelist={['*']} source={{ html: previewHtml }} style={{ flex: 1, backgroundColor: '#FFFFFF' }} />}
+          : <WebView originWhitelist={['*']} source={{ html: previewHtml }} style={{ flex: 1, backgroundColor: theme.paper }} />}
       </View>
     </View>
   );
