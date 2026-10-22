@@ -6,10 +6,11 @@ import { useTheme } from '../../shell/providers';
 import { useBackIntercept, useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
-  Button, Card, EmptyState, IconButton, Input, ListItem, SectionTitle, TopAppBar, type IconName,
+  Button, Card, EmptyState, IconButton, Input, ListItem, SectionTitle, TopAppBar, initials, type IconName,
 } from '../../ui/components';
+import { useNavInset } from '../../ui/navMetrics';
 import { useSnackbar } from '../../ui/Snackbar';
-import { space, type } from '../../ui/tokens';
+import { layout, space, type } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getSettings, updateSettings } from '../../data/settingsRepo';
 import { listDrafts, deleteDraft } from '../../data/draftsRepo';
@@ -24,10 +25,10 @@ const VERSION_LABEL = `Invoice ERP ${appVersion.version} (build ${appVersion.ver
 type Section = 'company' | 'drafts' | 'backup' | 'activity';
 
 const SECTIONS: Array<{ key: Section; label: string; hint: string; icon: IconName }> = [
-  { key: 'company', label: 'Company', hint: 'Business details, bank, invoice numbering', icon: 'business-outline' },
-  { key: 'drafts', label: 'Drafts', hint: 'Autosaved invoices not yet issued', icon: 'document-outline' },
-  { key: 'backup', label: 'Backup & restore', hint: 'Encrypted database export and import', icon: 'cloud-upload-outline' },
-  { key: 'activity', label: 'Activity log', hint: 'Recent changes made in the app', icon: 'time-outline' },
+  { key: 'company', label: 'Company', hint: 'Business details, bank, invoice numbering', icon: 'briefcase' },
+  { key: 'drafts', label: 'Drafts', hint: 'Autosaved invoices not yet issued', icon: 'file' },
+  { key: 'backup', label: 'Backup & restore', hint: 'Encrypted database export and import', icon: 'upload-cloud' },
+  { key: 'activity', label: 'Activity log', hint: 'Recent changes made in the app', icon: 'clock' },
 ];
 
 export function SettingsScreen() {
@@ -42,6 +43,7 @@ export function SettingsScreen() {
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof recentAudit>>>([]);
   const [busy, setBusy] = useState(false);
   const snack = useSnackbar();
+  const navInset = useNavInset();
 
   // Phone drill-in: system Back returns to the section list before leaving Settings.
   useBackIntercept(() => {
@@ -130,108 +132,136 @@ export function SettingsScreen() {
     }
   };
 
+  const row = (a: React.ReactNode, b: React.ReactNode) => (
+    <View style={{ flexDirection: 'row', gap: layout.grid }}>
+      <View style={{ flex: 1 }}>{a}</View>
+      <View style={{ flex: 1 }}>{b}</View>
+    </View>
+  );
+  // The last Input in a card drops its 16 bottom margin, so card padding stays even.
+  const last = { marginBottom: -space[4] };
+
   const companyForm = (
-    <View>
-      <Input label="Business name" value={settings.name} onChange={v => setField('name', v)} theme={theme} />
-      <Input label="Subtitle" value={settings.subtitle} onChange={v => setField('subtitle', v)} theme={theme} />
-      <Input label="Address" value={settings.address} onChange={v => setField('address', v)} theme={theme} multiline />
-      <View style={{ flexDirection: 'row', gap: space[2] }}>
-        <View style={{ flex: 1 }}><Input label="City" value={settings.city} onChange={v => setField('city', v)} theme={theme} /></View>
-        <View style={{ flex: 1 }}><Input label="Pincode" value={settings.pincode} onChange={v => setField('pincode', v)} theme={theme} keyboardType="numeric" maxLength={6} /></View>
-      </View>
-      <View style={{ flexDirection: 'row', gap: space[2] }}>
-        <View style={{ flex: 1 }}><Input label="PAN" value={settings.pan} onChange={v => setField('pan', v)} theme={theme} autoCapitalize="characters" maxLength={10} /></View>
-        <View style={{ flex: 1 }}><Input label="Contact" value={settings.contact} onChange={v => setField('contact', v)} theme={theme} keyboardType="phone-pad" /></View>
-      </View>
-      <Input label="Email" value={settings.email} onChange={v => setField('email', v)} theme={theme} keyboardType="email-address" autoCapitalize="none" />
-      <SectionTitle title="Bank / UPI" theme={theme} />
-      <View style={{ flexDirection: 'row', gap: space[2] }}>
-        <View style={{ flex: 1 }}><Input label="Bank" value={settings.bank_name} onChange={v => setField('bank_name', v)} theme={theme} /></View>
-        <View style={{ flex: 1 }}><Input label="Branch" value={settings.bank_branch} onChange={v => setField('bank_branch', v)} theme={theme} /></View>
-      </View>
-      <View style={{ flexDirection: 'row', gap: space[2] }}>
-        <View style={{ flex: 1 }}><Input label="A/C no" value={settings.bank_ac_no} onChange={v => setField('bank_ac_no', v)} theme={theme} tabular keyboardType="numeric" /></View>
-        <View style={{ flex: 1 }}><Input label="IFSC" value={settings.bank_ifsc} onChange={v => setField('bank_ifsc', v)} theme={theme} autoCapitalize="characters" maxLength={11} /></View>
-      </View>
-      <Input label="UPI ID" value={settings.upi_id} onChange={v => setField('upi_id', v)} theme={theme} autoCapitalize="none" />
-      <SectionTitle title="Invoice numbering" theme={theme} />
-      <View style={{ flexDirection: 'row', gap: space[2] }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Prefix" value={settings.invoice_prefix} onChange={v => setField('invoice_prefix', v)} theme={theme} />
+    <View style={{ gap: layout.gap }}>
+      <Card theme={theme}>
+        <SectionTitle title="Business" theme={theme} />
+        <Input label="Business name" value={settings.name} onChange={v => setField('name', v)} theme={theme} />
+        <Input label="Subtitle" value={settings.subtitle} onChange={v => setField('subtitle', v)} theme={theme} />
+        <Input label="Address" value={settings.address} onChange={v => setField('address', v)} theme={theme} multiline />
+        {row(
+          <Input label="City" value={settings.city} onChange={v => setField('city', v)} theme={theme} />,
+          <Input label="Pincode" value={settings.pincode} onChange={v => setField('pincode', v)} theme={theme} keyboardType="numeric" maxLength={6} />,
+        )}
+        {row(
+          <Input label="PAN" value={settings.pan} onChange={v => setField('pan', v)} theme={theme} autoCapitalize="characters" maxLength={10} />,
+          <Input label="Contact" value={settings.contact} onChange={v => setField('contact', v)} theme={theme} keyboardType="phone-pad" />,
+        )}
+        <View style={last}>
+          <Input label="Email" value={settings.email} onChange={v => setField('email', v)} theme={theme} keyboardType="email-address" autoCapitalize="none" />
         </View>
-        <View style={{ flex: 1 }}>
-          <Input label="Next number" theme={theme} editable={false} tabular onChange={() => undefined}
-            value={`${settings.invoice_prefix}${String(settings.next_seq).padStart(3, '0')}`} />
+      </Card>
+      <Card theme={theme}>
+        <SectionTitle title="Bank / UPI" theme={theme} />
+        {row(
+          <Input label="Bank" value={settings.bank_name} onChange={v => setField('bank_name', v)} theme={theme} />,
+          <Input label="Branch" value={settings.bank_branch} onChange={v => setField('bank_branch', v)} theme={theme} />,
+        )}
+        {row(
+          <Input label="A/C no" value={settings.bank_ac_no} onChange={v => setField('bank_ac_no', v)} theme={theme} tabular keyboardType="numeric" />,
+          <Input label="IFSC" value={settings.bank_ifsc} onChange={v => setField('bank_ifsc', v)} theme={theme} autoCapitalize="characters" maxLength={11} />,
+        )}
+        <View style={last}>
+          <Input label="UPI ID" value={settings.upi_id} onChange={v => setField('upi_id', v)} theme={theme} autoCapitalize="none" />
         </View>
-      </View>
-      <Button label="Save" icon="checkmark" theme={theme} busy={busy} onPress={() => void saveCompany()}
-        style={{ alignSelf: 'flex-end', marginTop: space[3] }} />
+      </Card>
+      <Card theme={theme}>
+        <SectionTitle title="Invoice numbering" theme={theme} />
+        <View style={last}>
+          {row(
+            <Input label="Prefix" value={settings.invoice_prefix} onChange={v => setField('invoice_prefix', v)} theme={theme} />,
+            <Input label="Next number" theme={theme} editable={false} tabular onChange={() => undefined}
+              value={`${settings.invoice_prefix}${String(settings.next_seq).padStart(3, '0')}`} />,
+          )}
+        </View>
+      </Card>
+      <Button label="Save" icon="check" theme={theme} busy={busy} onPress={() => void saveCompany()} />
     </View>
   );
 
   const draftsPane = (
     <View>
       {bp.isPhone ? null : <SectionTitle title={`Drafts (${drafts.length})`} theme={theme} />}
-      {drafts.length === 0
-        ? <EmptyState icon="document-outline" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />
-        : (
-          <Card theme={theme} style={{ padding: 0, overflow: 'hidden' }}>
-            {drafts.map((d, i) => (
-              <ListItem
-                key={d.id}
-                theme={theme}
-                divider={i < drafts.length - 1}
-                title={d.party_name || '(no party)'}
-                subtitle={`${d.draft_no} · ${d.items_count} lines · ₹${formatPaise(d.total_paise)} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
-                onPress={() => nav.openCreate({ draftId: d.id })}
-                trailing={(
-                  <IconButton icon="trash-outline" label={`Delete draft ${d.draft_no}`} theme={theme}
-                    onPress={() => {
-                      alert('Delete draft?', d.draft_no, [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Delete', style: 'destructive',
-                          onPress: () => { void deleteDraft(d.id).then(() => { void load(); snack('Draft deleted'); }); },
-                        },
-                      ]);
-                    }} />
-                )}
-              />
-            ))}
-          </Card>
-        )}
+      <Card theme={theme} list>
+        {drafts.length === 0
+          ? <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />
+          : drafts.map((d, i) => (
+            <ListItem
+              key={d.id}
+              theme={theme}
+              flush
+              leadingText={initials(d.party_name)}
+              leadingAlt={i % 2 === 1}
+              divider={i < drafts.length - 1}
+              title={d.party_name || '(no party)'}
+              subtitle={`${d.draft_no} · ${d.items_count} lines · ₹${formatPaise(d.total_paise)} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
+              onPress={() => nav.openCreate({ draftId: d.id })}
+              trailing={(
+                <IconButton icon="trash-2" label={`Delete draft ${d.draft_no}`} theme={theme}
+                  onPress={() => {
+                    alert('Delete draft?', d.draft_no, [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete', style: 'destructive',
+                        onPress: () => { void deleteDraft(d.id).then(() => { void load(); snack('Draft deleted'); }); },
+                      },
+                    ]);
+                  }} />
+              )}
+            />
+          ))}
+      </Card>
     </View>
   );
 
   const backupPane = (
-    <View>
-      {bp.isPhone ? null : <SectionTitle title="Backup & restore" theme={theme} />}
-      <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[4] }]}>
-        Backups are SQLCipher-encrypted files. They only open on this device unless the key
-        is carried along; keep the exported file safe.
-      </Text>
-      <View style={{ flexDirection: 'row', gap: space[2], marginBottom: space[4] }}>
-        <Button label="Export" icon="share-outline" theme={theme} busy={busy} onPress={() => void doExportBackup()} style={{ flex: 1 }} />
-        <Button label="Restore" icon="download-outline" variant="outline" theme={theme} busy={busy} onPress={() => void doImportBackup()} style={{ flex: 1 }} />
-      </View>
-      {backups.length > 0 ? <SectionTitle title="Recent backups" theme={theme} /> : null}
-      {backups.map(b => (
-        <ListItem key={b.id} theme={theme} leadingIcon="archive-outline"
-          title={b.file_name}
-          subtitle={`${b.kind} · ${Math.round(b.size_bytes / 1024)} KB · ${b.created_at}`} />
-      ))}
+    <View style={{ gap: layout.gap }}>
+      <Card theme={theme} style={{ gap: space[4] }}>
+        <SectionTitle title="Backup & restore" theme={theme} />
+        <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: -space[3] }]}>
+          Backups are SQLCipher-encrypted files. They only open on this device unless the key
+          is carried along; keep the exported file safe.
+        </Text>
+        <View style={{ flexDirection: 'row', gap: layout.grid }}>
+          <Button label="Export" icon="share" theme={theme} busy={busy} onPress={() => void doExportBackup()} style={{ flex: 1 }} />
+          <Button label="Restore" icon="download" variant="outline" theme={theme} busy={busy} onPress={() => void doImportBackup()} style={{ flex: 1 }} />
+        </View>
+      </Card>
+      {backups.length > 0 ? (
+        <View>
+          <SectionTitle title="Recent backups" theme={theme} />
+          <Card theme={theme} list>
+            {backups.map((b, i) => (
+              <ListItem key={b.id} theme={theme} flush leadingIcon="archive" divider={i < backups.length - 1}
+                title={b.file_name}
+                subtitle={`${b.kind} · ${Math.round(b.size_bytes / 1024)} KB · ${b.created_at}`} />
+            ))}
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 
   const activityPane = (
     <View>
       {bp.isPhone ? null : <SectionTitle title="Recent activity" theme={theme} />}
-      {audit.length === 0 ? <EmptyState icon="time-outline" text="No activity yet." theme={theme} /> : null}
-      {audit.map(a => (
-        <ListItem key={a.id} theme={theme}
-          title={`${a.action} — ${a.entity_type} ${a.entity_id}`}
-          subtitle={a.created_at} />
-      ))}
+      <Card theme={theme} list>
+        {audit.length === 0 ? <EmptyState icon="clock" text="No activity yet." theme={theme} /> : null}
+        {audit.map((a, i) => (
+          <ListItem key={a.id} theme={theme} flush leadingIcon="clock" divider={i < audit.length - 1}
+            title={`${a.action} — ${a.entity_type} ${a.entity_id}`}
+            subtitle={a.created_at} />
+        ))}
+      </Card>
     </View>
   );
 
@@ -239,27 +269,36 @@ export function SettingsScreen() {
     company: companyForm, drafts: draftsPane, backup: backupPane, activity: activityPane,
   };
 
+  const sectionList = (phone: boolean) => (
+    <Card theme={theme} list>
+      {SECTIONS.map((x, i) => (
+        <ListItem key={x.key} theme={theme} flush leadingIcon={x.icon} title={x.label} subtitle={x.hint}
+          chevron={phone} divider={i < SECTIONS.length - 1}
+          selected={!phone && section === x.key}
+          onPress={() => (phone ? setOpenOnPhone(x.key) : setSection(x.key))} />
+      ))}
+    </Card>
+  );
+
   if (bp.isPhone) {
     const open = SECTIONS.find(x => x.key === openOnPhone);
     return (
       <View style={{ flex: 1 }}>
         <TopAppBar
           title={open ? open.label : 'Settings'}
+          subtitle={open ? undefined : 'Company, drafts, backup'}
           theme={theme}
           large={!open}
           onBack={open ? () => setOpenOnPhone(null) : undefined}
         />
         <ScrollView
-          contentContainerStyle={open ? { padding: bp.margin, paddingBottom: space[7] } : { paddingVertical: space[2] }}
+          contentContainerStyle={{ paddingHorizontal: layout.side, paddingTop: space[1], paddingBottom: navInset, gap: layout.gap }}
           keyboardShouldPersistTaps="handled"
         >
           {open ? panes[open.key] : (
             <>
-              {SECTIONS.map(x => (
-                <ListItem key={x.key} theme={theme} leadingIcon={x.icon} title={x.label} subtitle={x.hint}
-                  chevron divider={false} onPress={() => setOpenOnPhone(x.key)} />
-              ))}
-              <Text style={[type.caption, { color: theme.textMuted, textAlign: 'center', marginTop: space[5] }]}>
+              {sectionList(true)}
+              <Text style={[type.caption, { color: theme.textMuted, textAlign: 'center' }]}>
                 {VERSION_LABEL}
               </Text>
             </>
@@ -271,18 +310,15 @@ export function SettingsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <TopAppBar title="Settings" theme={theme} />
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        <View style={{ width: 300, borderRightWidth: 1, borderColor: theme.border, paddingVertical: space[2] }}>
-          {SECTIONS.map(x => (
-            <ListItem key={x.key} theme={theme} leadingIcon={x.icon} title={x.label} subtitle={x.hint}
-              divider={false} selected={section === x.key} onPress={() => setSection(x.key)} />
-          ))}
-          <Text style={[type.caption, { color: theme.textMuted, paddingHorizontal: space[4], marginTop: space[4] }]}>
+      <TopAppBar title="Settings" subtitle="Company, drafts, backup" theme={theme} large />
+      <View style={{ flex: 1, flexDirection: 'row', gap: layout.gap }}>
+        <View style={{ width: 300, paddingStart: layout.side, gap: layout.gap }}>
+          {sectionList(false)}
+          <Text style={[type.caption, { color: theme.textMuted, paddingHorizontal: space[1] }]}>
             {VERSION_LABEL}
           </Text>
         </View>
-        <ScrollView contentContainerStyle={{ padding: bp.margin, maxWidth: 720, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ paddingEnd: layout.side, paddingBottom: navInset, maxWidth: 720, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           {panes[section]}
         </ScrollView>
       </View>

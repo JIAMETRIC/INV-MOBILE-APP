@@ -2,18 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 // Per-weight subpaths: the package root would bundle all 18 Inter styles.
+import { Inter_300Light } from '@expo-google-fonts/inter/300Light';
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
-import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue/400Regular';
 import { ThemeProvider, useTheme } from './providers';
 import { NavProvider, useNav } from './navigation';
 import { useBreakpoint } from '../ui/useBreakpoint';
-import { BottomTabs, NAV_BAR_HEIGHT, Rail } from '../ui/Nav';
+import { BottomTabs, Rail } from '../ui/Nav';
+import { NAV_HEIGHT } from '../ui/navMetrics';
 import { space, type } from '../ui/tokens';
 import { getDb } from '../data/db';
 import { syncNextSeq } from '../data/settingsRepo';
@@ -31,8 +32,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        {/* Every screen opens on the navy brand app bar, so status icons are light in both themes. */}
-        <StatusBar style="light" />
+        {/* Flat light (#ebeaea) or black screens: status icons follow the system scheme. */}
+        <StatusBar style="auto" />
         <Root />
       </ThemeProvider>
     </SafeAreaProvider>
@@ -45,7 +46,7 @@ function Root() {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState('');
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, BebasNeue_400Regular,
+    Inter_300Light, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, BebasNeue_400Regular,
   });
   // A font failure must not lock the app out: carry on with the system font.
   const fontsReady = fontsLoaded || !!fontError;
@@ -81,7 +82,7 @@ function Root() {
     return (
       <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: space[5], gap: space[2] }}>
         <StatusBar style={theme.dark ? 'light' : 'dark'} />
-        <Ionicons name="alert-circle-outline" size={40} color={theme.error} />
+        <Feather name="alert-circle" size={40} color={theme.error} />
         <Text style={[t(type.heading), { color: theme.text }]}>Cannot open the database</Text>
         <Text style={[t(type.bodyMedium), { color: theme.textMuted, textAlign: 'center' }]}>{error}</Text>
       </View>
@@ -90,8 +91,8 @@ function Root() {
 
   return (
     <NavProvider isPhone={bp.isPhone}>
-      {/* Phones: clear the nav bar and the 56dp FAB (+16dp margin), so snackbars never cover it. */}
-      <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_BAR_HEIGHT + 72 : 0}>
+      {/* Phones: clear the floating nav and the 52 FAB above it (16 gaps), so snackbars never cover them. */}
+      <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_HEIGHT + 52 + 2 * 16 + 8 : 0}>
         <Shell />
       </SnackbarProvider>
     </NavProvider>

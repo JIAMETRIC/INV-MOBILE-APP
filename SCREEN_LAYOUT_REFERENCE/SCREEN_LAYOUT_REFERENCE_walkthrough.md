@@ -54,3 +54,36 @@ Reference doc: S1.3.1, S4.B.6 and S4.L3 text updated; S4 line numbers shifted (+
 - `tsc --noEmit`: OK. `npm run test:integration`: all PASS (now including the stock-totals test).
 - Emulator (fresh bundle): row 2 shows Products Sold 3 · Balance Stock 12 · Actual Stock 15 (15 − 3 = 12; PRE-001's 3 lines). Labels fit on 2 lines.
 - FAB measured from screenshot pixels (`#25BDC3`): 360 × 125 px at 2.625 px/dp = **137 × 48 dp**; dark label readable.
+
+## Prompt 4 — Flat Glass · Brand Blue applied to every screen (2026-10-22, session 13)
+
+**Kit files installed** (owner: "Install the kit"):
+- `CLAUDE.md`: kit rules, plus a "Project exceptions" section (Bebas numbers, white-on-blue buttons, real-status green/red, no blur, dark mode follows the phone) and a pointer to `AGENTS.md`.
+- `design/DESIGN.md`: byte-identical to `mobile-design-spec.md`.
+- `design/screens/`: 4 PNG + 4 HTML, identical to the reference folder (`cmp`).
+- `.claude/skills/apply-design/SKILL.md`: identical.
+
+**Code changes**
+
+| File | Change |
+| --- | --- |
+| `src/ui/tokens.ts` | rewritten (see THEME_AND_COLORS Prompt 12) |
+| `src/ui/components.tsx` | rewritten on the kit recipes. New: `IconChip`, `SegmentedControl`, `initials()`; `IconButton glass`, `Card small/list`, `ListItem flush/leadingAlt`, `ListRow flush` |
+| `src/ui/Nav.tsx` | floating 68 bottom nav (icon-only, 48 items), glass rail |
+| `src/ui/navMetrics.ts` | new: `NAV_HEIGHT`, `useNavBottom`, `useNavInset`, `useContentInset` |
+| `src/ui/Sheet.tsx`, `src/ui/Snackbar.tsx` | kit radii and shadows; solid white/black sheet; black snackbar |
+| `src/shell/App.tsx` | Inter 300 loaded (700 dropped), status bar `auto`, snackbar offset for nav + FAB, Feather |
+| `src/features/**` (6 screens) | re-composed on glass cards / list cards / segmented controls / flat headers (see the Prompt 4 table in the tracking file); logic unchanged; all icons mapped Ionicons → Feather (45 names) |
+
+**Verification**
+- `tsc --noEmit` clean; `test:integration` passes.
+- Audit: no hard-coded colours outside tokens, no gradients, no `fontWeight`, no 700 weight, no Ionicons.
+- Emulator (Metro `--clear`), light mode: Dashboard, Invoices, Invoice detail, Create invoice (steps 1–2), Products, Edit product sheet, Settings, Drafts. Dark mode (`cmd uimode night yes`): Dashboard and Invoice detail follow the Sign In recipe; the emulator was set back to light.
+- Fixed after the first look: stat-tile values misaligned (label min height 36); list cards stretched full height (now hug their rows); "AMOUNT" header wrapped (columns rebalanced); "XXL" avatar overflow (3-letter initials at 11px); inactive chips invisible on the white sheet (input-colour border); 68 dp of empty space under short lists (FAB clearance only once a list has more than 6 rows).
+
+**Differences from the reference PNGs (by design or platform)**
+- Numbers are Bebas Neue, not Inter 300 (owner's choice).
+- No backdrop blur (needs expo-blur and a native rebuild).
+- No Day/Week/Month control or revenue chart on the Dashboard: the app has no time-series data. The hero card shows Total billed for the FY instead.
+- Bottom-sheet and dialog surfaces are solid, not glass.
+- The PDF keeps its print styling.

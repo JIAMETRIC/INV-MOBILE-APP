@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, ScrollView, View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
-  Badge, Button, Chip, EmptyState, FAB, Input, ListItem, ListRow, MoneyInput, SearchField, SectionTitle, TopAppBar,
+  Badge, Button, Card, Chip, EmptyState, FAB, Input, ListItem, ListRow, MoneyInput, SearchField, SectionTitle, TopAppBar,
 } from '../../ui/components';
+import { useNavInset } from '../../ui/navMetrics';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { space, type } from '../../ui/tokens';
+import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise } from '../../data/money';
 import { PRODUCT_SIZES, PRODUCT_SEED_NAMES } from '../../data/schema';
@@ -38,6 +39,7 @@ export function ProductsScreen() {
   const nav = useNav();
   const bp = useBreakpoint();
   const snack = useSnackbar();
+  const navInset = useNavInset();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(false);
@@ -158,7 +160,7 @@ export function ProductsScreen() {
       <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
         {draft.name} · {draft.size || 'No size'} — current stock {num(String(draft.stock_qty))}
       </Text>
-      <View style={{ flexDirection: 'row', gap: space[3] }}>
+      <View style={{ flexDirection: 'row', gap: layout.grid }}>
         <View style={{ flex: 1 }}>
           <Input label="Qty to add" value={rQty} error={qtyError || undefined}
             onChange={v => { setRQty(num(v)); setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
@@ -172,7 +174,7 @@ export function ProductsScreen() {
         onChange={setRNote} theme={theme} placeholder="Optional" />
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space[2] }}>
         <Button label="Back" variant="ghost" theme={theme} onPress={() => setMode('edit')} />
-        <Button label="Add to stock" icon="add" theme={theme} onPress={() => void applyRestock()} />
+        <Button label="Add to stock" icon="plus" theme={theme} onPress={() => void applyRestock()} />
       </View>
     </View>
   );
@@ -181,10 +183,10 @@ export function ProductsScreen() {
     <View style={{ marginTop: space[4] }}>
       <SectionTitle title="Stock history" theme={theme} />
       {history.map(h => (
-        <View key={h.id} style={{ flexDirection: 'row', gap: space[3], paddingVertical: space[2], borderBottomWidth: 1, borderColor: theme.border }}>
-          <Ionicons name={h.kind === 'restock' ? 'arrow-down-circle-outline' : 'create-outline'} size={20} color={theme.textMuted} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={[type.bodyMedium, { color: theme.text }]}>
+        <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], borderBottomWidth: 1, borderColor: theme.divider }}>
+          <Feather name={h.kind === 'restock' ? 'arrow-down-circle' : 'edit-2'} size={20} color={theme.accent} />
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={[type.label, { color: theme.text }]}>
               {h.kind === 'restock' ? 'Restock' : 'Edit'} {h.delta > 0 ? '+' : ''}{h.delta} → stock {h.stock_after}
             </Text>
             <Text style={[type.caption, { color: theme.textMuted }]} numberOfLines={1}>
@@ -200,14 +202,14 @@ export function ProductsScreen() {
     <View>
       <Input label="Product name" value={draft.name} error={nameError || undefined} autoCapitalize="words"
         onChange={v => { setDraft({ ...draft, name: v }); setNameError(''); }} theme={theme} />
-      <Text style={[type.labelMedium, { color: theme.textMuted }]}>Quick pick</Text>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Quick pick</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[2] }}>
         {PRODUCT_SEED_NAMES.map(n => (
           <Chip key={n} label={n} active={draft.name === n}
             onPress={() => { setDraft({ ...draft, name: n }); setNameError(''); }} theme={theme} />
         ))}
       </View>
-      <Text style={[type.labelMedium, { color: theme.textMuted }]}>Size</Text>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Size</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[3] }}>
         {PRODUCT_SIZES.map(s => (
           <Chip key={s} label={s} active={draft.size === s}
@@ -216,7 +218,7 @@ export function ProductsScreen() {
         <Chip label="No size" active={draft.size === ''}
           onPress={() => setDraft({ ...draft, size: '' })} theme={theme} />
       </View>
-      <View style={{ flexDirection: 'row', gap: space[3] }}>
+      <View style={{ flexDirection: 'row', gap: layout.grid }}>
         <View style={{ flex: 1 }}>
           <MoneyInput label="Price (₹)" valuePaise={draft.unit_paise}
             onChangePaise={p => setDraft(d => ({ ...d, unit_paise: p }))} theme={theme} />
@@ -229,8 +231,8 @@ export function ProductsScreen() {
         </View>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[2], marginTop: space[1] }}>
-        {editId ? <Button label="Delete" icon="trash-outline" variant="ghost" danger theme={theme} onPress={remove} /> : null}
-        {editId ? <Button label="Restock" icon="add-circle-outline" variant="tonal" theme={theme} onPress={openRestock} /> : null}
+        {editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger theme={theme} onPress={remove} /> : null}
+        {editId ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={openRestock} /> : null}
         <Button label="Save" theme={theme} onPress={() => void save()} />
       </View>
       {historyBlock}
@@ -239,21 +241,21 @@ export function ProductsScreen() {
 
   const headerRow = (
     <View style={{
-      flexDirection: 'row', paddingHorizontal: space[4], paddingVertical: space[2],
-      borderBottomWidth: 1, borderColor: theme.outline,
+      flexDirection: 'row', paddingVertical: space[3],
+      borderBottomWidth: 1, borderColor: theme.divider,
     }}>
       {[['NAME', 0], ['SIZE', 52], ['PRICE', 84], ['STOCK', 60], ['SOLD', 56], ['AVL', 76]].map(([h, w]) => (
-        <Text key={h} style={[type.labelMedium, {
+        <Text key={h} style={[type.overline, {
           color: theme.textMuted, ...(w ? { width: w as number, textAlign: h === 'SIZE' ? 'left' : 'right' } : { flex: 3 }),
         }]}>{h}</Text>
       ))}
     </View>
   );
 
-  const tableRow = (p: ProductRow) => (
-    <ListRow theme={theme} onPress={() => startEdit(p)}>
+  const tableRow = (p: ProductRow, last: boolean) => (
+    <ListRow theme={theme} flush divider={!last} onPress={() => startEdit(p)}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={[type.bodyMedium, { color: theme.text, flex: 3 }]} numberOfLines={1}>{p.name}</Text>
+        <Text style={[type.label, { color: theme.text, flex: 3 }]} numberOfLines={1}>{p.name}</Text>
         <Text style={[type.number, { color: theme.text, width: 52 }]}>{p.size || '—'}</Text>
         <Text style={[type.number, { color: theme.text, width: 84, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
         <Text style={[type.number, { color: theme.text, width: 60, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
@@ -271,51 +273,61 @@ export function ProductsScreen() {
         title="Products"
         subtitle={`${products.length} items`}
         theme={theme}
+        large
         actions={[
-          ...(bp.isPhone ? [] : [{ icon: 'add' as const, label: 'New product', onPress: () => startEdit() }]),
-          { icon: 'download-outline', label: 'Export products to Excel', onPress: exportXlsx, busy },
+          ...(bp.isPhone ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => startEdit() }]),
+          { icon: 'download', label: 'Export products to Excel', onPress: exportXlsx, busy },
         ]}
       />
       <View style={{ flex: 1, flexDirection: 'row' }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ paddingHorizontal: space[4], paddingVertical: space[3] }}>
+        <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
+          <View style={{ paddingTop: space[1] }}>
             <SearchField value={search} onChange={setSearch} placeholder="Search products" theme={theme} />
           </View>
-          {bp.atLeast('md') ? headerRow : null}
-          <FlatList
-            data={products}
-            keyExtractor={p => String(p.id)}
-            contentContainerStyle={{ paddingBottom: 96 }}
-            ListEmptyComponent={search
-              ? <EmptyState icon="search-outline" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
-              : <EmptyState icon="pricetags-outline" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
-            renderItem={({ item }) => bp.atLeast('md')
-              ? tableRow(item)
-              : (
-                <ListItem
-                  theme={theme}
-                  leadingText={item.size || '—'}
-                  title={item.name}
-                  subtitle={`Stock ${num(String(item.stock_qty))} · Sold ${num(String(item.sold_qty))}`}
-                  onPress={() => startEdit(item)}
-                  trailing={(
-                    <View style={{ alignItems: 'flex-end', gap: space[1] }}>
-                      <Text style={[type.number, { color: theme.text }]}>₹{formatPaise(item.unit_paise)}</Text>
-                      <AvlBadge avl={item.avl_qty} theme={theme} />
-                    </View>
-                  )}
-                />
-              )}
-          />
-          {bp.isPhone ? <FAB icon="add" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}
+          <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
+            {bp.atLeast('md') ? headerRow : null}
+            <FlatList
+              data={products}
+              keyExtractor={p => String(p.id)}
+              style={{ flexGrow: 0 }}
+              // Phones, long lists: keep the last row clear of the Add product button.
+              contentContainerStyle={{ paddingBottom: bp.isPhone && products.length > 6 ? 52 + layout.gap : 0 }}
+              ListEmptyComponent={search
+                ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
+                : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
+              renderItem={({ item, index }) => bp.atLeast('md')
+                ? tableRow(item, index === products.length - 1)
+                : (
+                  <ListItem
+                    theme={theme}
+                    flush
+                    divider={index < products.length - 1}
+                    leadingText={item.size || '—'}
+                    leadingAlt={index % 2 === 1}
+                    title={item.name}
+                    subtitle={`Stock ${num(String(item.stock_qty))} · Sold ${num(String(item.sold_qty))}`}
+                    onPress={() => startEdit(item)}
+                    trailing={(
+                      <View style={{ alignItems: 'flex-end', gap: space[1] }}>
+                        <Text style={[type.number, { color: theme.text }]}>₹{formatPaise(item.unit_paise)}</Text>
+                        <AvlBadge avl={item.avl_qty} theme={theme} />
+                      </View>
+                    )}
+                  />
+                )}
+            />
+          </Card>
+          {bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}
         </View>
         {bp.atLeast('lg') ? (
-          <ScrollView style={{ width: '38%', borderLeftWidth: 1, borderColor: theme.border, backgroundColor: theme.surface }}
-            contentContainerStyle={{ padding: space[5] }} keyboardShouldPersistTaps="handled">
-            <SectionTitle title={editing ? editorTitle : 'Product editor'} theme={theme} />
-            {editing
-              ? (mode === 'restock' && editId ? restockFields : editorFields)
-              : <EmptyState icon="pricetag-outline" text="Select a product to edit, or add a new one." theme={theme} />}
+          <ScrollView style={{ width: '38%' }}
+            contentContainerStyle={{ paddingEnd: layout.side, paddingBottom: navInset }} keyboardShouldPersistTaps="handled">
+            <Card theme={theme} style={{ padding: 20 }}>
+              <SectionTitle title={editing ? editorTitle : 'Product editor'} theme={theme} />
+              {editing
+                ? (mode === 'restock' && editId ? restockFields : editorFields)
+                : <EmptyState icon="tag" text="Select a product to edit, or add a new one." theme={theme} />}
+            </Card>
           </ScrollView>
         ) : null}
         {bp.atLeast('lg') ? null : (

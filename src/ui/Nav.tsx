@@ -1,91 +1,71 @@
 import React from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { elevation, font, radius, space, touch, type } from './tokens';
+import { font, layout, radius, shadow, space, touch, type } from './tokens';
 import type { Theme } from './tokens';
-import { ripple } from './components';
+import { ripple, type IconName } from './components';
+import { NAV_HEIGHT, useNavBottom } from './navMetrics';
 
 export type Tab = 'dashboard' | 'invoices' | 'products' | 'settings';
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
-
-export const TABS: ReadonlyArray<{ tab: Tab; icon: IconName; iconActive: IconName; label: string }> = [
-  { tab: 'dashboard', icon: 'home-outline', iconActive: 'home', label: 'Home' },
-  { tab: 'invoices', icon: 'document-text-outline', iconActive: 'document-text', label: 'Invoices' },
-  { tab: 'products', icon: 'pricetags-outline', iconActive: 'pricetags', label: 'Products' },
-  { tab: 'settings', icon: 'settings-outline', iconActive: 'settings', label: 'Settings' },
+export const TABS: ReadonlyArray<{ tab: Tab; icon: IconName; label: string }> = [
+  { tab: 'dashboard', icon: 'home', label: 'Home' },
+  { tab: 'invoices', icon: 'file-text', label: 'Invoices' },
+  { tab: 'products', icon: 'tag', label: 'Products' },
+  { tab: 'settings', icon: 'settings', label: 'Settings' },
 ];
 
-type Item = { tab: Tab; icon: IconName; iconActive: IconName; label: string };
-
-export const NAV_BAR_HEIGHT = 80;
-
-function Indicator({ active, theme, width, children }: {
-  active: boolean; theme: Theme; width: number; children: React.ReactNode;
+// Kit nav item: 48×48, radius 16. Active: blue fill, white icon, small shadow.
+// Inactive: #666 icon. Icons only, as in the reference; the label is spoken.
+function NavItem({ on, icon, label, onPress, theme }: {
+  on: boolean; icon: IconName; label: string; onPress: () => void; theme: Theme;
 }) {
   return (
-    <View style={{
-      width, height: 32, borderRadius: radius.lg,
-      alignItems: 'center', justifyContent: 'center',
-      backgroundColor: active ? theme.secondaryContainer : 'transparent',
-    }}>
-      {children}
-    </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: on }}
+      android_ripple={ripple(theme, true)}
+      style={({ pressed }) => [{
+        width: touch.nav, height: touch.nav, borderRadius: radius.item,
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: on ? theme.fillStrong : 'transparent',
+        boxShadow: on ? shadow.primary : undefined,
+      }, Platform.OS === 'web' && pressed ? { opacity: 0.7 } : null]}
+    >
+      <Feather name={icon} size={22} color={on ? theme.onFillStrong : theme.textMuted} />
+    </Pressable>
   );
 }
 
-// M3 navigation bar: 80dp, 64x32 active indicator pill, label under the icon,
-// padded by the gesture/3-button nav inset (edge-to-edge on Android 15+).
+// Kit floating bottom nav: 20 from the left, right and bottom edges, 68 tall,
+// radius 24, glass "Bottom nav" recipe, 4 items evenly spread.
 export function BottomTabs({ active, onSelect, theme }: {
   active: Tab; onSelect: (t: Tab) => void; theme: Theme;
 }) {
-  const insets = useSafeAreaInsets();
+  const bottom = useNavBottom();
   return (
     <View
       accessibilityRole="tablist"
       style={{
-        flexDirection: 'row',
-        backgroundColor: theme.navSurface,
-        borderTopWidth: 1, borderTopColor: theme.navBorder,
-        paddingBottom: insets.bottom,
+        position: 'absolute', left: layout.side, right: layout.side, bottom,
+        height: NAV_HEIGHT, borderRadius: radius.card,
+        backgroundColor: theme.navSurface, borderWidth: 1, borderColor: theme.navBorder,
+        boxShadow: shadow.secondary,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
       }}
     >
-      {TABS.map((t: Item) => {
-        const on = active === t.tab;
-        return (
-          <Pressable
-            key={t.tab}
-            onPress={() => onSelect(t.tab)}
-            accessibilityRole="tab"
-            accessibilityLabel={t.label}
-            accessibilityState={{ selected: on }}
-            android_ripple={ripple(theme, true)}
-            style={({ pressed }) => [{
-              flex: 1, height: NAV_BAR_HEIGHT, paddingTop: space[3],
-              alignItems: 'center', gap: space[1],
-            }, Platform.OS === 'web' && pressed ? { opacity: 0.7 } : null]}
-          >
-            <Indicator active={on} theme={theme} width={64}>
-              <Ionicons
-                name={on ? t.iconActive : t.icon}
-                size={24}
-                color={on ? theme.onSecondaryContainer : theme.textMuted}
-              />
-            </Indicator>
-            <Text style={[type.labelMedium, {
-              color: on ? theme.text : theme.textMuted, fontFamily: on ? font.bold : font.medium,
-            }]}>
-              {t.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {TABS.map(t => (
+        <NavItem key={t.tab} on={active === t.tab} icon={t.icon} label={t.label} onPress={() => onSelect(t.tab)} theme={theme} />
+      ))}
     </View>
   );
 }
 
-// M3 navigation rail: FAB at the top, destinations below with 56x32 indicator pills.
+// Tablet rail on the same recipe: glass column, "New invoice" primary button
+// on top, then the 48×48 nav items (labels below them at xl+).
 export function Rail({ active, onSelect, theme, labels, onNew }: {
   active: Tab; onSelect: (t: Tab) => void; theme: Theme; labels: boolean;
   onNew: () => void;
@@ -97,8 +77,9 @@ export function Rail({ active, onSelect, theme, labels, onNew }: {
       style={{
         width: 88,
         backgroundColor: theme.navSurface,
-        borderRightWidth: 1, borderRightColor: theme.navBorder,
-        paddingTop: insets.top + space[3],
+        borderRightWidth: 1, borderColor: theme.navBorder,
+        boxShadow: shadow.secondary,
+        paddingTop: insets.top + space[4],
         paddingBottom: insets.bottom,
         alignItems: 'center',
         gap: space[3],
@@ -109,36 +90,25 @@ export function Rail({ active, onSelect, theme, labels, onNew }: {
         accessibilityRole="button"
         accessibilityLabel="New invoice"
         android_ripple={ripple(theme)}
-        style={{
-          width: touch.comfortable, height: touch.comfortable, borderRadius: radius.lg, overflow: 'hidden',
-          backgroundColor: theme.primaryContainer, ...elevation.fab,
+        style={({ pressed }) => [{
+          width: touch.button, height: touch.button, borderRadius: radius.control, overflow: 'hidden',
+          backgroundColor: theme.fab, boxShadow: shadow.secondary,
           alignItems: 'center', justifyContent: 'center', marginBottom: space[5],
-        }}
+        }, pressed ? { transform: [{ scale: 0.96 }] } : null]}
       >
-        <Ionicons name="add" size={24} color={theme.onPrimaryContainer} />
+        <Feather name="plus" size={22} color={theme.onFab} />
       </Pressable>
-      {TABS.map((t: Item) => {
+      {TABS.map(t => {
         const on = active === t.tab;
         return (
-          <Pressable
-            key={t.tab}
-            onPress={() => onSelect(t.tab)}
-            accessibilityRole="tab"
-            accessibilityLabel={t.label}
-            accessibilityState={{ selected: on }}
-            style={{ minHeight: touch.comfortable, alignItems: 'center', gap: space[1], width: '100%' }}
-          >
-            <Indicator active={on} theme={theme} width={56}>
-              <Ionicons
-                name={on ? t.iconActive : t.icon}
-                size={24}
-                color={on ? theme.onSecondaryContainer : theme.textMuted}
-              />
-            </Indicator>
+          <View key={t.tab} style={{ alignItems: 'center', gap: space[1] }}>
+            <NavItem on={on} icon={t.icon} label={t.label} onPress={() => onSelect(t.tab)} theme={theme} />
             {labels ? (
-              <Text style={[type.labelMedium, { color: on ? theme.text : theme.textMuted }]}>{t.label}</Text>
+              <Text style={[type.caption, { color: on ? theme.text : theme.textMuted, fontFamily: on ? font.semibold : font.medium }]}>
+                {t.label}
+              </Text>
             ) : null}
-          </Pressable>
+          </View>
         );
       })}
     </View>

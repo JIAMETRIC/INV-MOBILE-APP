@@ -101,3 +101,18 @@ Arrived mid-turn while the Inter commit (`f9bfa47`) was being made.
 **Diffs:** `package.json` + `@expo-google-fonts/bebas-neue`. `App.tsx` loads `BebasNeue_400Regular` (subpath import). `tokens.ts` adds `font.numeric`; `type.number` → Bebas Neue; new `type.figure` and `type.numberField`. `components.tsx`: Input `tabular` → `type.numberField`; strong MoneyText → larger + accentDeep (no bold face). Dashboard KPI value and the Create invoice TOTAL bar → `type.figure`. `build-pdf-fonts.py` rewritten around a `FACES` list (adds a Bebas digits subset); `pdfFonts.ts` regenerated (48 KB, export renamed `PDF_FONT_CSS`); `pdfTemplate.ts`: `td.n, .tot td.v` in Bebas Neue 11.5px.
 
 **Verification:** `tsc` OK; `test:integration` passes. Emulator (Metro `--clear`): Dashboard KPI values (1, ₹0.00, 3, 12, 15) and list amounts in Bebas, labels in Inter; Invoice detail Qty/Rate/Amount and Gross/Round off/Total in Bebas (Total larger, in navy). Share PDF regenerated PRE-001: `pdffonts` shows Inter-Bold, Inter-Regular and BebasNeue-Regular embedded; the rendered page shows Bebas in the number columns and totals.
+
+## Prompt 12 — Flat Glass · Brand Blue kit applied (2026-10-22, session 13)
+
+The kit files, the full redesign diff and the screen comparison are logged in `SCREEN_LAYOUT_REFERENCE_walkthrough.md` (Prompt 4). The theme-specific parts:
+
+- `src/ui/tokens.ts` rewritten. `brand` = 5 kit colours + link; light/dark built only from them and their §2.2 variants (+ real-status green `#2e7d32`/`#66bb6a`, red `#c62828`/`#ef5350`).
+  - New `layout` (20 / 24 / 16 / 12 / 8), kit `radius` (12/14/16/20/24/28/32/999), `touch` (44/48/50/52/56) and `motion` tokens.
+  - Kit type scale: Inter 300–600, numbers in Bebas.
+  - `status` → `statusStyle` (Feather glyphs); `elevation` removed.
+- `BRAND_COLOURS.md` rewritten for the 5 kit colours.
+- Audit after the rewrite: no `#rrggbb` / `rgba(` in `src/` outside `tokens.ts` (and the PDF files), no gradients, no `fontWeight`, no 700 weight, no Ionicons. Contrast: `#000` on `#ebeaea` 17.4:1 and `#666` on `#ebeaea` 4.7:1 (kit §9 values); white on `#2596be` 3.4:1 kept by the owner's choice.
+
+## Prompt 13 — Corner radii set by the owner (2026-10-22, session 13)
+
+`src/ui/tokens.ts` `radius`: chip 12→10, control 14→12, item 16→14, bar 20→16, card 24→16, form 28→18, frame 32→16 (pill unchanged); the comment is updated. Every component reads these tokens, so no other code changed. Typecheck clean. Emulator (Metro restarted): Dashboard and Invoices show the tighter corners on cards, stat tiles, buttons, the search field, the segmented control's container and the bottom nav. `CLAUDE.md` exceptions, the layout reference (C and tokens tables) and this tracking file are updated.

@@ -9,6 +9,8 @@ Every screen, section, row, column and function in the app, each with a **stable
 >
 > ID format: `S<screen>.<section>[.<row>]`. Overlays are `P<n>`, shared components are `C<n>`, documents are `D<n>`.
 > Line numbers were taken on 2026-10-22 (session 13, re-checked after the Prompt 2 fixes). They drift as code changes. The file name plus the component name is what stays reliable.
+>
+> **Flat Glass redesign (Prompt 4):** every screen now follows `design/DESIGN.md` (see `CLAUDE.md`). S0.4, S1, S2 and the C / tokens tables below are updated for it. Elsewhere, read "app bar" as the flat header (C1), "card" as a glass card (C6), and chips as pills (C8); section IDs are unchanged. Line numbers in S3–S6 are from before the redesign.
 
 ---
 
@@ -98,9 +100,11 @@ Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen
 
 | ID | Component | Spec | Lines |
 | --- | --- | --- | --- |
-| S0.4.1 | `TABS` | 4 destinations: dashboard/Home, invoices/Invoices, products/Products, settings/Settings (Ionicons outline + filled) | Nav.tsx:13-18 |
-| S0.4.2 | `BottomTabs` | row, each tab flex:1, height 80 (`NAV_BAR_HEIGHT`), 64×32 indicator pill, label under the icon | Nav.tsx:40-85 |
-| S0.4.3 | `Rail` | width 88, "+" FAB 56×56 at the top (calls `openCreate`), then 56×32 pills; labels only when `bp.atLeast('xl')` | Nav.tsx:88-144 |
+| S0.4.1 | `TABS` | 4 destinations, Feather icons: dashboard `home`, invoices `file-text`, products `tag`, settings `settings` | Nav.tsx:12-17 |
+| S0.4.2 | `BottomTabs` | kit floating bottom nav: absolute, 20 from the left/right edges and `useNavBottom()` (≥ 20) from the bottom; height 68 (`NAV_HEIGHT`), radius 16, glass nav fill + 1px border, `shadow.secondary`; 4 icon-only items (label is the accessibility label) | Nav.tsx:45-66 |
+| S0.4.2a | `NavItem` | 48×48, radius 14; active = blue fill, white 22px icon, `shadow.primary`; inactive = `#666` icon | Nav.tsx:21-41 |
+| S0.4.3 | `Rail` | tablet: width 88, glass nav fill, right border; "New invoice" primary button (52, radius 12) on top, then `NavItem`s; labels under them at xl+ | Nav.tsx:69-123 |
+| S0.4.4 | `navMetrics.ts` | `NAV_HEIGHT` 68 · `useNavBottom()` · `useNavInset()` (space screens keep clear above the nav) · `useContentInset(withFab)` | navMetrics.ts |
 
 ### S0.5 Navigation state (`NavProvider`, navigation.tsx)
 
@@ -120,64 +124,64 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 
 ## S1 — Dashboard (Home)
 
-**File:** `src/features/dashboard/DashboardScreen.tsx` · **Data:** `getKpis()`, `recentInvoices(5)`, `getAging()` from `src/data/dashboardRepo.ts`; `getStockTotals()` from `src/data/productsRepo.ts`
+**File:** `src/features/dashboard/DashboardScreen.tsx` · **Data:** `getKpis()`, `recentInvoices(5)`, `getAging()` from `src/data/dashboardRepo.ts`; `getStockTotals()` from `src/data/productsRepo.ts` · **Kit reference:** `design/screens/02-dashboard`
 
 ### Phone wireframe (sm)
 
 ```
+ FY 2026–27 overview          S1.0 flat header: caption above H2 title
+ Dashboard
 ┌─────────────────────────────┐
-│ Dashboard                   │ S1.0 large gradient app bar
-│ FY 2026–27 overview         │
-├──────────────┬──────────────┤
-│ Invoices(FY) │ Total billed │ S1.1 KPI grid, row 1 (2 across)
-│ 1            │ ₹0.00        │
-├─────────┬────┴────┬─────────┤
-│ [cart]  │ [cube]  │ [layers]│ S1.1 KPI grid, row 2 (3 across,
-│ Products│ Balance │ Actual  │       compact: icon above label)
-│ Sold    │ Stock   │ Stock   │
-│ 3       │ 12      │ 15      │
-├─────────┴─────────┴─────────┤
-│ Recent invoices     See all │ S1.2
-│ ┌─────────────────────────┐ │
-│ │ Party        ₹0.00      │ │ S1.2.1 row
-│ │ PRE-001·date [Issued]   │ │
-│ └─────────────────────────┘ │
-│ Outstanding (aging)         │ S1.3
-│ ┌─────────────────────────┐ │
-│ │ Party        ₹0.00      │ │ S1.3.1 row
-│ │ PRE-001·due date        │ │
-│ └─────────────────────────┘ │
-│             [+ New invoice] │ S1.4 FAB (48dp, #25BDC3)
+│ TOTAL BILLED · FY [1 invoice]│ S1.1 hero card (kit "Revenue" card):
+│ ₹0.00                       │       overline + badge, hero figure
+└─────────────────────────────┘
+┌─────────┐┌─────────┐┌─────────┐
+│ (chip)  ││ (chip)  ││ (chip)  │ S1.2 stat tiles, 3 across, gap 12
+│ Products││ Balance ││ Actual  │       icon chip · 2-line label · figure
+│ Sold    ││ Stock   ││ Stock   │
+│ 3       ││ 12      ││ 15      │
+└─────────┘└─────────┘└─────────┘
+ RECENT INVOICES       See all   S1.3 overline + text link
+┌─────────────────────────────┐
+│ (AS) Party          ₹0.00   │ S1.3.1 list row: avatar · title/caption
+│      PRE-001·date [Issued]  │        · amount + status pill
+└─────────────────────────────┘
+ OUTSTANDING (AGING)             S1.4
+┌─────────────────────────────┐
+│ (AS) Party          ₹0.00   │ S1.4.1 row (tap → invoice)
+└─────────────────────────────┘
+               [+ New invoice]   S1.5 FAB (52, radius 14, blue)
+┌─────────────────────────────┐
+│ [■]   [ ]    [ ]    [ ]     │ S0.4.2 floating bottom nav
 └─────────────────────────────┘
 ```
 
-### Tablet (md+): the KPI grid keeps the same 2 + 3 rows, with the label beside the icon (not compact). On lg+, S1.2 and S1.3 sit **side by side** (row, gap 24); on md they stack.
+### Tablet (md+): same blocks; on lg+, S1.3 and S1.4 sit **side by side** (gap 16); on md they stack.
 
 ### Sections
 
 | ID | Section | Rows / columns | Key props | Lines |
 | --- | --- | --- | --- | --- |
-| S1.0 | App bar | `TopAppBar large`, title "Dashboard", subtitle `fyLabel()` (FY starts in April) | — | 19-22, 83 |
-| S1.1 | KPI grid | `rows: Kpi[][]`, each row a flex row with cells `width = 100 / row.length %`: row 1 = 2 cells, row 2 = 3 cells. Each cell is a `KpiTile`: filled Card, `theme.kpiSurface` (white in light), `shadow.primary`, minHeight 104, flexGrow 1 (equal heights). Label row = icon 18 + label (1 line); value = title type, auto-shrinks to 60% | `compact = bp.isPhone && row.length > 2` → icon above a 2-line label, padding 12 | 25-50 (KpiTile), 66-80 (rows), 90-100 (grid) |
-| S1.1.a | Row 1 "Invoices (FY)" | `kpis.invoiceCount` (issued + partial + paid, this FY) · document-text-outline | | 71 |
-| S1.1.b | Row 1 "Total billed" | `₹ kpis.billedPaise` (this FY) · trending-up-outline | | 72 |
-| S1.1.c | Row 2 "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; matches the SOLD column in S5) · cart-outline | | 75 |
-| S1.1.d | Row 2 "Balance Stock" | `stock.avlQty` = Actual − Sold (matches AVL in S5; can go negative if oversold) · cube-outline | | 76 |
-| S1.1.e | Row 2 "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (matches STOCK in S5) · layers-outline | | 77 |
-| S1.2 | Recent invoices | SectionTitle + "See all" text button (→ Invoices tab); outlined Card holding up to 5 ListItems; empty state "No invoices yet" | | 106-136 |
-| S1.2.1 | Recent row | title = party · subtitle = `invoice_no · date` · trailing column = amount + StatusGlyph · tap → `showInvoice` | | 119-133 |
-| S1.3 | Outstanding (aging) | up to 10 rows; empty state "All settled" | `aging.slice(0, 10)` | 138-155 |
-| S1.3.1 | Aging row | title = party · subtitle = `invoice_no · due date` · trailing = balance · tap → `showInvoice(a.invoice_id)` (same as S1.2.1) | | 143-153 |
-| S1.4 | FAB "New invoice" | phone only, bottom-end 16dp → `openCreate()`; look set in C9 | | 158 |
-| — | Scroll container | padding `bp.margin`, paddingBottom 96 (clears the FAB), maxWidth max(720, 90% width) | | 84-89 |
+| S1.0 | Header | `TopAppBar large`: caption `fyLabel()` above the "Dashboard" H2 | — | 20-23, 68 |
+| S1.1 | Hero card | glass card, padding 20, gap 6: overline "Total billed · FY" + badge "N invoice(s)" (`kpis.invoiceCount`, this FY) · `₹ kpis.billedPaise` in `type.hero` (Bebas Neue 44) | — | 76-87 |
+| S1.2 | Stat tiles | one row, 3 cells (flex 1, gap 12); each `StatTile`: small glass card (`shadow.primary`), padding 16, gap 10, `IconChip` · label 13 `#666` (2 lines, min height 36 so values align) · value `type.figure` (Bebas 28) | — | 26-39 (StatTile), 60-64, 89-95 |
+| S1.2.a | "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; = SOLD in S5) · `shopping-cart` | | 61 |
+| S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | 62 |
+| S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | 63 |
+| S1.3 | Recent invoices | overline + "See all" text link (→ Invoices tab); list card (padding 8 × 16) of up to 5 `ListItem flush`; empty state "No invoices yet" | | 97-131 |
+| S1.3.1 | Recent row | avatar = `initials(party)` (blue, every second row grey) · title party · caption `no · date` · trailing amount (Bebas) + status pill · tap → `showInvoice` | | 111-128 |
+| S1.4 | Outstanding (aging) | up to 10 rows, same list card; empty state "All settled" | `aging.slice(0, 10)` | 133-152 |
+| S1.4.1 | Aging row | avatar · party · `no · due date` · balance; tap → `showInvoice(a.invoice_id)` | | 138-150 |
+| S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9) | | 156 |
+| — | Scroll container | side padding 20, gap 16, bottom = `useContentInset(true)` (clears nav + FAB), maxWidth max(720, 90% width) | | 69-75 |
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | 19-22 |
-| `KpiTile({kpi, compact, theme})` | one KPI card (normal or compact) | 25-50 |
-| `load()` | runs the 4 queries in parallel (KPIs, recent, aging, stock totals); reruns on `refreshKey` | 59-64 |
+| `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | 20-23 |
+| `StatTile({kpi, theme})` | one kit stat tile | 26-39 |
+| `load()` | runs the 4 queries in parallel (KPIs, recent, aging, stock totals); reruns on `refreshKey` | 50-53 |
 | `getStockTotals()` (productsRepo.ts:40) | Σ stock, Σ sold (same SOLD rule as S5), avl = stock − sold | — |
 
 ---
@@ -189,19 +193,16 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 ### Phone wireframe
 
 ```
+ 1 invoice                [⬇] [▤]   S2.0 flat header + 2 glass export buttons
+ Invoices
+[🔍 Search invoice no or party] [📅]  S2.1 search field + S2.3 date-range button
+( All | Issued | Partial | Paid | Void )  S2.2 segmented control
+[From YYYY-MM-DD] [To YYYY-MM-DD]   S2.3a date fields (only when 📅 is on)
 ┌─────────────────────────────┐
-│ Invoices          [⬇] [▤]   │ S2.0 app bar + 2 export actions
-├─────────────────────────────┤
-│ (🔍 Search invoice no/party)│ S2.1
-│ [All][Issued][Partial][Paid][Void][📅 Date range] → scrolls sideways  S2.2
-│ [From YYYY-MM-DD][To ...]   │ S2.3 (only when the Date chip is on)
-│ 3 invoices                  │ S2.4
-├─────────────────────────────┤
-│ Party            ₹1,200.00  │ S2.5 row
-│ PRE-003 · 22 Oct 26 [Paid]  │
-│ ...                         │
-│              [+ New invoice]│ S2.6 FAB
+│ (AS) Party       ₹1,200.00  │ S2.5 list card: hugs its rows,
+│      PRE-003 · date [Paid]  │      scrolls once it fills the space
 └─────────────────────────────┘
+               [+ New invoice]   S2.6 FAB
 ```
 
 ### Tablet wireframe (md/lg = 2 panes, xl+ = 3 panes)
@@ -220,16 +221,16 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 
 | ID | Section | Spec | Lines |
 | --- | --- | --- | --- |
-| S2.0 | App bar | title "Invoices"; actions: `download-outline` = Export list to Excel (current filtered rows), `albums-outline` = Export consolidated register (all invoices + all lines) | 109-118 |
-| S2.1 | Search | `SearchField` "Search invoice no or party" | 55 |
-| S2.2 | Status chips | horizontal scroll; `STATUSES = ['all','issued','partial','paid','void']` + "Date range" chip (shows "Dates set" when a date is set) | 18, 56-65 |
-| S2.3 | Date range row | 2 columns (flex 1 / 1): From, To, both `YYYY-MM-DD`, numeric, max 10 chars | 66-77 |
-| S2.4 | Count line | "N invoice(s)" | 78-80 |
-| S2.5 | List (FlatList) | ListItem: title party · subtitle `no · date` · trailing amount + StatusGlyph. Phone tap → S3 overlay; tablet tap → select (tinted row) | 82-104 |
-| S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | 86-88 |
-| S2.6 | FAB | phone only, "New invoice" | 105 |
-| S2.7 | Detail pane | tablet only; width 50% (2 panes) or 42% (3 panes); left border; renders S3 | 127-138 |
-| S2.8 | Activity pane | xl+ and a row selected; width 26%; "ACTIVITY", `no · status`, "Issued <date>" | 139-149 |
+| S2.0 | Header | `TopAppBar large`: caption "N invoice(s)", title "Invoices"; glass icon buttons `download` = Export list to Excel (current filtered rows), `book` = Export consolidated register | 118-130 |
+| S2.1 | Search | `SearchField` (50 tall, glass) "Search invoice no or party", flex 1 | 64-65 |
+| S2.2 | Status filter | `SegmentedControl` over `STATUSES` (All, Issued, Partial, Paid, Void) | 20-26, 70 |
+| S2.3 | Date-range button | glass `IconButton` `calendar`; tinted when open or when a date is set | 66-68 |
+| S2.3a | Date fields | 2 columns (gap 12): From, To, `YYYY-MM-DD`, numeric, max 10 | 71-82 |
+| S2.5 | List card | `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `ListItem flush` with avatar, party, `no · date`, amount + status. Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists get FAB clearance at the bottom | 83-112 |
+| S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | 88-90 |
+| S2.6 | FAB | phone only, "New invoice" | 114 |
+| S2.7 | Detail pane | tablet only; width 50% (2 panes) or 42% (3 panes); left divider; renders S3 | 138-142 |
+| S2.8 | Activity pane | xl+ with a row selected; width 26%; small glass card: overline "Activity", `no · status`, "Issued <date>" | 143-155 |
 
 ### Functions
 
@@ -310,7 +311,7 @@ Mode
 [Cash][UPI][NEFT][Cheque]         single-select chips
                  [Cancel] [Save payment]
 ```
-Phone = bottom sheet; tablet = centred dialog (see C10). Payment modes are hard-coded at line 192.
+Phone = bottom sheet; tablet = centred dialog (see C10). Payment modes (Cash, UPI, NEFT, Cheque) are a `SegmentedControl`, hard-coded in `InvoiceDetail.tsx` (`modes`).
 
 ---
 
@@ -608,40 +609,43 @@ PDF generation and sharing: `src/export/pdf.ts` (`exportInvoicePdfAndShare`, `sh
 
 ## C — Shared components (`src/ui/`)
 
-Change one of these and **every screen that uses it changes**.
+Change one of these and **every screen that uses it changes**. They implement the kit recipes in `design/DESIGN.md` §6.
 
 | ID | Component | Spec | Used in | File:line |
 | --- | --- | --- | --- | --- |
-| C1 | `TopAppBar` | brand gradient (headerFrom→headerTo), min row 64; `large` adds a 28px title block below; optional back arrow and action icons | all screens | components.tsx:297 |
-| C2 | `Button` | variants solid / tonal / outline / ghost; `danger`, `busy`, `icon`. Solid and tonal cast `shadow.primary`, deepening to `shadow.secondary` while pressed; outline, ghost and disabled buttons are flat | everywhere | components.tsx:36 |
-| C3 | `IconButton` | 48dp round icon button with a11y label | app bar, trash buttons | components.tsx:80 |
-| C4 | `Input` / `MoneyInput` | outlined field, label above; `helper`, `error`, `tabular`. MoneyInput is bound to integer paise | forms | components.tsx:123 / 178 |
-| C5 | `SearchField` | pill-shaped search with a clear button | S2, S4, S5 | components.tsx:204 |
-| C6 | `Card` | outlined (default) or filled; radius 12, padding 16 | S1, S3, S4, S6 | components.tsx:359 |
-| C7 | `ListItem` / `ListRow` | ListItem: leading icon or circle text, title + subtitle, trailing, chevron, selected tint; height 72 with subtitle, else 56. ListRow: free-form row (S5 table) | lists | components.tsx:399 / 375 |
-| C8 | `Chip` | filter chip, height 32, check mark when on | filters, modes, sizes | components.tsx:456 |
-| C9 | `FAB` | compact extended FAB: height 48 (`touch.min`), padding 16, icon 20, gap 8, radius 12 (`radius.md`), fill `theme.fab` `#25BDC3`, text/icon `theme.onFab` `#001E2C`, `shadow.secondary`; absolute 16dp from bottom-end | S1, S2, S5 | components.tsx:494 |
-| C10 | `Sheet` | phone: bottom sheet (28 radius, drag handle, max 92% height); tablet: dialog (92% or 86% wide, max 560 / 720) | P1, P2, P3 | Sheet.tsx:21 |
-| C11 | `Snackbar` (`useSnackbar`) | 4s (6s with an action), max width 560, above the nav bar; colours `theme.inverse*` | all saves | Snackbar.tsx:18 |
-| C12 | `StatusGlyph` / `Badge` | status = icon + text + tone (Draft, Issued, Partial, Paid, Void) | lists, S3 | components.tsx:265 / 282 |
-| C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | section heading with right slot · label/value row · tabular amount · icon + title + text | many | components.tsx:346 / 247 / 231 / 442 |
+| C1 | `TopAppBar` | flat header on the screen background (no gradient), top padding = status bar + 8, sides 20. `large`: caption 14 `#666` above an H2 title (24/600), glass action buttons right. Otherwise: glass back button (`chevron-left`) · centred title 16/600 + caption · glass actions | all screens | components.tsx:319 |
+| C2 | `Button` | `solid` = kit primary button (52 tall, radius 12, blue, white 16/600, `shadow.secondary`); `tonal` / `outline` = glass button (50 tall, glass fill, white border, `shadow.primary`, 15/500 black); `ghost` = text link (link colour, 14/600). `danger` = red. Press scale 0.98 | everywhere | components.tsx:39 |
+| C3 | `IconButton` | 44×44. `glass` = kit icon button (radius 12, glass fill, white border, `shadow.primary`, black 20px icon); default = ghost button (radius 10, `#666` icon) | headers, row actions, sheet close | components.tsx:92 |
+| C4 | `Input` / `MoneyInput` | label 13/500 `#666` above (gap 8); field 50 tall, radius 12, padding 16, 15/400; focus = blue border + focus ring; `helper`, `error`, `tabular` (Inter, tabular digits) | forms | components.tsx:138 / 192 |
+| C5 | `SearchField` | 50 tall, radius 12, glass icon-button recipe, search glyph, clear button | S2, S4, S5 | components.tsx:218 |
+| C6 | `Card` | kit glass card: 55% white, 1px white border, radius 16, padding 16, `theme.cardShadow`. `small` = tile shadow; `list` = 8 × 16 padding for `flush` rows | all screens | components.tsx:375 |
+| C6a | `IconChip` | 36×36, radius 10, blue tint, blue 18px icon | stat tiles, list rows | components.tsx:396 |
+| C7 | `ListItem` / `ListRow` | kit list row: gap 12, padding 12 vertical, divider `#ebeaea`; leading 36 avatar (`leadingText`; `leadingAlt` = grey) or icon chip; title 14/500, caption 12 `#666`; `flush` drops side padding inside list cards; `selected` = blue tint | lists | components.tsx:443 / 408 |
+| C7a | `initials(name)` | two-letter avatar initials | list rows | components.tsx:432 |
+| C8 | `Chip` | pill, 36 tall; off = glass fill + input border, 14/500 `#666`; on = blue fill, white 14/600, `shadow.primary` | sizes, quick pick, ship-to | components.tsx:504 |
+| C8a | `SegmentedControl` | kit Day/Week/Month: glass pill, 4px padding, `shadow.primary`; tabs 36, active blue + white 14/600 | S2 status, P1 modes, S4 page size | components.tsx:543 |
+| C9 | `FAB` | primary-button recipe: 52 tall, radius 12, blue, white 16/600, 20px icon, `shadow.secondary`; 20 from the right, 16 above the nav | S1, S2, S5 | components.tsx:586 |
+| C10 | `Sheet` | phone: bottom sheet (solid white / black, radius 16 top, 36×5 handle, max 92% height); tablet: dialog (radius 18); title 18/600; `shadow.secondary` | P1, P2, P3 | Sheet.tsx:22 |
+| C11 | `Snackbar` (`useSnackbar`) | black bar (white in dark mode), radius 12, `shadow.secondary`; 4s (6s with an action); above the nav + FAB | all saves | Snackbar.tsx:19 |
+| C12 | `StatusGlyph` / `Badge` | kit badge: pill, padding 4 × 10, 12/600, tinted fill; status adds a Feather glyph (circle, clock, pie-chart, check-circle, x-circle) | lists, S3 | components.tsx:282 / 299 |
+| C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
 
 ### Design tokens (`src/ui/tokens.ts`)
 
 | Token | Values | Line |
 | --- | --- | --- |
-| `brand` (root colours) | navy `#0C476F`, navyDeep, blue, primary `#00668B`, primaryDark `#7FCFF3`, containers. **Change these to rebrand**; see [THEME_AND_COLORS](../THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md) | 37 |
-| `alpha(hex, a)` / `white` | rgba helper (ripples, muted header text) / `gray[0]` | 53 / 50 |
-| `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper`, `kpiSurface` (S1.1 tiles), `navSurface`/`navBorder` (nav bar and rail), `fab`/`onFab` (C9); light: `bg` `#F1F5F9`, filled cards `surfaceContainer` `#E2E8F0`, nav white + hairline | 60 / 82 |
-| `shadow` | primary `0 4px 8px rgba(20, 71, 108, 0.15)` (KPI cards, filled buttons) · secondary `0 8px 16px rgba(20, 71, 108, 0.2)` (pressed buttons, FAB, rail "+"); `elevation.card` / `elevation.fab` wrap them | 145 |
-| `space` | 0, 4, 8, 12, 16, 24, 32, 48, 64 (keys 0–8) | 104 |
-| `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 106 |
-| `touch` | min 48 · comfortable 56 | 108 |
-| `maxReadWidth` | 720 | 109 |
-| `font` | Inter families: regular `Inter_400Regular` · medium `Inter_500Medium` · semibold `Inter_600SemiBold` · bold `Inter_700Bold`; numbers: numeric `BebasNeue_400Regular` (all loaded in shell/App.tsx) | 126 |
-| `type` | display 28 · title 22 · heading 16 (semibold) · body 16 · bodyMedium 14 · caption 12 (regular) · label 14 · labelMedium 12 (medium) · **number 16 and figure 26 in Bebas Neue** (displayed numbers; figure = KPI values and the Create invoice TOTAL bar) · numberField 16 Inter medium tabular (number inputs); each sets `fontFamily`, not `fontWeight` | 137 |
-| `status` | icon / label / tone for each invoice status | 140 |
+| `brand` | the kit's 5 colours: primary `#2596be` · secondary `#666666` · tertiary `#ebeaea` · dark `#000000` · light `#ffffff`, plus link `#1a6f8e` | 14 |
+| `shadow` | primary `0 4px 8px rgba(20, 71, 108, 0.15)` (small items) · secondary `0 8px 16px rgba(20, 71, 108, 0.2)` (large items) | 34 |
+| `light` / `dark` themes | light: `#ebeaea` background, white glass (55 / 60 / 65%), 85–90% white borders, black / `#666` text. Dark (Sign In recipe): black background, 8% white glass, 16% borders, white / `#ebeaea` text, cards add a 1px inner highlight. Real-status green/red only | 87 / 115 |
+| `space` / `layout` | 0, 4, 8, 12, 16, 24, 32, 48, 64 · `layout`: side 20, sideWide 24, gap 16, grid 12, top 8 | 144 / 145 |
+| `radius` | chip 10 · control 12 · item 14 · bar 16 · card 16 · form 18 · frame 16 · pill 999 (owner's values; kit was 12/14/16/20/24/28/32) | 156 |
+| `touch` | min 44 · nav 48 · input 50 · button 52 · comfortable 56 | 160 |
+| `maxReadWidth` | 720 | 161 |
+| `font` | Inter `Inter_300Light` · `Inter_400Regular` · `Inter_500Medium` · `Inter_600SemiBold` (no 700); numbers: `BebasNeue_400Regular` (owner's exception) | 170 |
+| `type` | kit scale: h1 28/600 · title (H2) 24/600 · subtitle 18/500 · heading 16/600 · bodyLarge 16 · body 15 · bodyMedium 14 · label 14/500 · labelMedium 13/500 · caption 12 · overline 12/600 upper · micro 11/600 upper; numbers in Bebas: number 16 · figure 28 · hero 44; numberField = Inter 15 tabular | 180 |
+| `motion` | press scale 0.98 (buttons), 0.96 (icon buttons) | 221 |
+| `statusStyle` | Feather icon / label / tone for each invoice status | 224 |
 
 ---
 

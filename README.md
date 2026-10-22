@@ -33,7 +33,7 @@ it from here. It does not depend on the `digital-invoice` desktop workspace.
 | Database | `expo-sqlite` with SQLCipher; key in Android Keystore via `expo-secure-store` |
 | Money | Integer paise everywhere; ISO-8601 dates |
 | Documents | PDF via `expo-print` HTML template; XLSX via the in-house `src/export/xlsxWriter.ts` (no exceljs) |
-| UI | Own Material Design 3 kit in `src/ui/` (brand colour roles at WCAG AA, edge-to-edge, nav bar / rail, FAB, bottom sheets, snackbars, Android Back handling) |
+| UI | **Flat Glass · Brand Blue** design kit (`design/DESIGN.md`, rules in `CLAUDE.md`) built as components in `src/ui/`: 5-colour theme + glass recipes in `tokens.ts`, flat headers, glass cards, floating bottom nav / rail, segmented controls, Feather line icons, light and dark (Sign In) themes, Android Back handling |
 | Fonts | Inter for text (4 weights) and Bebas Neue for displayed numbers, both SIL OFL 1.1, via `@expo-google-fonts/*` + `expo-font`; the invoice PDF embeds subsets generated into `src/export/pdfFonts.ts` |
 | Layout | 6 breakpoints: bottom tabs on phones, rail + 2–3 panes on tablets |
 | Packaging | Local Gradle (no cloud needed); optional EAS profiles in `eas.json` |
@@ -160,6 +160,9 @@ INV-MOBILE-APP/
 ├── assets/           icons, splash
 ├── release/          latest APK
 ├── MOBILE_APP_CONVERSION/   TRACKING · walkthrough · session-prompts
+├── design/                 DESIGN.md (Flat Glass spec) + screens/ (4 reference PNG + HTML)
+├── .claude/skills/apply-design/  the kit's /apply-design skill
+├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)
 ├── SCREEN_LAYOUT_REFERENCE/ per-screen layout map with IDs for edit prompts (+ TRACKING · walkthrough · session-prompts)
 ├── app.config.ts     Expo config (package com.jiametric.invoiceerp, SQLCipher plugin)
@@ -181,4 +184,5 @@ restore on the same device or install.
 - [`SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md): every screen's sections, rows, columns and functions with stable IDs (S1.2, S4.B.3 …) to quote in edit prompts
 - [`SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_TRACKING.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_TRACKING.md) · [`_walkthrough.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_walkthrough.md) · [`_session-prompts.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_session-prompts.md)
 - [`THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md`](THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md): `brand` root colours in `src/ui/tokens.ts`, theme roles, how to rebrand · [`_walkthrough.md`](THEME_AND_COLORS/THEME_AND_COLORS_walkthrough.md) · [`_session-prompts.md`](THEME_AND_COLORS/THEME_AND_COLORS_session-prompts.md)
+- [`CLAUDE.md`](CLAUDE.md) and [`design/DESIGN.md`](design/DESIGN.md): the Flat Glass · Brand Blue design system every screen follows; reference screens in [`design/screens/`](design/screens/)
 - [`agents.md`](agents.md): AI-assistant workflow rules for this folder

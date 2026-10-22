@@ -3,11 +3,10 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
-import { useBreakpoint } from '../../ui/useBreakpoint';
-import { Button, Card, Chip, Input, MoneyText, SectionTitle, StatusGlyph, TotalRow } from '../../ui/components';
+import { Button, Card, Input, MoneyText, SectionTitle, SegmentedControl, StatusGlyph, TotalRow } from '../../ui/components';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { space, type, maxReadWidth } from '../../ui/tokens';
+import { layout, space, type, maxReadWidth } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getInvoice, getLines, setStatus } from '../../data/invoicesRepo';
 import { paidPaiseForInvoice, recordPayment } from '../../data/paymentsRepo';
@@ -19,7 +18,6 @@ import type { Invoice, InvoiceLine } from '../../data/types';
 export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
   const theme = useTheme();
   const nav = useNav();
-  const bp = useBreakpoint();
   const snack = useSnackbar();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<InvoiceLine[]>([]);
@@ -106,11 +104,16 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
   const party = [inv.party_address, inv.party_city, inv.party_pincode].filter(Boolean).join(', ');
   const contact = [inv.party_mobile && `Ph ${inv.party_mobile}`, inv.party_email].filter(Boolean).join(' · ');
 
+  const modes = ['Cash', 'UPI', 'NEFT', 'Cheque'].map(m => ({ value: m, label: m }));
+
   return (
     <>
-    <ScrollView contentContainerStyle={{ padding: bp.margin, maxWidth: maxReadWidth, paddingBottom: space[7] }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space[3] }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
+    <ScrollView contentContainerStyle={{
+      paddingHorizontal: layout.side, paddingTop: space[1], paddingBottom: space[6],
+      maxWidth: maxReadWidth, gap: layout.gap,
+    }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text style={[type.title, { color: theme.text }]} numberOfLines={1}>{inv.invoice_no}</Text>
           <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
             {formatDateDisplay(inv.invoice_date)}
@@ -120,44 +123,49 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
         <StatusGlyph status={inv.status} theme={theme} />
       </View>
 
-      <Card theme={theme} variant="filled" style={{ marginBottom: space[4] }}>
-        <Text style={[type.labelMedium, { color: theme.textMuted }]}>BILL TO</Text>
-        <Text style={[type.heading, { color: theme.text, marginTop: space[1] }]}>{inv.party_name || '(no party)'}</Text>
+      <Card theme={theme} style={{ gap: space[1] }}>
+        <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
+        <Text style={[type.heading, { color: theme.text }]}>{inv.party_name || '(no party)'}</Text>
         {party ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{party}</Text> : null}
         {contact ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{contact}</Text> : null}
       </Card>
 
       {/* Primary actions first, within thumb reach. */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space[2], marginBottom: space[4] }}>
-        {canPay ? <Button label="Record payment" icon="cash-outline" theme={theme} onPress={askPayment} /> : null}
-        <Button label="Share PDF" icon="share-social-outline" variant={canPay ? 'tonal' : 'solid'} theme={theme}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: layout.grid }}>
+        {canPay ? <Button label="Record payment" icon="credit-card" theme={theme} onPress={askPayment} /> : null}
+        <Button label="Share PDF" icon="share-2" variant={canPay ? 'tonal' : 'solid'} theme={theme}
           busy={busy === 'pdf'} onPress={() => share('pdf')} />
-        <Button label="Excel" icon="grid-outline" variant="outline" theme={theme}
+        <Button label="Excel" icon="grid" variant="outline" theme={theme}
           busy={busy === 'xlsx'} onPress={() => share('xlsx')} />
       </View>
 
-      <SectionTitle title={`Items (${lines.length})`} theme={theme} />
-      <View style={{ borderBottomWidth: 1, borderColor: theme.outline, flexDirection: 'row', paddingBottom: space[1] }}>
-        {['Item', 'Qty', 'Rate', 'Amount'].map((h, i) => (
-          <Text key={h} style={[type.labelMedium, {
-            color: theme.textMuted,
-            flex: i === 0 ? 3 : 1,
-            textAlign: i >= 1 ? 'right' : 'left',
-          }]}>{h}</Text>
-        ))}
-      </View>
-      {lines.map(l => (
-        <View key={l.sno} style={{ flexDirection: 'row', paddingVertical: space[3], borderBottomWidth: 1, borderColor: theme.border }}>
-          <View style={{ flex: 3, marginEnd: space[2] }}>
-            <Text style={[type.bodyMedium, { color: theme.text }]} numberOfLines={2}>{l.description}</Text>
-          </View>
-          <View style={{ flex: 1 }}><MoneyText paiseText={String(l.qty)} theme={theme} small /></View>
-          <View style={{ flex: 1 }}><MoneyText paiseText={formatPaise(l.unit_paise)} theme={theme} small /></View>
-          <View style={{ flex: 1 }}><MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small /></View>
+      <Card theme={theme}>
+        <SectionTitle title={`Items (${lines.length})`} theme={theme} />
+        <View style={{ borderBottomWidth: 1, borderColor: theme.divider, flexDirection: 'row', paddingBottom: space[2] }}>
+          {['Item', 'Qty', 'Rate', 'Amount'].map((h, i) => (
+            <Text key={h} numberOfLines={1} style={[type.overline, {
+              color: theme.textMuted,
+              flex: i === 0 ? 2.6 : i === 1 ? 0.8 : 1.3,
+              textAlign: i >= 1 ? 'right' : 'left',
+            }]}>{h}</Text>
+          ))}
         </View>
-      ))}
+        {lines.map((l, i) => (
+          <View key={l.sno} style={{
+            flexDirection: 'row', alignItems: 'center', paddingVertical: space[3],
+            borderBottomWidth: i < lines.length - 1 ? 1 : 0, borderColor: theme.divider,
+          }}>
+            <View style={{ flex: 2.6, marginEnd: space[2] }}>
+              <Text style={[type.label, { color: theme.text }]} numberOfLines={2}>{l.description}</Text>
+            </View>
+            <View style={{ flex: 0.8 }}><MoneyText paiseText={String(l.qty)} theme={theme} small /></View>
+            <View style={{ flex: 1.3 }}><MoneyText paiseText={formatPaise(l.unit_paise)} theme={theme} small /></View>
+            <View style={{ flex: 1.3 }}><MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small /></View>
+          </View>
+        ))}
+      </Card>
 
-      <View style={{ marginTop: space[3] }}>
+      <Card theme={theme}>
         <TotalRow label="Gross" value={formatPaise(inv.gross_paise)} theme={theme} />
         {inv.discount_paise > 0
           ? <TotalRow label={`Discount (${inv.discount_percent}%)`} value={`-${formatPaise(inv.discount_paise)}`} theme={theme} />
@@ -170,29 +178,26 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
           {inv.amount_in_words}
         </Text>
         {inv.notes ? <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: space[2] }]}>{inv.notes}</Text> : null}
-      </View>
+      </Card>
 
       {inv.status !== 'void' ? (
-        <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[5] }}>
-          <Button label="Edit" icon="create-outline" variant="outline" theme={theme}
+        <View style={{ flexDirection: 'row', gap: layout.grid }}>
+          <Button label="Edit" icon="edit-2" variant="outline" theme={theme}
             onPress={() => nav.openCreate({ invoiceId: inv.id })} />
-          <Button label="Void" icon="close-circle-outline" variant="ghost" danger theme={theme} onPress={voidInvoice} />
+          <Button label="Void" icon="x-circle" variant="ghost" danger theme={theme} onPress={voidInvoice} />
         </View>
       ) : null}
     </ScrollView>
     <Sheet visible={payOpen} onClose={() => setPayOpen(false)}
       title="Record payment" theme={theme}>
-      <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
+      <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[4] }]}>
         {inv.invoice_no} · outstanding ₹{formatPaise(outstanding)}
       </Text>
       <Input label="Amount (₹)" value={payAmount} onChange={v => { setPayAmount(v); setPayError(''); }}
         theme={theme} keyboardType="decimal-pad" tabular placeholder="0.00" error={payError || undefined} />
-      <Text style={[type.labelMedium, { color: theme.textMuted }]}>Mode</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[3] }}>
-        {['Cash', 'UPI', 'NEFT', 'Cheque'].map(m => (
-          <Chip key={m} label={m} active={payMode === m} onPress={() => setPayMode(m)} theme={theme} />
-        ))}
-      </View>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[2] }]}>Mode</Text>
+      <SegmentedControl label="Payment mode" options={modes} value={payMode} onChange={setPayMode} theme={theme}
+        style={{ marginBottom: space[5] }} />
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space[2] }}>
         <Button label="Cancel" variant="ghost" theme={theme} onPress={() => setPayOpen(false)} />
         <Button label="Save payment" theme={theme} onPress={() => void submitPayment()} />

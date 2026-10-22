@@ -1,10 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { radius, space, type } from './tokens';
+import { font, layout, radius, shadow, space, type } from './tokens';
 import type { Theme } from './tokens';
 
-// M3 snackbar: brief, non-blocking confirmation with at most one action.
+// Snackbar: brief, non-blocking confirmation with at most one action (black bar
+// on light screens, white on dark; radius 14, large shadow).
 // Blocking dialogs (ui/alert) stay reserved for errors and destructive confirms.
 type Snack = { id: number; message: string; action?: { label: string; onPress: () => void } };
 type ShowFn = (message: string, action?: Snack['action']) => void;
@@ -50,7 +51,7 @@ export function SnackbarProvider({ children, theme, bottomOffset }: {
           pointerEvents="box-none"
           accessibilityLiveRegion="polite"
           style={{
-            position: 'absolute', start: space[4], end: space[4],
+            position: 'absolute', start: layout.side, end: layout.side,
             bottom: insets.bottom + bottomOffset + space[2],
             opacity: anim,
             transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
@@ -58,7 +59,7 @@ export function SnackbarProvider({ children, theme, bottomOffset }: {
         >
           <View style={{
             flexDirection: 'row', alignItems: 'center', minHeight: 48, maxWidth: 560, alignSelf: 'center', width: '100%',
-            backgroundColor: bg, borderRadius: radius.xs, paddingStart: space[4], paddingEnd: space[2], elevation: 6,
+            backgroundColor: bg, borderRadius: radius.control, paddingStart: space[4], paddingEnd: space[2], boxShadow: shadow.secondary,
           }}>
             <Text style={[type.bodyMedium, { color: fg, flex: 1, paddingVertical: space[3] }]}>{snack.message}</Text>
             {snack.action ? (
@@ -67,7 +68,7 @@ export function SnackbarProvider({ children, theme, bottomOffset }: {
                 accessibilityRole="button"
                 style={{ minHeight: 48, paddingHorizontal: space[3], justifyContent: 'center' }}
               >
-                <Text style={[type.label, { color: actionColor }]}>{snack.action.label}</Text>
+                <Text style={[type.label, { fontFamily: font.semibold, color: actionColor }]}>{snack.action.label}</Text>
               </Pressable>
             ) : null}
           </View>

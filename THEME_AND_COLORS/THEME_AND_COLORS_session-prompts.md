@@ -84,3 +84,34 @@ Suggest a custom font for the app and the invoice PDF, then add it with expo-fon
 ```
 All Normal Fonts: Inter and For Numbers use: Bebas Neu
 ```
+
+## Prompt 12
+
+```
+@"D:\1.JIAMETRIC\1.JIAMETRIC-2026\REFRENCES\UI-DESIGNS\THEMES\Mobile\Mobile-Design Files\CLAUDE.md" @"D:\1.JIAMETRIC\1.JIAMETRIC-2026\REFRENCES\UI-DESIGNS\THEMES\Mobile\Mobile-Design Files\mobile-design-spec.md" @"D:\1.JIAMETRIC\1.JIAMETRIC-2026\REFRENCES\UI-DESIGNS\THEMES\Mobile\Mobile-Design Files\README.md" @"D:\1.JIAMETRIC\1.JIAMETRIC-2026\REFRENCES\UI-DESIGNS\THEMES\Mobile\Mobile-Design Files\SKILL.md"
+Modify the app 100% Accurately as Per the Attached, Dont miss any File:
+[4 images attached: 1.webp Weather, 2.webp SaaS Dashboard, 3.webp Music Player, 4.webp Sign In]
+
+AskUserQuestion answers: Numbers font = "Keep Bebas Neue for numbers"; Button text = "Exactly as the screens";
+Dark mode = "Follow the phone (Recommended)"; Kit files = "Install the kit (Recommended)".
+```
+
+## Prompt 13
+
+```
+Modify to this:
+
+radius.chip	10
+
+radius.control	12
+
+radius.item	14
+
+radius.bar	16
+
+radius.card	16
+
+radius.form	18
+
+radius.frame	16
+```

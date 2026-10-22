@@ -118,6 +118,45 @@ Font check (fonttools): it has ₹, `%`, `×`, `−`; every digit is 400 units w
 
 Labels that contain numbers ("Avl 8" badges, "Items (3)", "PRE-001", dates in subtitles) stay in Inter: they're text with numbers, not figures. The PDF TOTAL row asks for weight 700, which Bebas lacks. pdffonts also lists a second (Type 3) copy of Bebas, probably the PDF engine's synthesized bold for that row; on the rendered page the total looks only slightly heavier.
 
+## Prompt 12 — Flat Glass · Brand Blue design kit (2026-10-22)
+
+The owner supplied a design kit (CLAUDE.md, DESIGN.md spec, apply-design skill, 4 reference screens with HTML). It **replaces** the palette and shadows of Prompts 1–8 and the background of Prompts 4–6. Prompt 11's Bebas Neue numbers stay, by the owner's choice.
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| `brand` = the kit's 5 colours (+ link `#1a6f8e`); every role is one of them or a §2.2 variant | Kit rule 1, "only these five tokens" | Keeping the AA-tuned navy palette: rejected, the kit is explicit |
+| Light: `#ebeaea` flat background, white glass cards (55%, 85% border), black / `#666` text | Kit §7.1–7.3 | — |
+| Dark (phone in dark mode): the Sign In recipe (black, 8% glass, 16% border, `#ebeaea` secondary text, inner highlight) | Owner chose "Follow the phone" | "Always light" |
+| Blue buttons: `#2596be` + white 16/600 | Owner chose "Exactly as the screens". The kit notes 3.4:1 < AA for small labels (§9) | The kit's `#1a6f8e` fill; black labels |
+| Numbers stay in Bebas Neue (`type.number` / `figure` / `hero`) | Owner chose "Keep Bebas Neue" (kit says Inter 300) | Inter 300 per the kit |
+| Inter weights now 300/400/500/600; 700 removed (`Inter_300Light` added, `Inter_700Bold` dropped) | Kit rule 5 | — |
+| Real-status green/red kept (Paid, in-stock, oversold, errors, Void/Delete) | DESIGN.md §11 allows it | All-blue statuses: would lose meaning |
+| Shadows per kit: primary on small items (icon buttons, tiles, chips, tabs, search), secondary on large (cards, nav, primary buttons, FAB, sheets, snackbar) | Kit rule 2 / §2.3 | Prompt 8's mapping (tiles primary, buttons primary→secondary on press): superseded |
+| No backdrop blur | React Native can't blur what's behind a view without expo-blur (a native module and a dev-client rebuild); the kit says the blur "has very little to show" on flat backgrounds | Adding expo-blur: deferred |
+| Solid white (black) sheets instead of glass | Glass over the dark scrim reads grey | Glass sheets |
+| Inactive chips use the input border (`#666` at 35%) | A 90% white border vanishes on the white sheet | Kit white border |
+
+**Theme roles added:** `glass`, `glassStrong`, `glassNav`, `glassBorder`, `glassBorderStrong`, `cardShadow`, `tileShadow`, `primaryTint`, `primaryFill`, `focusRing`, `link`, `inputFill`, `inputBorder`, `divider`, `sheet`.
+**Theme roles removed:** `headerFrom`, `headerTo`, `onHeader`, `onHeaderMuted` (no gradient header any more).
+**Not changed:** the PDF (D1) keeps its black-on-white print styling; it's a document, not a screen.
+
+## Prompt 13 — Tighter corner radii (2026-10-22)
+
+The owner set new `radius` values, replacing the kit's (DESIGN.md §4). The change is recorded as an exception in `CLAUDE.md`.
+
+| Token | Kit | Now | Used on |
+| --- | --- | --- | --- |
+| `chip` | 12 | **10** | icon chips, ghost icon buttons |
+| `control` | 14 | **12** | buttons, glass icon buttons, inputs, search, FAB, snackbar |
+| `item` | 16 | **14** | active nav / rail item |
+| `bar` | 20 | **16** | info bar, logo (not used yet) |
+| `card` | 24 | **16** | glass cards, list cards, bottom nav, TOTAL bar, sheet top corners, preview frame |
+| `form` | 28 | **18** | tablet dialogs |
+| `frame` | 32 | **16** | album-style frames (not used yet) |
+| `pill` | 999 | 999 | unchanged |
+
+Circles (avatars 36 → radius 18, stepper 28 → 14) are not tokens and are unchanged.
+
 ## How to rebrand
 
 1. Edit `brand` in `src/ui/tokens.ts`.

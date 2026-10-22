@@ -35,6 +35,29 @@
 | Compact tile on phones (icon above a 2-line label, padding 12) | At 411dp each of the 3 cells is about 118dp; "Products Sold" with an inline icon would be cut off. | Smaller font: below the 12sp label size. |
 | FAB = 48dp tall, radius 12, `#25BDC3` with `#001E2C` text (user chose "Compact 48dp") | 48dp is the minimum touch target and the app's button height; radius 12 = `radius.md`. White text on `#25BDC3` is 2.3:1 (fails AA), `#001E2C` is 7.5:1. Applied in the shared `FAB`, so "Add product" (S5) and the Invoices FAB match. | M3 56dp standard; 40dp icon-only small FAB. The rail's "+" (tablet) is unchanged: 56dp, `primaryContainer`. |
 
+## Prompt 4 — Flat Glass redesign of every screen (2026-10-22)
+
+Reference mapping (kit §5 "match the closest reference screen"):
+
+| App screen | Closest reference | What was taken |
+| --- | --- | --- |
+| S1 Dashboard | 02-dashboard | greeting-style header, "Revenue" hero card (overline + badge + big figure), stat tiles with icon chips, list card with avatar rows, floating bottom nav |
+| S2 Invoices, S5 Products, S6 Settings | 02-dashboard | header with glass icon buttons; segmented control (S2 status); list cards |
+| S3 Invoice detail, S4 Create | 01-weather / 03-music-player top bars | glass back button · centred title; glass cards per block; primary 52 buttons |
+| Create invoice TOTAL bar | 03-music-player device bar / bottom nav | floating glass bar, radius 24 |
+| Sheets, inputs | 04-sign-in | form fields (label 13/500, 50 tall, radius 14, focus ring), primary + glass buttons |
+
+| Decision | Why | Alternative |
+| --- | --- | --- |
+| Keep every component's props and rebuild their insides | All 6 screens pick up the kit through C1–C14 without logic changes (kit skill step 5: "change only the presentation") | Rewriting screens around new components |
+| Bottom nav icon-only (labels spoken) | Matches the reference exactly | Keep labels: deviates from the reference |
+| Status filter → `SegmentedControl`; date range → glass calendar button | The kit's Day/Week/Month control and icon-button pattern | Chip row |
+| Ionicons → Feather (in `@expo/vector-icons`) | Kit rule 8 (Lucide/Feather line icons); no new dependency | lucide-react-native (needs react-native-svg) |
+| List cards hug their rows (`flexShrink` card + `flexGrow: 0` list) | Kit cards size to content; long lists still scroll inside | Full-height card (left a big empty glass panel) |
+| `navMetrics.ts` for the floating nav sizes | One source for screen padding, FAB and snackbar offsets; avoids a components↔Nav import cycle | Constants in Nav.tsx |
+
+**Not matched (React Native limits):** backdrop blur (no native module); CSS hover states (touch UI); `saturate(160%)`.
+
 ## Maintenance
 
 When a screen's layout changes, update its section in `SCREEN_LAYOUT_REFERENCE.md`. Keep existing IDs; add new ones at the end of the section instead of renumbering.
