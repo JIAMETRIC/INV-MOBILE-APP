@@ -34,7 +34,7 @@ it from here. It does not depend on the `digital-invoice` desktop workspace.
 | Money | Integer paise everywhere; ISO-8601 dates |
 | Documents | PDF via `expo-print` HTML template; XLSX via the in-house `src/export/xlsxWriter.ts` (no exceljs) |
 | UI | Own Material Design 3 kit in `src/ui/` (brand colour roles at WCAG AA, edge-to-edge, nav bar / rail, FAB, bottom sheets, snackbars, Android Back handling) |
-| Fonts | Inter (SIL OFL 1.1) via `@expo-google-fonts/inter` + `expo-font` (4 weights); the invoice PDF embeds a Latin + ₹ subset generated into `src/export/pdfFonts.ts` |
+| Fonts | Inter for text (4 weights) and Bebas Neue for displayed numbers, both SIL OFL 1.1, via `@expo-google-fonts/*` + `expo-font`; the invoice PDF embeds subsets generated into `src/export/pdfFonts.ts` |
 | Layout | 6 breakpoints: bottom tabs on phones, rail + 2–3 panes on tablets |
 | Packaging | Local Gradle (no cloud needed); optional EAS profiles in `eas.json` |
 
@@ -110,7 +110,7 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | `npm run test:money` | Money core / amount-in-words unit tests |
 | `npm run test:integration` | Headless SQLite harness over the real data layer |
 | `npm run test:xlsx` | ZIP / OOXML checks on the spreadsheet writer |
-| `python -I scripts/build-pdf-fonts.py` | Rebuilds `src/export/pdfFonts.ts` (Inter subset for the PDF). Needs `pip install fonttools brotli`; re-run after upgrading `@expo-google-fonts/inter` |
+| `python -I scripts/build-pdf-fonts.py` | Rebuilds `src/export/pdfFonts.ts` (Inter + Bebas Neue subsets for the PDF). Needs `pip install fonttools brotli`; re-run after upgrading either `@expo-google-fonts` package |
 | `cd android && gradlew.bat assembleRelease -x lintVitalAnalyzeRelease -x lintVitalRelease` | Release APK → `android/app/build/outputs/apk/release/app-release.apk`. The `-x lint…` flags are required: lint runs out of memory (Metaspace). Set `JAVA_HOME` to Android Studio's `jbr`. |
 | `cd android && gradlew.bat assembleDebug` | Debug APK (needs Metro: `npx expo start --port 8081` + `adb reverse tcp:8081 tcp:8081`) |
 | `npx expo run:android` | Debug build + install + Metro in one step (live reload) |

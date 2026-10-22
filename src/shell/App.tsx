@@ -9,6 +9,7 @@ import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue/400Regular';
 import { ThemeProvider, useTheme } from './providers';
 import { NavProvider, useNav } from './navigation';
 import { useBreakpoint } from '../ui/useBreakpoint';
@@ -43,7 +44,9 @@ function Root() {
   const bp = useBreakpoint();
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState('');
-  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, BebasNeue_400Regular,
+  });
   // A font failure must not lock the app out: carry on with the system font.
   const fontsReady = fontsLoaded || !!fontError;
   // Until Inter is registered, start-up text uses the system font.

@@ -562,7 +562,7 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 ## D1 — Invoice PDF / print layout
 
 **File:** `src/export/pdfTemplate.ts` · `buildInvoiceHtml(inv, lines, settings, 'A4' | 'Letter')`
-Page A4 210×297mm or Letter 216×279mm · padding 10mm × 9mm · Inter 9.5px (embedded Latin + ₹ subset, 400/700, from `src/export/pdfFonts.ts`), black on white.
+Page A4 210×297mm or Letter 216×279mm · padding 10mm × 9mm · Inter 9.5px (embedded Latin + ₹ subset, 400/700) for text; number cells and totals (`td.n`, `.tot td.v`) in Bebas Neue 11.5px (digits subset). Both from `src/export/pdfFonts.ts`. Black on white.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -639,8 +639,8 @@ Change one of these and **every screen that uses it changes**.
 | `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 106 |
 | `touch` | min 48 · comfortable 56 | 108 |
 | `maxReadWidth` | 720 | 109 |
-| `font` | Inter families: regular `Inter_400Regular` · medium `Inter_500Medium` · semibold `Inter_600SemiBold` · bold `Inter_700Bold` (loaded in shell/App.tsx) | 126 |
-| `type` | display 28 · title 22 · heading 16 (semibold) · body 16 · bodyMedium 14 · caption 12 (regular) · label 14 · labelMedium 12 · number 16 tabular (medium); each sets `fontFamily`, not `fontWeight` | 137 |
+| `font` | Inter families: regular `Inter_400Regular` · medium `Inter_500Medium` · semibold `Inter_600SemiBold` · bold `Inter_700Bold`; numbers: numeric `BebasNeue_400Regular` (all loaded in shell/App.tsx) | 126 |
+| `type` | display 28 · title 22 · heading 16 (semibold) · body 16 · bodyMedium 14 · caption 12 (regular) · label 14 · labelMedium 12 (medium) · **number 16 and figure 26 in Bebas Neue** (displayed numbers; figure = KPI values and the Create invoice TOTAL bar) · numberField 16 Inter medium tabular (number inputs); each sets `fontFamily`, not `fontWeight` | 137 |
 | `status` | icon / label / tone for each invoice status | 140 |
 
 ---

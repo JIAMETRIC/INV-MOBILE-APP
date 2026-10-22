@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { elevation, font, radius, shadow, space, touch, type, status as statusIcons } from './tokens';
+import { elevation, radius, shadow, space, touch, type, status as statusIcons } from './tokens';
 import type { Theme } from './tokens';
 import type { InvoiceStatus } from '../data/types';
 
@@ -164,7 +164,7 @@ export function Input({
             backgroundColor: editable ? theme.surface : theme.surfaceAlt,
             textAlignVertical: multiline ? 'top' : 'center',
           },
-          tabular ? type.number : type.body,
+          tabular ? type.numberField : type.body,
           multiline ? { height: undefined } : null,
         ]}
       />
@@ -239,7 +239,8 @@ export function MoneyText({ paiseText, theme, strong, small }: {
     <Text
       style={[
         small ? { ...type.number, fontSize: 14, lineHeight: 20 } : type.number,
-        strong ? { fontFamily: font.bold, color: theme.accentDeep } : { color: theme.text },
+        // Bebas Neue has one weight, so a strong amount is set larger, in the deep accent.
+        strong ? { fontSize: small ? 18 : 20, lineHeight: 24, color: theme.accentDeep } : { color: theme.text },
         { textAlign: 'right' },
       ]}
     >

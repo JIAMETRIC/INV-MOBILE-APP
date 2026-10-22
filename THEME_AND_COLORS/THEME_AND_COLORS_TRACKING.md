@@ -102,6 +102,22 @@ The same in both themes: the dark label works on the teal fill whatever the back
 | Font stack `'Inter', 'Roboto', sans-serif` | Characters outside the subset (e.g. Tamil party names) fall back per character instead of showing boxes. | — |
 | Start-up screen uses the system font until Inter loads; a font load error doesn't block the app | No "font not loaded" warnings, and no lock-out if a font asset fails. | — |
 
+## Prompt 11 — Bebas Neue for numbers (2026-10-22)
+
+User spec: regular text in Inter, numbers in **Bebas Neue** (SIL OFL 1.1, `@expo-google-fonts/bebas-neue`, one weight, 400).
+
+Font check (fonttools): it has ₹, `%`, `×`, `−`; every digit is 400 units wide, so figures line up in columns without extra settings; its letter height is 0.70 of the font size against Inter's 0.73, so the same sizes sit well together.
+
+| Where | Style |
+| --- | --- |
+| Amounts and quantities (MoneyText, TotalRow values, invoice item table, Products table and price) | `type.number`: Bebas Neue 16, tracking 0.5 |
+| KPI values, Create invoice TOTAL bar | new `type.figure`: Bebas Neue 26/32 (was Inter SemiBold 22) |
+| **Number input fields** (qty, rate, amounts, dates) | new `type.numberField`: Inter Medium, tabular. Kept in Inter on purpose, so typed values are easy to check; switch `Input` to `type.number` to change that |
+| Strong amounts (e.g. Total) | Bebas has one weight, so it's set larger (20, or 18 small) in `accentDeep` instead of bold |
+| PDF `td.n` (QTY, RATE, AMOUNT) and `.tot td.v` (totals) | Bebas Neue 11.5px, letter-spacing 0.4px; a 4 KB digits subset in `PDF_FONT_CSS` (renamed from `INTER_PDF_FONT_CSS`) |
+
+Labels that contain numbers ("Avl 8" badges, "Items (3)", "PRE-001", dates in subtitles) stay in Inter: they're text with numbers, not figures. The PDF TOTAL row asks for weight 700, which Bebas lacks. pdffonts also lists a second (Type 3) copy of Bebas, probably the PDF engine's synthesized bold for that row; on the rendered page the total looks only slightly heavier.
+
 ## How to rebrand
 
 1. Edit `brand` in `src/ui/tokens.ts`.

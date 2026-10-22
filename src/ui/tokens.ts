@@ -120,7 +120,8 @@ export const maxReadWidth = 720;
 
 const mono = Platform.select({ android: 'monospace', default: 'monospace' });
 
-// Inter (SIL OFL 1.1, @expo-google-fonts/inter), loaded in shell/App.tsx.
+// Inter (SIL OFL 1.1, @expo-google-fonts/inter) for text; Bebas Neue (SIL OFL
+// 1.1, @expo-google-fonts/bebas-neue) for displayed numbers. Loaded in shell/App.tsx.
 // Each weight is its own family: on Android, fontWeight with a single-weight
 // custom family can be synthesised, so styles pick the family, not a weight.
 export const font = {
@@ -128,6 +129,8 @@ export const font = {
   medium: 'Inter_500Medium',
   semibold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
+  // Condensed display face with one weight; its digits are tabular by default.
+  numeric: 'BebasNeue_400Regular',
 } as const;
 
 // M3 type scale under the legacy key names: display = headlineMedium,
@@ -143,7 +146,18 @@ export const type = {
   label: { fontSize: 14, lineHeight: 20, fontFamily: font.medium, letterSpacing: 0.1 },
   labelMedium: { fontSize: 12, lineHeight: 16, fontFamily: font.medium, letterSpacing: 0.3 },
   caption: { fontSize: 12, lineHeight: 16, fontFamily: font.regular, letterSpacing: 0.2 },
+  // Displayed numbers (amounts, quantities, table figures): Bebas Neue.
   number: {
+    fontSize: 16, lineHeight: 24, fontFamily: font.numeric, letterSpacing: 0.5,
+    fontVariant: ['tabular-nums'] as ['tabular-nums'],
+  },
+  // Large figures: KPI values, the Create invoice TOTAL bar.
+  figure: {
+    fontSize: 26, lineHeight: 32, fontFamily: font.numeric, letterSpacing: 0.5,
+    fontVariant: ['tabular-nums'] as ['tabular-nums'],
+  },
+  // Number input fields stay in Inter, so typed values are easy to check.
+  numberField: {
     fontSize: 16, lineHeight: 24, fontFamily: font.medium,
     fontVariant: ['tabular-nums'] as ['tabular-nums'],
   },

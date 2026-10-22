@@ -1,7 +1,7 @@
 import { gray } from '../ui/tokens';
 import { formatDateDisplay, formatPaise } from '../data/money';
 import type { Invoice, InvoiceLine, Settings } from '../data/types';
-import { INTER_PDF_FONT_CSS } from './pdfFonts';
+import { PDF_FONT_CSS } from './pdfFonts';
 
 export type PageSize = 'A4' | 'Letter';
 
@@ -36,7 +36,7 @@ export function buildInvoiceHtml(
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
 <style>
-  ${INTER_PDF_FONT_CSS}
+  ${PDF_FONT_CSS}
   @page { size: ${dims}; margin: 0; }
   * { box-sizing: border-box; }
   body {
@@ -55,6 +55,8 @@ export function buildInvoiceHtml(
   th, td { border: 1px solid ${gray[300]}; padding: 3px 4px; text-align: left; vertical-align: top; }
   th { background: ${gray[100]}; font-size: 8px; letter-spacing: 1px; }
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  /* Numbers in Bebas Neue (condensed, so set a little larger than the text). */
+  td.n, .tot td.v { font-family: 'Bebas Neue', 'Inter', sans-serif; font-size: 11.5px; letter-spacing: 0.4px; }
   .tot { width: 52%; margin-left: auto; }
   .tot td { border: none; padding: 2px 4px; }
   .tot td.v { text-align: right; font-variant-numeric: tabular-nums; }

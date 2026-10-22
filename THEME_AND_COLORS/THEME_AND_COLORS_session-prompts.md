@@ -78,3 +78,9 @@ What Fonts Used?
 ```
 Suggest a custom font for the app and the invoice PDF, then add it with expo-font.
 ```
+
+## Prompt 11
+
+```
+All Normal Fonts: Inter and For Numbers use: Bebas Neu
+```

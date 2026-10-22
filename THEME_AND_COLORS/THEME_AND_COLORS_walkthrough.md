@@ -93,3 +93,11 @@ Answered in chat: there were no custom fonts. Screens used Roboto (the Android s
 - fonttools: Inter has U+20B9 (₹) and the `tnum` feature.
 - Emulator (Metro `--clear`): Dashboard renders in Inter (flagged "1", ₹ glyph), with no font warnings in logcat.
 - PDF: "Share PDF" on PRE-001 → file replaced (19:37, 13 KB, previously 75 KB). `pdffonts` shows `Inter-Bold` + `Inter-Regular` (CID TrueType, embedded subset); the old file showed `CutiveMono-Regular` + `Roboto-Regular`. Rendered with `pdftoppm`: Inter throughout, ₹ in "TOTAL (₹)", bold headings and total; "Amount in words" italic is a synthesized oblique (no italic face embedded).
+
+## Prompt 11 — Bebas Neue for numbers (2026-10-22, session 13)
+
+Arrived mid-turn while the Inter commit (`f9bfa47`) was being made.
+
+**Diffs:** `package.json` + `@expo-google-fonts/bebas-neue`. `App.tsx` loads `BebasNeue_400Regular` (subpath import). `tokens.ts` adds `font.numeric`; `type.number` → Bebas Neue; new `type.figure` and `type.numberField`. `components.tsx`: Input `tabular` → `type.numberField`; strong MoneyText → larger + accentDeep (no bold face). Dashboard KPI value and the Create invoice TOTAL bar → `type.figure`. `build-pdf-fonts.py` rewritten around a `FACES` list (adds a Bebas digits subset); `pdfFonts.ts` regenerated (48 KB, export renamed `PDF_FONT_CSS`); `pdfTemplate.ts`: `td.n, .tot td.v` in Bebas Neue 11.5px.
+
+**Verification:** `tsc` OK; `test:integration` passes. Emulator (Metro `--clear`): Dashboard KPI values (1, ₹0.00, 3, 12, 15) and list amounts in Bebas, labels in Inter; Invoice detail Qty/Rate/Amount and Gross/Round off/Total in Bebas (Total larger, in navy). Share PDF regenerated PRE-001: `pdffonts` shows Inter-Bold, Inter-Regular and BebasNeue-Regular embedded; the rendered page shows Bebas in the number columns and totals.

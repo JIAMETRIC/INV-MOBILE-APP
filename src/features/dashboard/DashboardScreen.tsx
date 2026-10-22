@@ -38,7 +38,7 @@ function KpiTile({ kpi, compact, theme }: { kpi: Kpi; compact: boolean; theme: T
         </Text>
       </View>
       <Text
-        style={[type.title, { color: theme.text, fontVariant: ['tabular-nums'] }]}
+        style={[type.figure, { color: theme.text }]}
         numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}
       >
         {kpi.value}

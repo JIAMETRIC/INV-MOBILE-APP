@@ -498,7 +498,7 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
           <View style={{ paddingHorizontal: space[4], paddingVertical: space[3], flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
             <View style={{ flex: 1 }}>
               <Text style={[type.labelMedium, { color: theme.textMuted }]}>TOTAL</Text>
-              <Text style={[type.title, { color: theme.text, fontVariant: ['tabular-nums'] }]} numberOfLines={1}>
+              <Text style={[type.figure, { color: theme.text }]} numberOfLines={1}>
                 ₹{formatPaise(totals.total)}
               </Text>
             </View>
