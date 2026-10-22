@@ -1,0 +1,35 @@
+# EAS upload filter (replaces .gitignore for `eas build`).
+# /android is excluded on purpose: the local copy is tuned for the emulator
+# (reactNativeArchitectures=x86_64) and was prebuilt without EAS_BUILD_PROFILE,
+# so it would ship an x86_64-only APK that still declares INTERNET. Without it,
+# EAS runs `expo prebuild` remotely for all ABIs and app.config.ts strips
+# INTERNET / ACCESS_NETWORK_STATE for preview and production.
+/android
+/ios
+
+# local build outputs and caches
+/release
+/build
+/dist
+/.expo
+/web-build
+.tmp-xlsx-probe.xlsx
+node_modules/
+
+# from .gitignore
+expo-env.d.ts
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.pem
+.env*.local
+*.tsbuildinfo

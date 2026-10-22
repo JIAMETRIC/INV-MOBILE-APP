@@ -1,0 +1,48 @@
+With Continuous Mode Just Convert this application as a Mobile App As per "\invoice-app-plan.mdinvoice-app-plan.md"
+
+
+Task1:
+Remove Completely GST Related from this Mobile App
+
+Task2:
+Remove Clients Related from this Mobile App
+
+
+Create Invoice Must have only
+Invoice no and Date
+S.No
+Unique ID for each Product
+Name (Product Names) - Drop down for Products
+Size - Drop down for Products
+Price
+Qty
+Amount
+
+Rename items to Products and Products Table Must be with:
+Name (Product Names)
+Size(sizes)
+Price
+Stock
+Sold
+Avl-Stock
+
+Name (Product Names):
+Round Neck T-Shirt - IMP
+Round Neck T-Shirt
+Drop Shoulder T-Shirt
+Acid Wash T-Shirt
+Polo T-Shirt - IMP
+Polo T-Shirt
+Hoodie
+Track Pant - IMP
+Track Pant Cotton
+Track Pant Sports
+Full Hand T-Shirt - IMP
+Full Hand T-Shirt
+
+Size(sizes):
+S
+M
+L
+XL
+XXL
