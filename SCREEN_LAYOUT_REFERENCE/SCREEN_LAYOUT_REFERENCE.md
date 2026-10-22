@@ -158,7 +158,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 | ID | Section | Rows / columns | Key props | Lines |
 | --- | --- | --- | --- | --- |
 | S1.0 | App bar | `TopAppBar large`, title "Dashboard", subtitle `fyLabel()` (FY starts in April) | — | 19-22, 83 |
-| S1.1 | KPI grid | `rows: Kpi[][]`, each row a flex row with cells `width = 100 / row.length %`: row 1 = 2 cells, row 2 = 3 cells. Each cell is a `KpiTile`: filled Card, `theme.kpiSurface` (white in light), minHeight 104, flexGrow 1 (equal heights). Label row = icon 18 + label (1 line); value = title type, auto-shrinks to 60% | `compact = bp.isPhone && row.length > 2` → icon above a 2-line label, padding 12 | 25-50 (KpiTile), 66-80 (rows), 90-100 (grid) |
+| S1.1 | KPI grid | `rows: Kpi[][]`, each row a flex row with cells `width = 100 / row.length %`: row 1 = 2 cells, row 2 = 3 cells. Each cell is a `KpiTile`: filled Card, `theme.kpiSurface` (white in light), `shadow.primary`, minHeight 104, flexGrow 1 (equal heights). Label row = icon 18 + label (1 line); value = title type, auto-shrinks to 60% | `compact = bp.isPhone && row.length > 2` → icon above a 2-line label, padding 12 | 25-50 (KpiTile), 66-80 (rows), 90-100 (grid) |
 | S1.1.a | Row 1 "Invoices (FY)" | `kpis.invoiceCount` (issued + partial + paid, this FY) · document-text-outline | | 71 |
 | S1.1.b | Row 1 "Total billed" | `₹ kpis.billedPaise` (this FY) · trending-up-outline | | 72 |
 | S1.1.c | Row 2 "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; matches the SOLD column in S5) · cart-outline | | 75 |
@@ -613,14 +613,14 @@ Change one of these and **every screen that uses it changes**.
 | ID | Component | Spec | Used in | File:line |
 | --- | --- | --- | --- | --- |
 | C1 | `TopAppBar` | brand gradient (headerFrom→headerTo), min row 64; `large` adds a 28px title block below; optional back arrow and action icons | all screens | components.tsx:297 |
-| C2 | `Button` | variants solid / tonal / outline / ghost; `danger`, `busy`, `icon` | everywhere | components.tsx:36 |
+| C2 | `Button` | variants solid / tonal / outline / ghost; `danger`, `busy`, `icon`. Solid and tonal cast `shadow.primary`, deepening to `shadow.secondary` while pressed; outline, ghost and disabled buttons are flat | everywhere | components.tsx:36 |
 | C3 | `IconButton` | 48dp round icon button with a11y label | app bar, trash buttons | components.tsx:80 |
 | C4 | `Input` / `MoneyInput` | outlined field, label above; `helper`, `error`, `tabular`. MoneyInput is bound to integer paise | forms | components.tsx:123 / 178 |
 | C5 | `SearchField` | pill-shaped search with a clear button | S2, S4, S5 | components.tsx:204 |
 | C6 | `Card` | outlined (default) or filled; radius 12, padding 16 | S1, S3, S4, S6 | components.tsx:359 |
 | C7 | `ListItem` / `ListRow` | ListItem: leading icon or circle text, title + subtitle, trailing, chevron, selected tint; height 72 with subtitle, else 56. ListRow: free-form row (S5 table) | lists | components.tsx:399 / 375 |
 | C8 | `Chip` | filter chip, height 32, check mark when on | filters, modes, sizes | components.tsx:456 |
-| C9 | `FAB` | compact extended FAB: height 48 (`touch.min`), padding 16, icon 20, gap 8, radius 12 (`radius.md`), fill `theme.fab` `#25BDC3`, text/icon `theme.onFab` `#001E2C`; absolute 16dp from bottom-end | S1, S2, S5 | components.tsx:494 |
+| C9 | `FAB` | compact extended FAB: height 48 (`touch.min`), padding 16, icon 20, gap 8, radius 12 (`radius.md`), fill `theme.fab` `#25BDC3`, text/icon `theme.onFab` `#001E2C`, `shadow.secondary`; absolute 16dp from bottom-end | S1, S2, S5 | components.tsx:494 |
 | C10 | `Sheet` | phone: bottom sheet (28 radius, drag handle, max 92% height); tablet: dialog (92% or 86% wide, max 560 / 720) | P1, P2, P3 | Sheet.tsx:21 |
 | C11 | `Snackbar` (`useSnackbar`) | 4s (6s with an action), max width 560, above the nav bar; colours `theme.inverse*` | all saves | Snackbar.tsx:18 |
 | C12 | `StatusGlyph` / `Badge` | status = icon + text + tone (Draft, Issued, Partial, Paid, Void) | lists, S3 | components.tsx:265 / 282 |
@@ -634,6 +634,7 @@ Change one of these and **every screen that uses it changes**.
 | `brand` (root colours) | navy `#0C476F`, navyDeep, blue, primary `#00668B`, primaryDark `#7FCFF3`, containers. **Change these to rebrand**; see [THEME_AND_COLORS](../THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md) | 37 |
 | `alpha(hex, a)` / `white` | rgba helper (ripples, muted header text) / `gray[0]` | 53 / 50 |
 | `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper`, `kpiSurface` (S1.1 tiles), `navSurface`/`navBorder` (nav bar and rail), `fab`/`onFab` (C9); light: `bg` `#F1F5F9`, filled cards `surfaceContainer` `#E2E8F0`, nav white + hairline | 60 / 82 |
+| `shadow` | primary `0 4px 8px rgba(20, 71, 108, 0.15)` (KPI cards, filled buttons) · secondary `0 8px 16px rgba(20, 71, 108, 0.2)` (pressed buttons, FAB, rail "+"); `elevation.card` / `elevation.fab` wrap them | 145 |
 | `space` | 0, 4, 8, 12, 16, 24, 32, 48, 64 (keys 0–8) | 104 |
 | `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 106 |
 | `touch` | min 48 · comfortable 56 | 108 |

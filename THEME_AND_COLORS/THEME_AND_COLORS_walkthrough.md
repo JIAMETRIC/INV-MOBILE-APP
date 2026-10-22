@@ -55,3 +55,18 @@ The user sent "Background of every screen: #f1f5f9" mid-task, so the colours wer
 ## Prompt 7 — FAB colour #25BDC3 (2026-10-22, session 13)
 
 Added `brand.action` / `brand.onAction` and theme roles `fab` / `onFab`; `FAB` uses them. Contrast check: white 2.30, `#0C476F` 4.26, `#003549` 5.70, `#001E2C` 7.48 on `#25BDC3`, so `#001E2C` was chosen. Verified on the emulator (pixel `#25BDC3`, dark label). Size and layout changes are logged in SCREEN_LAYOUT_REFERENCE (Prompt 3).
+
+## Prompt 8 — Box shadows for KPI cards and buttons (2026-10-22, session 13)
+
+**Diffs:** `tokens.ts` gains `shadow.primary/secondary` and `elevation.card`, and `elevation.fab` becomes `{ boxShadow: shadow.secondary }`. `components.tsx` Button: `raised` (solid or tonal, not disabled) → `boxShadow: pressed ? secondary : primary`. `DashboardScreen.tsx` KpiTile: `...elevation.card`. `Nav.tsx` rail "+": `elevation: 3` → `...elevation.fab`.
+
+**Verification:** `tsc --noEmit` OK. Emulator pixel columns under each element (bg `#F1F5F9`):
+
+| Element | Pixels below the edge (4-6 px steps) |
+| --- | --- |
+| KPI card | `#D6E0E8 → #E5EBF0` (shadow fading out) |
+| FAB | `#CDD9E3 → #DCE4EC` (deeper, secondary) |
+| Share PDF at rest | `#D6E0E8 → #F1F5F9` within about 36 px |
+| Share PDF pressed (`input motionevent DOWN`, then `CANCEL`, so nothing was shared) | `#CCD8E2 → #E8EDF3` (darker and longer) |
+
+The button's `overflow: hidden` (kept for the ripple) does not clip the shadow.

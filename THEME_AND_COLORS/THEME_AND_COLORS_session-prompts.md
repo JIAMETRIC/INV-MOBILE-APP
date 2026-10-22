@@ -58,3 +58,11 @@ Task2:
 2.Reduce the Border Radius
 3.Background Color: #25BDC3
 ```
+
+## Prompt 8
+
+```
+use this Box Shadows for KPI Cards and Buttons: --primaryShadow: 0 4px 8px rgba(20, 71, 108, 0.15);
+
+1. --secondaryShadow: 0 8px 16px rgba(20, 71, 108, 0.2);
+```

@@ -77,6 +77,19 @@ Dark theme: `navSurface` `#142233` (= old surfaceContainer) and `navBorder` `tra
 
 The same in both themes: the dark label works on the teal fill whatever the background. Used by the shared `FAB` (components.tsx); the rail's "+" still uses `primaryContainer`.
 
+## Prompt 8 — Box shadows (2026-10-22)
+
+`shadow` in tokens.ts (CSS box-shadow strings, drawn by React Native's `boxShadow`, which needs the New Architecture; this app has it on):
+
+| Token | Value | Used on |
+| --- | --- | --- |
+| `shadow.primary` (`--primaryShadow`) | `0 4px 8px rgba(20, 71, 108, 0.15)` | Dashboard KPI cards (`elevation.card`); solid and tonal `Button`s at rest |
+| `shadow.secondary` (`--secondaryShadow`) | `0 8px 16px rgba(20, 71, 108, 0.2)` | solid and tonal `Button`s while pressed; `FAB` and the rail "+" (`elevation.fab`, replacing Android `elevation: 6` / `3`) |
+
+**Why this mapping:** primary is the resting depth; secondary is the "lifted" depth, used for press feedback and for the floating buttons, which sit above all content.
+**Left flat:** outline and text (ghost) buttons, which have no fill to cast from, and disabled buttons. The Snackbar keeps Android `elevation: 6` (not a card or button).
+**Dark theme:** the same navy shadow, which shows little on dark surfaces; that's accepted, since depth there comes from the tonal surfaces.
+
 ## How to rebrand
 
 1. Edit `brand` in `src/ui/tokens.ts`.

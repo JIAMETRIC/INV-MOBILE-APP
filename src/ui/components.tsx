@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { elevation, radius, space, touch, type, status as statusIcons } from './tokens';
+import { elevation, radius, shadow, space, touch, type, status as statusIcons } from './tokens';
 import type { Theme } from './tokens';
 import type { InvoiceStatus } from '../data/types';
 
@@ -41,6 +41,9 @@ export function Button({
     variant === 'solid' ? (danger ? theme.error : theme.fillStrong)
       : variant === 'tonal' ? (danger ? theme.errorContainer : theme.secondaryContainer)
         : 'transparent';
+  // Filled buttons (solid, tonal) cast a shadow that deepens while pressed;
+  // outline and text buttons stay flat.
+  const raised = (variant === 'solid' || variant === 'tonal') && !off;
   const color =
     variant === 'solid' ? (danger ? theme.onError : theme.onFillStrong)
       : variant === 'tonal' ? (danger ? theme.onErrorContainer : theme.onSecondaryContainer)
@@ -65,7 +68,8 @@ export function Button({
         backgroundColor: fill,
         borderWidth: variant === 'outline' ? 1 : 0,
         borderColor: theme.outline,
-      }, style, off && { opacity: 0.38 }, pressedDim(pressed)]}
+      }, raised && { boxShadow: pressed ? shadow.secondary : shadow.primary },
+      style, off && { opacity: 0.38 }, pressedDim(pressed)]}
     >
       {busy ? <ActivityIndicator color={color} /> : (
         <>

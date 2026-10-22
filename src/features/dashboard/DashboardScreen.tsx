@@ -7,7 +7,7 @@ import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
   Button, Card, EmptyState, FAB, ListItem, MoneyText, SectionTitle, StatusGlyph, TopAppBar, type IconName,
 } from '../../ui/components';
-import { space, type, maxReadWidth } from '../../ui/tokens';
+import { elevation, space, type, maxReadWidth } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getAging, getKpis, recentInvoices } from '../../data/dashboardRepo';
 import { getStockTotals } from '../../data/productsRepo';
@@ -25,7 +25,7 @@ function fyLabel(d = new Date()): string {
 function KpiTile({ kpi, compact, theme }: { kpi: Kpi; compact: boolean; theme: Theme }) {
   return (
     <Card theme={theme} variant="filled" style={{
-      flexGrow: 1, minHeight: 104, gap: space[2], backgroundColor: theme.kpiSurface,
+      flexGrow: 1, minHeight: 104, gap: space[2], backgroundColor: theme.kpiSurface, ...elevation.card,
       ...(compact ? { padding: space[3] } : null),
     }}>
       <View style={compact

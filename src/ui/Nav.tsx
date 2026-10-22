@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { radius, space, touch, type } from './tokens';
+import { elevation, radius, space, touch, type } from './tokens';
 import type { Theme } from './tokens';
 import { ripple } from './components';
 
@@ -111,7 +111,7 @@ export function Rail({ active, onSelect, theme, labels, onNew }: {
         android_ripple={ripple(theme)}
         style={{
           width: touch.comfortable, height: touch.comfortable, borderRadius: radius.lg, overflow: 'hidden',
-          backgroundColor: theme.primaryContainer, elevation: 3,
+          backgroundColor: theme.primaryContainer, ...elevation.fab,
           alignItems: 'center', justifyContent: 'center', marginBottom: space[5],
         }}
       >

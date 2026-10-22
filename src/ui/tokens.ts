@@ -139,11 +139,19 @@ export const type = {
   code: { fontSize: 14, lineHeight: 20, fontFamily: mono },
 } as const;
 
-// Depth comes from tonal surfaces and borders; the FAB is the one elevated element (M3 level 3).
+// Navy-tinted drop shadows (CSS box-shadow syntax, drawn by RN's boxShadow).
+// primary: resting KPI cards and filled buttons. secondary: pressed buttons
+// and the floating action buttons, which sit above everything else.
+export const shadow = {
+  primary: '0 4px 8px rgba(20, 71, 108, 0.15)',
+  secondary: '0 8px 16px rgba(20, 71, 108, 0.2)',
+} as const;
+
 export const elevation = {
   flat: { borderWidth: border.hairline },
   raised: { borderWidth: border.strong },
-  fab: { elevation: 6 },
+  card: { boxShadow: shadow.primary },
+  fab: { boxShadow: shadow.secondary },
 } as const;
 
 // Ionicons names (I1 hairline set). Status = glyph + text + tonal colour, never colour alone.
