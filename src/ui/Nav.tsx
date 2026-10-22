@@ -46,7 +46,8 @@ export function BottomTabs({ active, onSelect, theme }: {
       accessibilityRole="tablist"
       style={{
         flexDirection: 'row',
-        backgroundColor: theme.surfaceContainer,
+        backgroundColor: theme.navSurface,
+        borderTopWidth: 1, borderTopColor: theme.navBorder,
         paddingBottom: insets.bottom,
       }}
     >
@@ -95,7 +96,8 @@ export function Rail({ active, onSelect, theme, labels, onNew }: {
       accessibilityRole="tablist"
       style={{
         width: 88,
-        backgroundColor: theme.surfaceContainer,
+        backgroundColor: theme.navSurface,
+        borderRightWidth: 1, borderRightColor: theme.navBorder,
         paddingTop: insets.top + space[3],
         paddingBottom: insets.bottom,
         alignItems: 'center',

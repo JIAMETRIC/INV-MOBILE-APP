@@ -156,7 +156,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 | ID | Section | Rows / columns | Key props | Lines |
 | --- | --- | --- | --- | --- |
 | S1.0 | App bar | `TopAppBar large`, title "Dashboard", subtitle `fyLabel()` (FY starts in April) | — | 15-18, 46 |
-| S1.1 | KPI grid | `perRow = isPhone ? 2 : 4` → phone 2×2, tablet 1×4. Each cell: filled Card, minHeight 104, icon 18 + label row, then value (title type, auto-shrinks to 60%) | the cards array | 36-42, 53-70 |
+| S1.1 | KPI grid | `perRow = isPhone ? 2 : 4` → phone 2×2, tablet 1×4. Each cell: filled Card with `theme.kpiSurface` background (white in light theme), minHeight 104, icon 18 + label row, then value (title type, auto-shrinks to 60%) | the cards array | 36-42, 53-70 |
 | S1.1.a | KPI 1 "Invoices (FY)" | `kpis.invoiceCount` · icon document-text-outline | | 37 |
 | S1.1.b | KPI 2 "Total billed" | `₹ kpis.billedPaise` · trending-up-outline | | 38 |
 | S1.1.c | KPI 3 "Outstanding" | sum of (total − paid) over the aging list · hourglass-outline | | 35, 39 |
@@ -628,7 +628,7 @@ Change one of these and **every screen that uses it changes**.
 | --- | --- | --- |
 | `brand` (root colours) | navy `#0C476F`, navyDeep, blue, primary `#00668B`, primaryDark `#7FCFF3`, containers. **Change these to rebrand**; see [THEME_AND_COLORS](../THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md) | 37 |
 | `alpha(hex, a)` / `white` | rgba helper (ripples, muted header text) / `gray[0]` | 53 / 50 |
-| `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper` | 60 / 82 |
+| `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper`, `kpiSurface` (S1.1 tiles), `navSurface`/`navBorder` (C-nav bar and rail); light: `bg` `#F1F5F9`, filled cards `surfaceContainer` `#E2E8F0`, nav white + hairline | 60 / 82 |
 | `space` | 0, 4, 8, 12, 16, 24, 32, 48, 64 (keys 0–8) | 104 |
 | `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 106 |
 | `touch` | min 48 · comfortable 56 | 108 |

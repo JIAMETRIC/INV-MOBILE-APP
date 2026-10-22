@@ -25,6 +25,10 @@ export type Theme = {
   headerFrom: string; headerTo: string; onHeader: string; onHeaderMuted: string;
   // Printed invoice paper: always white, in both themes.
   paper: string;
+  // Dashboard KPI tiles (S1.1).
+  kpiSurface: string;
+  // Bottom navigation bar and rail, plus the hairline that separates them from content.
+  navSurface: string; navBorder: string;
   tone: { info: Tone; success: Tone; warning: Tone; neutral: Tone };
   dark: boolean;
 };
@@ -58,7 +62,7 @@ export function alpha(hex: string, a: number): string {
 // U2 — the brand mapped onto Material 3 colour roles. Every text/fill pair is
 // >= 4.5:1 (WCAG AA).
 export const light: Theme = {
-  bg: '#F2F7FB', surface: white, surfaceAlt: '#E6EEF4', surfaceContainer: '#EBF2F7',
+  bg: '#F1F5F9', surface: white, surfaceAlt: '#E6EEF4', surfaceContainer: '#E2E8F0',
   border: '#DBE7EE', borderStrong: brand.navy, outline: '#71787E',
   text: '#10232F', textMuted: '#53606A', textDisabled: '#A9B1B6',
   inverse: white, fillStrong: brand.primary, onFillStrong: white,
@@ -69,7 +73,7 @@ export const light: Theme = {
   error: '#BA1A1A', onError: white, errorContainer: '#FFDAD6', onErrorContainer: '#410002',
   inverseSurface: '#26343E', inverseOnSurface: '#EEF4F8', inversePrimary: brand.primaryDark,
   headerFrom: brand.navy, headerTo: brand.blue, onHeader: white, onHeaderMuted: alpha(white, 0.85),
-  paper: white,
+  paper: white, kpiSurface: white, navSurface: white, navBorder: '#DBE7EE',
   tone: {
     info: { bg: brand.container, fg: brand.onContainer },
     success: { bg: '#D7F5DD', fg: '#0F5223' },
@@ -91,7 +95,7 @@ export const dark: Theme = {
   error: '#FFB4AB', onError: '#690005', errorContainer: '#93000A', onErrorContainer: '#FFDAD6',
   inverseSurface: '#DCE7F0', inverseOnSurface: '#10232F', inversePrimary: brand.primary,
   headerFrom: brand.navyDeep, headerTo: brand.navy, onHeader: white, onHeaderMuted: alpha(white, 0.85),
-  paper: white,
+  paper: white, kpiSurface: '#142233', navSurface: '#142233', navBorder: 'transparent',
   tone: {
     info: { bg: brand.containerDark, fg: brand.container },
     success: { bg: '#1E4D2B', fg: '#B6F0C1' },

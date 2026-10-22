@@ -53,7 +53,7 @@ export function DashboardScreen() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', margin: -space[1] }}>
           {cards.map(c => (
             <View key={c.label} style={{ width: `${100 / perRow}%`, padding: space[1] }}>
-              <Card theme={theme} variant="filled" style={{ minHeight: 104, gap: space[2] }}>
+              <Card theme={theme} variant="filled" style={{ minHeight: 104, gap: space[2], backgroundColor: theme.kpiSurface }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
                   <Ionicons name={c.icon} size={18} color={theme.accent} />
                   <Text style={[type.labelMedium, { color: theme.textMuted, flex: 1 }]} numberOfLines={1}>{c.label}</Text>

@@ -40,6 +40,34 @@ New roles:
 
 Still outside tokens (left on purpose): `app.config.ts` adaptive-icon background `#FFFFFF`, a build-time Android asset setting. `pdfTemplate.ts` uses the `gray` scale from tokens.ts.
 
+## Prompt 4 — Screen background and KPI cards (2026-10-22)
+
+| Change | Light | Dark | Why |
+| --- | --- | --- | --- |
+| `bg` (every screen's background) | `#F2F7FB` → **`#E9F0F4`** | unchanged `#0C1520` | User spec. Light only: `#E9F0F4` as a dark-mode background would put light text on a light surface. |
+| new role `kpiSurface` (Dashboard KPI tiles, S1.1; the only KPI cards in the app) | **`#FFFFFF`** | `#142233` (= the previous filled-card colour, so dark looks unchanged) | A dedicated role, so the other filled cards (Bill-to etc.) and `surfaceContainer` (nav bar, rail) keep their colour. |
+
+Contrast on the new `bg` (WCAG AA needs 4.5:1 for text, 3:1 for outlines): text 13.99 · textMuted 5.61 · accent 5.57 · error 5.61 · outline 3.89. All pass.
+
+Side effect: `surfaceContainer` `#EBF2F7` (bottom nav bar, rail, other filled cards) is now nearly the same as `bg` (1.02:1), so those surfaces barely stand out from the background.
+
+## Prompt 5 — Background #F1F5F9; nav bar, rail and filled cards stand out (2026-10-22)
+
+The user changed the screen background again mid-task, from `#E9F0F4` to **`#F1F5F9`**, which replaces Prompt 4's value. Light theme only; dark is unchanged.
+
+| Surface | Before | Now (light) | vs bg | Lowest text contrast on it |
+| --- | --- | --- | --- | --- |
+| `bg` (screens) | `#E9F0F4` | **`#F1F5F9`** | — | textMuted 5.90 · outline 4.09 |
+| `surfaceContainer`: filled cards (Bill-to, review, empty/ship cards), S4 phone total bar | `#EBF2F7` | **`#E2E8F0`** | 1.13 (was 1.03) | textMuted 5.24 · accent 5.20 · outline 3.63 |
+| new `navSurface`: bottom nav bar, rail | `#EBF2F7` | **`#FFFFFF`** | 1.10, plus hairline | textMuted 6.46 |
+| new `navBorder`: top edge of the nav bar, right edge of the rail | — | **`#DBE7EE`** (= `border`), 1dp | — | — |
+| `kpiSurface` | `#FFFFFF` | unchanged | 1.10 | textMuted 6.46 |
+
+Dark theme: `navSurface` `#142233` (= old surfaceContainer) and `navBorder` `transparent`, so it looks unchanged.
+
+**Why:** a white nav bar with a hairline is the clearest separation that keeps the active-tab pill (`secondaryContainer` `#D3E5F2`) visible: 1.29:1 on white, but only 1.05:1 on a darker tint. Filled cards go a step darker (`#E2E8F0`, the slate pair of `#F1F5F9`), so they still read as tinted next to white outlined cards and KPI tiles.
+**Rejected:** putting everything on one darker tint (nav pill would vanish); making filled cards white (they would look the same as outlined cards).
+
 ## How to rebrand
 
 1. Edit `brand` in `src/ui/tokens.ts`.
