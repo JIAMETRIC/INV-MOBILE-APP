@@ -87,3 +87,9 @@ Reference doc: S1.3.1, S4.B.6 and S4.L3 text updated; S4 line numbers shifted (+
 - No Day/Week/Month control or revenue chart on the Dashboard: the app has no time-series data. The hero card shows Total billed for the FY instead.
 - Bottom-sheet and dialog surfaces are solid, not glass.
 - The PDF keeps its print styling.
+
+## Prompt 5 — Remove Recent invoices and Outstanding from the Dashboard (2026-10-22, session 13)
+
+**Diff:** `src/features/dashboard/DashboardScreen.tsx` drops the two list sections, their `recent` / `aging` state, the `recentInvoices` / `getAging` calls and the now-unused imports (`Button`, `EmptyState`, `ListItem`, `MoneyText`, `SectionTitle`, `StatusGlyph`, `initials`, `formatDateDisplay`, `AgingRow`, `Invoice`).
+
+**Verification:** `tsc --noEmit` clean. Emulator (Metro restarted): the Dashboard shows the header, the Total billed card (₹0.00, "1 invoice"), the three stat tiles (3 / 12 / 15), the New invoice button and the bottom nav; no list cards.

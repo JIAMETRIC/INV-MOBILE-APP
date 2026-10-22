@@ -43,3 +43,9 @@ Modify the app 100% Accurately as Per the Attached, Dont miss any File:
 AskUserQuestion answers: Numbers font = "Keep Bebas Neue for numbers"; Button text = "Exactly as the screens";
 Dark mode = "Follow the phone (Recommended)"; Kit files = "Install the kit (Recommended)".
 ```
+
+## Prompt 5
+
+```
+In dashboard Remove: 1.Recent Invoices and 2. Outstanding (aging)
+```

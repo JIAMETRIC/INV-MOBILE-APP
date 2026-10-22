@@ -58,6 +58,17 @@ Reference mapping (kit §5 "match the closest reference screen"):
 
 **Not matched (React Native limits):** backdrop blur (no native module); CSS hover states (touch UI); `saturate(160%)`.
 
+## Prompt 5 — Dashboard without the invoice lists (2026-10-22)
+
+S1.3 (Recent invoices) and S1.4 (Outstanding / aging) are removed; the Dashboard keeps S1.0 header, S1.1 hero card, S1.2 stat tiles and S1.5 FAB. The IDs S1.3/S1.4 are retired rather than renumbered, so older prompts that cite S1.5 still match.
+
+| Decision | Why | Alternative |
+| --- | --- | --- |
+| Drop the `recentInvoices(5)` and `getAging()` calls from `load()` | Nothing on screen uses them any more | Keep the queries: wasted work on every refresh |
+| Keep both functions in `dashboardRepo.ts` | `getAging()` is covered by the integration test "void lifecycle + KPIs exclude void"; both are small and may come back | Delete them |
+
+The same invoices remain reachable from the Invoices tab (S2), which has search, status filters and the same rows.
+
 ## Maintenance
 
 When a screen's layout changes, update its section in `SCREEN_LAYOUT_REFERENCE.md`. Keep existing IDs; add new ones at the end of the section instead of renumbering.

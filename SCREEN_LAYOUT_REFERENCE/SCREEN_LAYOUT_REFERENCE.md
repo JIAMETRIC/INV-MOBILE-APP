@@ -124,7 +124,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 
 ## S1 — Dashboard (Home)
 
-**File:** `src/features/dashboard/DashboardScreen.tsx` · **Data:** `getKpis()`, `recentInvoices(5)`, `getAging()` from `src/data/dashboardRepo.ts`; `getStockTotals()` from `src/data/productsRepo.ts` · **Kit reference:** `design/screens/02-dashboard`
+**File:** `src/features/dashboard/DashboardScreen.tsx` · **Data:** `getKpis()` from `src/data/dashboardRepo.ts`; `getStockTotals()` from `src/data/productsRepo.ts` · **Kit reference:** `design/screens/02-dashboard`
 
 ### Phone wireframe (sm)
 
@@ -141,22 +141,13 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 │ Sold    ││ Stock   ││ Stock   │
 │ 3       ││ 12      ││ 15      │
 └─────────┘└─────────┘└─────────┘
- RECENT INVOICES       See all   S1.3 overline + text link
-┌─────────────────────────────┐
-│ (AS) Party          ₹0.00   │ S1.3.1 list row: avatar · title/caption
-│      PRE-001·date [Issued]  │        · amount + status pill
-└─────────────────────────────┘
- OUTSTANDING (AGING)             S1.4
-┌─────────────────────────────┐
-│ (AS) Party          ₹0.00   │ S1.4.1 row (tap → invoice)
-└─────────────────────────────┘
-               [+ New invoice]   S1.5 FAB (52, radius 14, blue)
+               [+ New invoice]   S1.5 FAB (52, radius 12, blue)
 ┌─────────────────────────────┐
 │ [■]   [ ]    [ ]    [ ]     │ S0.4.2 floating bottom nav
 └─────────────────────────────┘
 ```
 
-### Tablet (md+): same blocks; on lg+, S1.3 and S1.4 sit **side by side** (gap 16); on md they stack.
+### Tablet (md+): same blocks, full width. (Recent invoices S1.3 and Outstanding S1.4 were removed in Prompt 5; their IDs are retired.)
 
 ### Sections
 
@@ -168,11 +159,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 | S1.2.a | "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; = SOLD in S5) · `shopping-cart` | | 61 |
 | S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | 62 |
 | S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | 63 |
-| S1.3 | Recent invoices | overline + "See all" text link (→ Invoices tab); list card (padding 8 × 16) of up to 5 `ListItem flush`; empty state "No invoices yet" | | 97-131 |
-| S1.3.1 | Recent row | avatar = `initials(party)` (blue, every second row grey) · title party · caption `no · date` · trailing amount (Bebas) + status pill · tap → `showInvoice` | | 111-128 |
-| S1.4 | Outstanding (aging) | up to 10 rows, same list card; empty state "All settled" | `aging.slice(0, 10)` | 133-152 |
-| S1.4.1 | Aging row | avatar · party · `no · due date` · balance; tap → `showInvoice(a.invoice_id)` | | 138-150 |
-| S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9) | | 156 |
+| S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9) | | 93 |
 | — | Scroll container | side padding 20, gap 16, bottom = `useContentInset(true)` (clears nav + FAB), maxWidth max(720, 90% width) | | 69-75 |
 
 ### Functions
@@ -181,7 +168,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 | --- | --- | --- |
 | `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | 20-23 |
 | `StatTile({kpi, theme})` | one kit stat tile | 26-39 |
-| `load()` | runs the 4 queries in parallel (KPIs, recent, aging, stock totals); reruns on `refreshKey` | 50-53 |
+| `load()` | runs the 2 queries in parallel (KPIs, stock totals); reruns on `refreshKey` | 46-49 |
 | `getStockTotals()` (productsRepo.ts:40) | Σ stock, Σ sold (same SOLD rule as S5), avl = stock − sold | — |
 
 ---

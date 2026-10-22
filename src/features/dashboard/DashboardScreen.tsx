@@ -5,14 +5,12 @@ import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { useContentInset } from '../../ui/navMetrics';
 import {
-  Badge, Button, Card, EmptyState, FAB, IconChip, ListItem, MoneyText, SectionTitle, StatusGlyph, TopAppBar,
-  initials, type IconName,
+  Badge, Card, FAB, IconChip, TopAppBar, type IconName,
 } from '../../ui/components';
 import { font, layout, space, type, maxReadWidth } from '../../ui/tokens';
-import { formatPaise, formatDateDisplay } from '../../data/money';
-import { getAging, getKpis, recentInvoices } from '../../data/dashboardRepo';
+import { formatPaise } from '../../data/money';
+import { getKpis } from '../../data/dashboardRepo';
 import { getStockTotals } from '../../data/productsRepo';
-import type { AgingRow, Invoice } from '../../data/types';
 import type { Theme } from '../../ui/tokens';
 
 type Kpi = { label: string; value: string; icon: IconName };
@@ -43,13 +41,11 @@ export function DashboardScreen() {
   const bp = useBreakpoint();
   const bottomInset = useContentInset(bp.isPhone);
   const [kpis, setKpis] = useState({ invoiceCount: 0, billedPaise: 0 });
-  const [recent, setRecent] = useState<Invoice[]>([]);
-  const [aging, setAging] = useState<AgingRow[]>([]);
   const [stock, setStock] = useState({ stockQty: 0, soldQty: 0, avlQty: 0 });
 
   const load = useCallback(async () => {
-    const [k, r, a, st] = await Promise.all([getKpis(), recentInvoices(5), getAging(), getStockTotals()]);
-    setKpis(k); setRecent(r); setAging(a.slice(0, 10)); setStock(st);
+    const [k, st] = await Promise.all([getKpis(), getStockTotals()]);
+    setKpis(k); setStock(st);
   }, []);
 
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
@@ -92,65 +88,6 @@ export function DashboardScreen() {
               <StatTile kpi={k} theme={theme} />
             </View>
           ))}
-        </View>
-
-        <View style={{ flexDirection: bp.atLeast('lg') ? 'row' : 'column', gap: layout.gap }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <SectionTitle title="Recent invoices" theme={theme}
-              right={recent.length > 0
-                ? <Button label="See all" variant="ghost" theme={theme} onPress={() => nav.goTab('invoices')} />
-                : undefined} />
-            <Card theme={theme} list>
-              {recent.length === 0
-                ? (
-                  <EmptyState
-                    icon="file-text" title="No invoices yet"
-                    text="Create your first invoice to see it here." theme={theme}
-                  />
-                )
-                : recent.map((inv, i) => (
-                  <ListItem
-                    key={inv.id}
-                    theme={theme}
-                    flush
-                    leadingText={initials(inv.party_name)}
-                    leadingAlt={i % 2 === 1}
-                    divider={i < recent.length - 1}
-                    title={inv.party_name || '(no party)'}
-                    subtitle={`${inv.invoice_no} · ${formatDateDisplay(inv.invoice_date)}`}
-                    onPress={() => nav.showInvoice(inv.id, bp.isPhone)}
-                    trailing={(
-                      <View style={{ alignItems: 'flex-end', gap: space[1] }}>
-                        <MoneyText paiseText={`₹${formatPaise(inv.total_paise)}`} theme={theme} small />
-                        <StatusGlyph status={inv.status} theme={theme} />
-                      </View>
-                    )}
-                  />
-                ))}
-            </Card>
-          </View>
-
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <SectionTitle title="Outstanding (aging)" theme={theme} />
-            <Card theme={theme} list>
-              {aging.length === 0
-                ? <EmptyState icon="check-circle" title="All settled" text="Nothing outstanding." theme={theme} />
-                : aging.map((a, i) => (
-                  <ListItem
-                    key={a.invoice_id}
-                    theme={theme}
-                    flush
-                    leadingText={initials(a.party_name)}
-                    leadingAlt={i % 2 === 1}
-                    divider={i < aging.length - 1}
-                    title={a.party_name || '(no party)'}
-                    subtitle={`${a.invoice_no} · due ${formatDateDisplay(a.due_date)}`}
-                    onPress={() => nav.showInvoice(a.invoice_id, bp.isPhone)}
-                    trailing={<MoneyText paiseText={`₹${formatPaise(a.total_paise - a.paid_paise)}`} theme={theme} small />}
-                  />
-                ))}
-            </Card>
-          </View>
         </View>
       </ScrollView>
       {bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null}
