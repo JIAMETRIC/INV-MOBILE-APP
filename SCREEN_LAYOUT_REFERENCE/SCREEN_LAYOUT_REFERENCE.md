@@ -4,7 +4,7 @@ Every screen, section, row, column and function in the app, each with a **stable
 
 > **How to use the IDs in a prompt**
 > `In S2.3 (Invoices → status chips) add a "Draft" chip.`
-> `Make S1.1 (Dashboard KPI grid) show 3 cards per row on phones.`
+> `In S1.1 (Dashboard KPI grid) put all five cards in one row on tablets.`
 > `In S4.B.4 (Create invoice → line-item card) put Qty and Rate on separate rows.`
 >
 > ID format: `S<screen>.<section>[.<row>]`. Overlays are `P<n>`, shared components are `C<n>`, documents are `D<n>`.
@@ -120,7 +120,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 
 ## S1 — Dashboard (Home)
 
-**File:** `src/features/dashboard/DashboardScreen.tsx` · **Data:** `getKpis()`, `recentInvoices(5)`, `getAging()` from `src/data/dashboardRepo.ts`
+**File:** `src/features/dashboard/DashboardScreen.tsx` · **Data:** `getKpis()`, `recentInvoices(5)`, `getAging()` from `src/data/dashboardRepo.ts`; `getStockTotals()` from `src/data/productsRepo.ts`
 
 ### Phone wireframe (sm)
 
@@ -129,12 +129,14 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 │ Dashboard                   │ S1.0 large gradient app bar
 │ FY 2026–27 overview         │
 ├──────────────┬──────────────┤
-│ Invoices(FY) │ Total billed │ S1.1 KPI grid, row 1
+│ Invoices(FY) │ Total billed │ S1.1 KPI grid, row 1 (2 across)
 │ 1            │ ₹0.00        │
-├──────────────┼──────────────┤
-│ Outstanding  │ Open invoices│ S1.1 KPI grid, row 2
-│ ₹0.00        │ 1            │
-├──────────────┴──────────────┤
+├─────────┬────┴────┬─────────┤
+│ [cart]  │ [cube]  │ [layers]│ S1.1 KPI grid, row 2 (3 across,
+│ Products│ Balance │ Actual  │       compact: icon above label)
+│ Sold    │ Stock   │ Stock   │
+│ 3       │ 12      │ 15      │
+├─────────┴─────────┴─────────┤
 │ Recent invoices     See all │ S1.2
 │ ┌─────────────────────────┐ │
 │ │ Party        ₹0.00      │ │ S1.2.1 row
@@ -145,35 +147,38 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGH
 │ │ Party        ₹0.00      │ │ S1.3.1 row
 │ │ PRE-001·due date        │ │
 │ └─────────────────────────┘ │
-│              [+ New invoice]│ S1.4 FAB
+│             [+ New invoice] │ S1.4 FAB (48dp, #25BDC3)
 └─────────────────────────────┘
 ```
 
-### Tablet (lg+): KPI grid = **4 across in 1 row**; S1.2 and S1.3 sit **side by side** (row, gap 24). On md they stack.
+### Tablet (md+): the KPI grid keeps the same 2 + 3 rows, with the label beside the icon (not compact). On lg+, S1.2 and S1.3 sit **side by side** (row, gap 24); on md they stack.
 
 ### Sections
 
 | ID | Section | Rows / columns | Key props | Lines |
 | --- | --- | --- | --- | --- |
-| S1.0 | App bar | `TopAppBar large`, title "Dashboard", subtitle `fyLabel()` (FY starts in April) | — | 15-18, 46 |
-| S1.1 | KPI grid | `perRow = isPhone ? 2 : 4` → phone 2×2, tablet 1×4. Each cell: filled Card with `theme.kpiSurface` background (white in light theme), minHeight 104, icon 18 + label row, then value (title type, auto-shrinks to 60%) | the cards array | 36-42, 53-70 |
-| S1.1.a | KPI 1 "Invoices (FY)" | `kpis.invoiceCount` · icon document-text-outline | | 37 |
-| S1.1.b | KPI 2 "Total billed" | `₹ kpis.billedPaise` · trending-up-outline | | 38 |
-| S1.1.c | KPI 3 "Outstanding" | sum of (total − paid) over the aging list · hourglass-outline | | 35, 39 |
-| S1.1.d | KPI 4 "Open invoices" | `aging.length` · alert-circle-outline | | 40 |
-| S1.2 | Recent invoices | SectionTitle + "See all" text button (→ Invoices tab); outlined Card holding up to 5 ListItems; empty state "No invoices yet" | | 76-106 |
-| S1.2.1 | Recent row | title = party · subtitle = `invoice_no · date` · trailing column = amount + StatusGlyph · tap → `showInvoice` | | 90-103 |
-| S1.3 | Outstanding (aging) | up to 10 rows; empty state "All settled" | `aging.slice(0, 10)` | 108-124 |
-| S1.3.1 | Aging row | title = party · subtitle = `invoice_no · due date` · trailing = balance · tap → `showInvoice(a.invoice_id)` (same as S1.2.1) | | 114-122 |
-| S1.4 | FAB "New invoice" | phone only, bottom-end 16dp → `openCreate()` | | 128 |
-| — | Scroll container | padding `bp.margin`, paddingBottom 96 (clears the FAB), maxWidth max(720, 90% width) | | 47-52 |
+| S1.0 | App bar | `TopAppBar large`, title "Dashboard", subtitle `fyLabel()` (FY starts in April) | — | 19-22, 83 |
+| S1.1 | KPI grid | `rows: Kpi[][]`, each row a flex row with cells `width = 100 / row.length %`: row 1 = 2 cells, row 2 = 3 cells. Each cell is a `KpiTile`: filled Card, `theme.kpiSurface` (white in light), minHeight 104, flexGrow 1 (equal heights). Label row = icon 18 + label (1 line); value = title type, auto-shrinks to 60% | `compact = bp.isPhone && row.length > 2` → icon above a 2-line label, padding 12 | 25-50 (KpiTile), 66-80 (rows), 90-100 (grid) |
+| S1.1.a | Row 1 "Invoices (FY)" | `kpis.invoiceCount` (issued + partial + paid, this FY) · document-text-outline | | 71 |
+| S1.1.b | Row 1 "Total billed" | `₹ kpis.billedPaise` (this FY) · trending-up-outline | | 72 |
+| S1.1.c | Row 2 "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; matches the SOLD column in S5) · cart-outline | | 75 |
+| S1.1.d | Row 2 "Balance Stock" | `stock.avlQty` = Actual − Sold (matches AVL in S5; can go negative if oversold) · cube-outline | | 76 |
+| S1.1.e | Row 2 "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (matches STOCK in S5) · layers-outline | | 77 |
+| S1.2 | Recent invoices | SectionTitle + "See all" text button (→ Invoices tab); outlined Card holding up to 5 ListItems; empty state "No invoices yet" | | 106-136 |
+| S1.2.1 | Recent row | title = party · subtitle = `invoice_no · date` · trailing column = amount + StatusGlyph · tap → `showInvoice` | | 119-133 |
+| S1.3 | Outstanding (aging) | up to 10 rows; empty state "All settled" | `aging.slice(0, 10)` | 138-155 |
+| S1.3.1 | Aging row | title = party · subtitle = `invoice_no · due date` · trailing = balance · tap → `showInvoice(a.invoice_id)` (same as S1.2.1) | | 143-153 |
+| S1.4 | FAB "New invoice" | phone only, bottom-end 16dp → `openCreate()`; look set in C9 | | 158 |
+| — | Scroll container | padding `bp.margin`, paddingBottom 96 (clears the FAB), maxWidth max(720, 90% width) | | 84-89 |
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | 15-18 |
-| `load()` | runs the 3 queries in parallel; reruns on `refreshKey` | 28-33 |
+| `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | 19-22 |
+| `KpiTile({kpi, compact, theme})` | one KPI card (normal or compact) | 25-50 |
+| `load()` | runs the 4 queries in parallel (KPIs, recent, aging, stock totals); reruns on `refreshKey` | 59-64 |
+| `getStockTotals()` (productsRepo.ts:40) | Σ stock, Σ sold (same SOLD rule as S5), avl = stock − sold | — |
 
 ---
 
@@ -615,7 +620,7 @@ Change one of these and **every screen that uses it changes**.
 | C6 | `Card` | outlined (default) or filled; radius 12, padding 16 | S1, S3, S4, S6 | components.tsx:359 |
 | C7 | `ListItem` / `ListRow` | ListItem: leading icon or circle text, title + subtitle, trailing, chevron, selected tint; height 72 with subtitle, else 56. ListRow: free-form row (S5 table) | lists | components.tsx:399 / 375 |
 | C8 | `Chip` | filter chip, height 32, check mark when on | filters, modes, sizes | components.tsx:456 |
-| C9 | `FAB` | extended FAB, absolute 16dp from bottom-end | S1, S2, S5 | components.tsx:493 |
+| C9 | `FAB` | compact extended FAB: height 48 (`touch.min`), padding 16, icon 20, gap 8, radius 12 (`radius.md`), fill `theme.fab` `#25BDC3`, text/icon `theme.onFab` `#001E2C`; absolute 16dp from bottom-end | S1, S2, S5 | components.tsx:494 |
 | C10 | `Sheet` | phone: bottom sheet (28 radius, drag handle, max 92% height); tablet: dialog (92% or 86% wide, max 560 / 720) | P1, P2, P3 | Sheet.tsx:21 |
 | C11 | `Snackbar` (`useSnackbar`) | 4s (6s with an action), max width 560, above the nav bar; colours `theme.inverse*` | all saves | Snackbar.tsx:18 |
 | C12 | `StatusGlyph` / `Badge` | status = icon + text + tone (Draft, Issued, Partial, Paid, Void) | lists, S3 | components.tsx:265 / 282 |
@@ -628,7 +633,7 @@ Change one of these and **every screen that uses it changes**.
 | --- | --- | --- |
 | `brand` (root colours) | navy `#0C476F`, navyDeep, blue, primary `#00668B`, primaryDark `#7FCFF3`, containers. **Change these to rebrand**; see [THEME_AND_COLORS](../THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md) | 37 |
 | `alpha(hex, a)` / `white` | rgba helper (ripples, muted header text) / `gray[0]` | 53 / 50 |
-| `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper`, `kpiSurface` (S1.1 tiles), `navSurface`/`navBorder` (C-nav bar and rail); light: `bg` `#F1F5F9`, filled cards `surfaceContainer` `#E2E8F0`, nav white + hairline | 60 / 82 |
+| `light` / `dark` themes | built from `brand`; neutrals, error and tones set per theme; also `onError`, `inverseSurface/OnSurface/Primary` (snackbar), `onHeaderMuted`, `paper`, `kpiSurface` (S1.1 tiles), `navSurface`/`navBorder` (nav bar and rail), `fab`/`onFab` (C9); light: `bg` `#F1F5F9`, filled cards `surfaceContainer` `#E2E8F0`, nav white + hairline | 60 / 82 |
 | `space` | 0, 4, 8, 12, 16, 24, 32, 48, 64 (keys 0–8) | 104 |
 | `radius` | xs 4 · sm 8 · md 12 · lg 16 · xl 28 · pill | 106 |
 | `touch` | min 48 · comfortable 56 | 108 |
@@ -643,7 +648,7 @@ Change one of these and **every screen that uses it changes**.
 | Goal | Prompt |
 | --- | --- |
 | Rename a KPI | "In S1.1.b rename 'Total billed' to 'Revenue (FY)'." |
-| 3 KPI cards per row on phones | "In S1.1 change `perRow` to 3 on phones." |
+| Add a KPI card | "In S1.1 add a 'Paid (FY)' card to row 1." |
 | Add a Draft filter | "In S2.2 add 'draft' to STATUSES." |
 | Replace date typing with a picker | "In S2.3 and S4.A row 5 replace the YYYY-MM-DD inputs with a date picker." |
 | Add a GST column to the invoice items | "Add a GST % column to S3.4 (flex 1), S4.B.3, D1.3 and D2.2 All_Line_Items." |

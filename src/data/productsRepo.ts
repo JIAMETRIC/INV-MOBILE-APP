@@ -35,6 +35,19 @@ export async function listProducts(search = ''): Promise<ProductRow[]> {
   return db.getAllAsync<ProductRow>(`${SELECT_ROW} ORDER BY name COLLATE NOCASE, size, id`);
 }
 
+// Catalog-wide totals for the Dashboard stock KPIs. Same sold/avl rules as the
+// per-product rows, so the tiles always add up to the Products table.
+export async function getStockTotals(): Promise<{ stockQty: number; soldQty: number; avlQty: number }> {
+  const db = await getDb();
+  await ensureSeeded(db);
+  const row = await db.getFirstAsync<{ stockQty: number; soldQty: number }>(
+    `SELECT COALESCE(SUM(stock_qty), 0) stockQty, COALESCE(SUM(${SOLD_SQL}), 0) soldQty FROM products`,
+  );
+  const stockQty = row?.stockQty ?? 0;
+  const soldQty = row?.soldQty ?? 0;
+  return { stockQty, soldQty, avlQty: stockQty - soldQty };
+}
+
 export async function getProduct(id: number): Promise<ProductRow | null> {
   const db = await getDb();
   return db.getFirstAsync<ProductRow>(`${SELECT_ROW} WHERE products.id = ?`, id);

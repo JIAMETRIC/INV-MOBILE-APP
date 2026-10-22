@@ -29,6 +29,8 @@ export type Theme = {
   kpiSurface: string;
   // Bottom navigation bar and rail, plus the hairline that separates them from content.
   navSurface: string; navBorder: string;
+  // Floating action button ("+ New invoice", "Add product").
+  fab: string; onFab: string;
   tone: { info: Tone; success: Tone; warning: Tone; neutral: Tone };
   dark: boolean;
 };
@@ -49,6 +51,8 @@ export const brand = {
   container: '#C4E7FF', // light primary container / info badge
   onContainer: '#001E2C', // text on container
   containerDark: '#004C69', // dark primary container / info badge
+  action: '#25BDC3', // FAB fill; needs dark text (white is only 2.3:1)
+  onAction: '#001E2C', // text and icon on action (7.5:1)
 } as const;
 
 export const white = gray[0];
@@ -74,6 +78,7 @@ export const light: Theme = {
   inverseSurface: '#26343E', inverseOnSurface: '#EEF4F8', inversePrimary: brand.primaryDark,
   headerFrom: brand.navy, headerTo: brand.blue, onHeader: white, onHeaderMuted: alpha(white, 0.85),
   paper: white, kpiSurface: white, navSurface: white, navBorder: '#DBE7EE',
+  fab: brand.action, onFab: brand.onAction,
   tone: {
     info: { bg: brand.container, fg: brand.onContainer },
     success: { bg: '#D7F5DD', fg: '#0F5223' },
@@ -96,6 +101,7 @@ export const dark: Theme = {
   inverseSurface: '#DCE7F0', inverseOnSurface: '#10232F', inversePrimary: brand.primary,
   headerFrom: brand.navyDeep, headerTo: brand.navy, onHeader: white, onHeaderMuted: alpha(white, 0.85),
   paper: white, kpiSurface: '#142233', navSurface: '#142233', navBorder: 'transparent',
+  fab: brand.action, onFab: brand.onAction,
   tone: {
     info: { bg: brand.containerDark, fg: brand.container },
     success: { bg: '#1E4D2B', fg: '#B6F0C1' },

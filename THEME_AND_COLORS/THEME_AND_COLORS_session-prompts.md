@@ -37,3 +37,24 @@ Make the bottom nav bar, rail and tinted (filled) cards stand out from the new #
 ```
 Background of every screen: #f1f5f9
 ```
+
+## Prompt 7
+
+```
+in DashboardScreen():
+Task1:
+Replace KPI Cards
+1.'Outstanding' 
+2.'Open invoices'
+
+with KPI Cards (All three in the Same Row)
+1.Products Sold
+2.Balance Stock
+3.Actual Stock
+
+Task2:
+"+ New Invoice" Button Looks not
+1.Make as Per UI Guide (Heigth, Width)
+2.Reduce the Border Radius
+3.Background Color: #25BDC3
+```

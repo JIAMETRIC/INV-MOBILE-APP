@@ -489,25 +489,26 @@ export function Chip({ label, active, onPress, theme, icon }: {
   );
 }
 
-// M3 extended FAB, anchored 16dp from the bottom-end corner of its parent.
+// Compact extended FAB: 48dp tall (the minimum touch target, matching the
+// app's buttons), radius 12, anchored 16dp from the bottom-end corner of its parent.
 export function FAB({ icon, label, onPress, theme, extended = true }: {
   icon: IconName; label: string; onPress: () => void; theme: Theme; extended?: boolean;
 }) {
   return (
-    <View style={{ position: 'absolute', end: space[4], bottom: space[4], borderRadius: radius.lg, ...elevation.fab, backgroundColor: theme.primaryContainer }}>
+    <View style={{ position: 'absolute', end: space[4], bottom: space[4], borderRadius: radius.md, ...elevation.fab, backgroundColor: theme.fab }}>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={label}
         android_ripple={ripple(theme)}
         style={({ pressed }) => [{
-          height: touch.comfortable, minWidth: touch.comfortable, borderRadius: radius.lg, overflow: 'hidden',
+          height: touch.min, minWidth: touch.min, borderRadius: radius.md, overflow: 'hidden',
           paddingHorizontal: extended ? space[4] : 0,
-          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[3],
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2],
         }, pressedDim(pressed)]}
       >
-        <Ionicons name={icon} size={24} color={theme.onPrimaryContainer} />
-        {extended ? <Text style={[type.label, { color: theme.onPrimaryContainer }]}>{label}</Text> : null}
+        <Ionicons name={icon} size={20} color={theme.onFab} />
+        {extended ? <Text style={[type.label, { color: theme.onFab }]}>{label}</Text> : null}
       </Pressable>
     </View>
   );

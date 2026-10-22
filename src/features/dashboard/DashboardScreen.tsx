@@ -10,11 +10,41 @@ import {
 import { space, type, maxReadWidth } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getAging, getKpis, recentInvoices } from '../../data/dashboardRepo';
+import { getStockTotals } from '../../data/productsRepo';
 import type { AgingRow, Invoice } from '../../data/types';
+import type { Theme } from '../../ui/tokens';
+
+type Kpi = { label: string; value: string; icon: IconName };
 
 function fyLabel(d = new Date()): string {
   const start = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
   return `FY ${start}–${String((start + 1) % 100).padStart(2, '0')} overview`;
+}
+
+// `compact` (3 across on phones): icon above a 2-line label, tighter padding.
+function KpiTile({ kpi, compact, theme }: { kpi: Kpi; compact: boolean; theme: Theme }) {
+  return (
+    <Card theme={theme} variant="filled" style={{
+      flexGrow: 1, minHeight: 104, gap: space[2], backgroundColor: theme.kpiSurface,
+      ...(compact ? { padding: space[3] } : null),
+    }}>
+      <View style={compact
+        ? { gap: space[1] }
+        : { flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
+        <Ionicons name={kpi.icon} size={18} color={theme.accent} />
+        <Text style={[type.labelMedium, { color: theme.textMuted }, compact ? null : { flex: 1 }]}
+          numberOfLines={compact ? 2 : 1}>
+          {kpi.label}
+        </Text>
+      </View>
+      <Text
+        style={[type.title, { color: theme.text, fontVariant: ['tabular-nums'] }]}
+        numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}
+      >
+        {kpi.value}
+      </Text>
+    </Card>
+  );
 }
 
 export function DashboardScreen() {
@@ -24,22 +54,29 @@ export function DashboardScreen() {
   const [kpis, setKpis] = useState({ invoiceCount: 0, billedPaise: 0 });
   const [recent, setRecent] = useState<Invoice[]>([]);
   const [aging, setAging] = useState<AgingRow[]>([]);
+  const [stock, setStock] = useState({ stockQty: 0, soldQty: 0, avlQty: 0 });
 
   const load = useCallback(async () => {
-    const [k, r, a] = await Promise.all([getKpis(), recentInvoices(5), getAging()]);
-    setKpis(k); setRecent(r); setAging(a.slice(0, 10));
+    const [k, r, a, st] = await Promise.all([getKpis(), recentInvoices(5), getAging(), getStockTotals()]);
+    setKpis(k); setRecent(r); setAging(a.slice(0, 10)); setStock(st);
   }, []);
 
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
 
-  const outstandingPaise = aging.reduce((s, a) => s + (a.total_paise - a.paid_paise), 0);
-  const cards: Array<{ label: string; value: string; icon: IconName }> = [
-    { label: 'Invoices (FY)', value: String(kpis.invoiceCount), icon: 'document-text-outline' },
-    { label: 'Total billed', value: `₹${formatPaise(kpis.billedPaise)}`, icon: 'trending-up-outline' },
-    { label: 'Outstanding', value: `₹${formatPaise(outstandingPaise)}`, icon: 'hourglass-outline' },
-    { label: 'Open invoices', value: String(aging.length), icon: 'alert-circle-outline' },
+  // Row 1: billing (this FY). Row 2: stock across the whole catalog, all time,
+  // using the same Stock / Sold / Avl figures as the Products screen.
+  const qty = (n: number) => String(Math.round(n));
+  const rows: Kpi[][] = [
+    [
+      { label: 'Invoices (FY)', value: String(kpis.invoiceCount), icon: 'document-text-outline' },
+      { label: 'Total billed', value: `₹${formatPaise(kpis.billedPaise)}`, icon: 'trending-up-outline' },
+    ],
+    [
+      { label: 'Products Sold', value: qty(stock.soldQty), icon: 'cart-outline' },
+      { label: 'Balance Stock', value: qty(stock.avlQty), icon: 'cube-outline' },
+      { label: 'Actual Stock', value: qty(stock.stockQty), icon: 'layers-outline' },
+    ],
   ];
-  const perRow = bp.isPhone ? 2 : 4;
 
   return (
     <View style={{ flex: 1 }}>
@@ -50,21 +87,14 @@ export function DashboardScreen() {
           maxWidth: Math.max(maxReadWidth, bp.width * 0.9), flexGrow: 1,
         }}
       >
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', margin: -space[1] }}>
-          {cards.map(c => (
-            <View key={c.label} style={{ width: `${100 / perRow}%`, padding: space[1] }}>
-              <Card theme={theme} variant="filled" style={{ minHeight: 104, gap: space[2], backgroundColor: theme.kpiSurface }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
-                  <Ionicons name={c.icon} size={18} color={theme.accent} />
-                  <Text style={[type.labelMedium, { color: theme.textMuted, flex: 1 }]} numberOfLines={1}>{c.label}</Text>
+        <View style={{ margin: -space[1] }}>
+          {rows.map((row, r) => (
+            <View key={r} style={{ flexDirection: 'row' }}>
+              {row.map(c => (
+                <View key={c.label} style={{ width: `${100 / row.length}%`, padding: space[1] }}>
+                  <KpiTile kpi={c} compact={bp.isPhone && row.length > 2} theme={theme} />
                 </View>
-                <Text
-                  style={[type.title, { color: theme.text, fontVariant: ['tabular-nums'] }]}
-                  numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}
-                >
-                  {c.value}
-                </Text>
-              </Card>
+              ))}
             </View>
           ))}
         </View>

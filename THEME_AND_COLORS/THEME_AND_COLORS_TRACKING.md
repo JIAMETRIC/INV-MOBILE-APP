@@ -68,6 +68,15 @@ Dark theme: `navSurface` `#142233` (= old surfaceContainer) and `navBorder` `tra
 **Why:** a white nav bar with a hairline is the clearest separation that keeps the active-tab pill (`secondaryContainer` `#D3E5F2`) visible: 1.29:1 on white, but only 1.05:1 on a darker tint. Filled cards go a step darker (`#E2E8F0`, the slate pair of `#F1F5F9`), so they still read as tinted next to white outlined cards and KPI tiles.
 **Rejected:** putting everything on one darker tint (nav pill would vanish); making filled cards white (they would look the same as outlined cards).
 
+## Prompt 7 — FAB colour (2026-10-22)
+
+| Role | Light | Dark | Contrast |
+| --- | --- | --- | --- |
+| `fab` (= `brand.action`) | `#25BDC3` | `#25BDC3` | — |
+| `onFab` (= `brand.onAction`) | `#001E2C` | `#001E2C` | 7.48:1 on `#25BDC3` (white would be 2.30:1, failing AA) |
+
+The same in both themes: the dark label works on the teal fill whatever the background. Used by the shared `FAB` (components.tsx); the rail's "+" still uses `primaryContainer`.
+
 ## How to rebrand
 
 1. Edit `brand` in `src/ui/tokens.ts`.

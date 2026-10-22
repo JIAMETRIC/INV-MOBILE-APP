@@ -380,6 +380,16 @@ await t('void lifecycle + KPIs exclude void, FY scoping works', async () => {
   assert.equal(row.avl_qty, -10);
 });
 
+await t('stock totals match the per-product rows', async () => {
+  const all = await productsRepo.listProducts();
+  const sum = k => all.reduce((n, p) => n + p[k], 0);
+  const tot = await productsRepo.getStockTotals();
+  assert.equal(tot.stockQty, sum('stock_qty'));
+  assert.equal(tot.soldQty, sum('sold_qty'));
+  assert.equal(tot.avlQty, sum('avl_qty'));
+  assert.equal(tot.soldQty >= 50, true, 'PRE-001 hoodie lines count as sold');
+});
+
 await t('delete + syncNextSeq never moves the sequence backwards', async () => {
   const before = await settingsRepo.getSettings();
   assert.equal(before.next_seq, 5); // 001..004 allocated

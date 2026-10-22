@@ -51,3 +51,7 @@ The user sent "Background of every screen: #f1f5f9" mid-task, so the colours wer
 - Contrast script on candidates (`#FFFFFF`, `#E2E8F0`, `#E3EAF0`, `#DCE5EC`): chose `#E2E8F0` (all text ≥ 5.20, outline 3.63).
 - `tsc --noEmit`: exit 0.
 - Emulator, fresh bundle. Dashboard pixels: bg `#F1F5F9`, KPI `#FFFFFF`, nav bar `#FFFFFF`, nav top border `#DBE7EE` (rows 2124-2125 = 1dp). Invoice detail: the Bill-to card is visibly tinted against the bg.
+
+## Prompt 7 — FAB colour #25BDC3 (2026-10-22, session 13)
+
+Added `brand.action` / `brand.onAction` and theme roles `fab` / `onFab`; `FAB` uses them. Contrast check: white 2.30, `#0C476F` 4.26, `#003549` 5.70, `#001E2C` 7.48 on `#25BDC3`, so `#001E2C` was chosen. Verified on the emulator (pixel `#25BDC3`, dark label). Size and layout changes are logged in SCREEN_LAYOUT_REFERENCE (Prompt 3).

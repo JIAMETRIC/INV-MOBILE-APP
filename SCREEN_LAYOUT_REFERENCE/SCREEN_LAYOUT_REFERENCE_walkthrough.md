@@ -38,3 +38,19 @@
 The dev LogBox toast "Open debugger to view warnings" during the checks was logcat's `Cannot connect to Expo CLI … URL: 10.0.2.2:8081`. That comes from the dev client's link to the CI-mode Metro, not from app code.
 
 Reference doc: S1.3.1, S4.B.6 and S4.L3 text updated; S4 line numbers shifted (+7 after line 166, +19 after the shipping card); the 3 fixed cookbook rows removed.
+
+## Prompt 3 — Dashboard stock KPIs + compact FAB (2026-10-22, session 13)
+
+**Diffs**
+
+- `src/data/productsRepo.ts`: `getStockTotals()`, which returns `{ stockQty, soldQty, avlQty }` via `SUM(stock_qty)` and `SUM(SOLD_SQL)`.
+- `scripts/run-integration-tests.mjs`: new test "stock totals match the per-product rows".
+- `src/features/dashboard/DashboardScreen.tsx`: `KpiTile` component (normal and compact); `rows: Kpi[][]` (2 + 3); `load()` also fetches stock totals; Outstanding / Open invoices tiles and `outstandingPaise` removed.
+- `src/ui/components.tsx` (`FAB`): height `touch.min` (48), radius `radius.md` (12), gap 8, icon 20, colours `theme.fab` / `theme.onFab`.
+- `src/ui/tokens.ts`: `brand.action` `#25BDC3`, `brand.onAction` `#001E2C`; theme roles `fab`, `onFab` (both themes).
+
+**Verification**
+
+- `tsc --noEmit`: OK. `npm run test:integration`: all PASS (now including the stock-totals test).
+- Emulator (fresh bundle): row 2 shows Products Sold 3 · Balance Stock 12 · Actual Stock 15 (15 − 3 = 12; PRE-001's 3 lines). Labels fit on 2 lines.
+- FAB measured from screenshot pixels (`#25BDC3`): 360 × 125 px at 2.625 px/dp = **137 × 48 dp**; dark label readable.
