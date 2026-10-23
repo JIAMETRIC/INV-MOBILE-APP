@@ -45,7 +45,7 @@ export async function exportInvoicesXlsx(rows: Invoice[]): Promise<File> {
       { header: 'Invoice No', width: 12 },
       { header: 'Date', width: 12 },
       { header: 'Status', width: 10 },
-      { header: 'Party', width: 28 },
+      { header: 'Customer', width: 28 },
       { header: 'Round Off', width: 10, money: true },
       { header: 'Total', width: 14, money: true },
     ],
@@ -108,7 +108,7 @@ export async function exportConsolidatedRegister(): Promise<File> {
       columns: [
         { header: 'Invoice No', width: 12 },
         { header: 'Date', width: 12 },
-        { header: 'Party', width: 28 },
+        { header: 'Customer', width: 28 },
         { header: 'Total', width: 14, money: true },
         { header: 'Status', width: 10 },
       ],

@@ -202,7 +202,7 @@ function BillToCard({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <Card theme={theme} style={{ gap: space[1] }}>
       <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
-      <Text style={[type.heading, { color: theme.text }]}>{s.inv.party_name || '(no party)'}</Text>
+      <Text style={[type.heading, { color: theme.text }]}>{s.inv.party_name || '(no customer)'}</Text>
       {s.party ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.party}</Text> : null}
       {s.contact ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.contact}</Text> : null}
     </Card>

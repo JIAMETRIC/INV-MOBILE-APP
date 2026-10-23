@@ -7,9 +7,10 @@
 // receipts and editor corrections); products.stock_qty stays the balance.
 // v5: Products are names only — one row per name, no size. The v4 size rows
 // are merged into one row per name (dbCore.mergeSizeRows keeps the data).
+// v6: invoice prefix is INV- (was PRE-); existing settings rows are switched too.
 // Old v1/v2/v3 databases are wiped and rebuilt (see dbCore.migrate).
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS meta (
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS meta (
   bank_ac_no TEXT NOT NULL DEFAULT '',
   bank_ifsc TEXT NOT NULL DEFAULT '',
   upi_id TEXT NOT NULL DEFAULT '',
-  invoice_prefix TEXT NOT NULL DEFAULT 'PRE-',
+  invoice_prefix TEXT NOT NULL DEFAULT 'INV-',
   next_seq INTEGER NOT NULL DEFAULT 1,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

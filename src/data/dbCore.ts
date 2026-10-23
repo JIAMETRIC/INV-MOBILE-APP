@@ -49,7 +49,22 @@ async function mergeSizeRows(db: SQLite.SQLiteDatabase): Promise<void> {
       DROP TABLE product_merge;
       CREATE UNIQUE INDEX IF NOT EXISTS uq_products_name ON products(name COLLATE NOCASE);
     `);
-    await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+    await db.execAsync('PRAGMA user_version = 5;');
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
+// v5 -> v6: the invoice prefix moves from PRE- to INV-. A custom prefix is left alone.
+async function renamePrefix(db: SQLite.SQLiteDatabase): Promise<void> {
+  await db.execAsync('BEGIN');
+  try {
+    await db.execAsync(`
+      UPDATE meta SET invoice_prefix = 'INV-' WHERE invoice_prefix = 'PRE-';
+      PRAGMA user_version = ${SCHEMA_VERSION};
+    `);
     await db.execAsync('COMMIT');
   } catch (e) {
     await db.execAsync('ROLLBACK');
@@ -62,6 +77,10 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   let version = row?.user_version ?? 0;
   if (version === 4) {
     await mergeSizeRows(db);
+    version = 5;
+  }
+  if (version === 5) {
+    await renamePrefix(db);
     version = SCHEMA_VERSION;
   }
   let forceDrop = false;

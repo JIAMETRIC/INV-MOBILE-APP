@@ -174,7 +174,7 @@ function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
 function FilterRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: S2.filterGap, paddingTop: space[1] }}>
-      <SearchField value={list.search} onChange={list.setSearch} placeholder="Search invoice no or party" theme={theme} style={{ flex: 1 }} />
+      <SearchField value={list.search} onChange={list.setSearch} placeholder="Search invoice no or customer" theme={theme} style={{ flex: 1 }} />
       <IconButton glass icon="calendar" label={list.datesSet ? 'Date range (set)' : 'Date range'}
         selected={list.dateOpen || list.datesSet} color={list.datesSet ? theme.accent : undefined}
         onPress={list.toggleDates} theme={theme} />
@@ -254,7 +254,7 @@ const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, selected, o
       leadingAlt={alt}
       divider={!last}
       selected={selected}
-      title={item.party_name || '(no party)'}
+      title={item.party_name || '(no customer)'}
       subtitle={`${item.invoice_no} · ${formatDateDisplay(item.invoice_date)}`}
       onPress={() => onPress(item.id)}
       trailing={(

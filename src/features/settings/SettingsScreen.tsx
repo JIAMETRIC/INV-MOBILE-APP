@@ -51,7 +51,7 @@ const S6 = {
   pincodeLength: 6, // S6.2.1
   panLength: 10, // S6.2.1
   ifscLength: 11, // S6.2.2
-  numberPad: 3, // S6.2.3: "PRE-002" pads the sequence to 3 digits
+  numberPad: 3, // S6.2.3: "INV-002" pads the sequence to 3 digits
 } as const;
 
 type Backup = Awaited<ReturnType<typeof listBackups>>[number];
@@ -102,7 +102,7 @@ function useSettings() {
         pan: settings.pan, contact: settings.contact, email: settings.email,
         bank_name: settings.bank_name, bank_branch: settings.bank_branch,
         bank_ac_no: settings.bank_ac_no, bank_ifsc: settings.bank_ifsc, upi_id: settings.upi_id,
-        invoice_prefix: settings.invoice_prefix || 'PRE-',
+        invoice_prefix: settings.invoice_prefix || 'INV-',
       });
       setSettings(saved);
       nav.refresh();
@@ -352,7 +352,7 @@ function BankCard({ s, theme }: { s: Loaded; theme: Theme }) {
   );
 }
 
-// S6.2.3 — Prefix | Next number (read-only, e.g. "PRE-002").
+// S6.2.3 — Prefix | Next number (read-only, e.g. "INV-002").
 function NumberingCard({ s, theme }: { s: Loaded; theme: Theme }) {
   const v = s.settings;
   return (
@@ -399,7 +399,7 @@ const DraftRow = React.memo(function DraftRow({ d, alt, last, onOpen, onDelete, 
       leadingText={initials(d.party_name)}
       leadingAlt={alt}
       divider={!last}
-      title={d.party_name || '(no party)'}
+      title={d.party_name || '(no customer)'}
       subtitle={`${d.draft_no} · ${d.items_count} lines · ₹${formatPaise(d.total_paise)} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
       onPress={() => onOpen(d)}
       trailing={<IconButton icon="trash-2" label={`Delete draft ${d.draft_no}`} theme={theme} onPress={() => onDelete(d)} />}

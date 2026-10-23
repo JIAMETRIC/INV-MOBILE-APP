@@ -256,7 +256,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
   const issue = async () => {
     if (!settings) return;
     if (!form.party.party_name.trim()) {
-      alert('Party required', 'Enter the party name before issuing.');
+      alert('Customer required', 'Enter the customer name before issuing.');
       setStep(0);
       return;
     }
@@ -587,7 +587,7 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
       <Card theme={theme} style={{ gap: space[1] }}>
         <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
         <Text style={[type.heading, { color: theme.text }]}>
-          {form.party.party_name || '(no party)'}
+          {form.party.party_name || '(no customer)'}
         </Text>
         <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
           {f.previewNo} · {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
