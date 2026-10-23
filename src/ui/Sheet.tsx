@@ -15,7 +15,7 @@ type SheetProps = {
   children: React.ReactNode;
 };
 
-// Phones: bottom sheet docked to the bottom edge (card radius 24 on top, drag
+// Phones: bottom sheet docked to the bottom edge (card radius 16 on top, drag
 // handle, slides up). Tablets: a dialog centred in the window (form radius 28).
 // Solid light (or black) surface: glass over the dimmed scrim would read grey.
 // System Back closes it through Modal.onRequestClose.

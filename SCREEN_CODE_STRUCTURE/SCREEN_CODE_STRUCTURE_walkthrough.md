@@ -427,3 +427,29 @@ All six screens (S1–S6) are now on the Three-Slot method.
 | `~/.claude/skills/responsive-screens/SKILL.md` | §6 "Pitfalls seen in practice, and the fix" (8 rows); checklist is §7 | read back (outside the repo) |
 
 No source file changed; nothing to typecheck or screenshot.
+
+## Prompt 59 — tree files replaced (2026-10-23, session 14)
+
+All ten `*_tree.md` files in `SCREEN_CODE_STRUCTURE/` were rewritten from the sources as they are today, in the eight-section Three-Slot format (template kept in the session scratchpad; `DashboardScreen_S1_tree.md` was written first as the example, the other nine by parallel subagents, each briefed with the source file, the old tree file, the layout reference section, `Screen.tsx`, `Columns.tsx` and the skill).
+
+| File | Lines | Notable corrections against the old file |
+| --- | --- | --- |
+| `DashboardScreen_S1_tree.md` | 111 | written fresh after the Prompt 54 restructure |
+| `InvoicesScreen_S2_tree.md` | 144 | the date-range row's floor is 128 (`kind="input"`), not 44; the code comment at InvoicesScreen.tsx:190 corrected to match |
+| `InvoiceDetail_S3_P1_tree.md` | 183 | the status pill comes from `statusStyle[status]` (draft included); `numberOfLines={1}` on the header labels is already in the code, so the open finding keeps only `adjustsFontSizeToFit` / a narrower item share; S3.3 gap is 12 and S3.4.h flex 2.6 : 0.8 : 1.3 : 1.3 (layout reference corrected) |
+| `CreateInvoiceScreen_S4_tree.md` | 205 | dropped the claim that S5's FAB opens S4 (no such call); the "form may grow past 38 %" note holds for xl only; `narrowCatalog` is true under 1288 dp, so at xxl 1280 too |
+| `ProductsScreen_S5_P3_tree.md` | 177 | the lg list pane is (800 − 88) × 0.62 = 441 dp, not 410 (code comment corrected); `S5.editorPadding` is used by the pane only; the Prompt 31 interim 480 threshold is history (code: 520); the hugging card uses `useNavInset()` + `useFabClearance()`, not `useMainInset()` |
+| `SettingsScreen_S6_tree.md` | 184 | five `FieldRow` rows, not six; the sixth two-column row is `ExportRestoreRow`, a plain row of two buttons; `SectionScroll` ends with `useNavInset()` (equal to `useMainInset()` here: no fab, not an overlay); the lg+ pane end padding is `layout.side` 20; xs / sm were last checked before the company rows became `Columns` (Prompt 44), so whether they stack at 320 has not been observed |
+| `AppShell_S0_tree.md` | 223 | file sizes 170 / 24; at md the Invoice detail overlay is drawn beside the rail (App.tsx:157-164), not inside S2's pane; S0.4 nav is 68 tall and the Rail is Nav.tsx:69-116 (layout reference corrected) |
+| `InvoicePdf_D1_tree.md` | 185 | call-site and template line numbers refreshed; the layout reference's own D1 line column is stale (38-70, 72-85 …) and left for its next refresh |
+| `ExcelExports_D2_tree.md` | 215 | call sites refreshed (S3 118-119, S4 196, S2 74-80 / 141-142, S5 187); D2.3 lines 132-161; `lastInvoiceNo` marker at 73 |
+| `SharedComponents_C1-C4_tree.md` | 463 | `components.tsx` is 610 lines (Chip 506, SegmentedControl 545, FAB 588, EmptyState 492); one `TopAppBar` each in S4 (383) and S6 (224); Invoice detail has 7 buttons incl. P1's Cancel / Save payment; the Sheet's phone top radius is `radius.card` 16 (the code comment said 24; corrected) |
+
+| Check | Result |
+| --- | --- |
+| Every file has the eight sections in order | yes (headings listed) |
+| Declared-function line numbers cited in S0–S6 trees vs the sources (script) | 63 citations match; the 9 non-matches are second use sites (a component used twice), not errors |
+| `npm run typecheck` after the three comment edits | see below |
+| README and `SCREEN_LAYOUT_REFERENCE.md` | the description of the tree files updated to the new format |
+
+Not re-run: the size checks. Section 8 of each file carries the breakpoint findings as recorded by the Prompt that observed them.

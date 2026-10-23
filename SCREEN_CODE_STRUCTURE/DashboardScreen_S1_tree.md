@@ -1,94 +1,111 @@
-# What's inside DashboardScreen (S1, Home tab)
+# Dashboard (S1) — Three-Slot tree
 
-File: `src/features/dashboard/DashboardScreen.tsx` (159 lines). Line numbers as of 2026-10-23 (Prompt 54, Three-Slot Screen).
-Opened by the Home tab (S0.4.1); it is the first screen after start-up.
-Data: `getKpis()` in `src/data/dashboardRepo.ts:15` · `getStockTotals()` in `src/data/productsRepo.ts:40`.
-IDs (S1.x) are from `SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md`. S1.3 and S1.4 are retired (removed 2026-10-22).
+**File:** `src/features/dashboard/DashboardScreen.tsx` (159 lines; line numbers as of 2026-10-23) · **Reached by:** the Home tab (S0.4.1); the first screen after start-up · **Data:** `getKpis()` `src/data/dashboardRepo.ts:15`, `getStockTotals()` `src/data/productsRepo.ts:40` · **Reference:** `SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md` § S1 · **Method:** `.claude/skills/three-slot-screen/SKILL.md`
 
-## How the file reads (top to bottom)
+The financial-year figures and the three stock totals. One layout at every width: there is no pane branch, only the FAB (phones) and the bottom padding change with `bp.isPhone`. S1.3 and S1.4 are retired IDs (removed 2026-10-22).
 
-| Block | Line | What it is |
-| --- | --- | --- |
-| `STOCK_TILES` | 26 | the three tiles: label · icon · which stock figure (S1.2.a–c) |
-| `S1` | 34 | every number specific to this screen (hero padding and gap, tile gap, label height, figure min scale, read-width share) |
-| `fyLabel(d)` | 45 | "FY 2026–27 overview": the April–March year that contains today |
-| `useDashboard()` | 53 | all state and data, no JSX: `kpis`, `stock`, `load()`, the `tiles` list |
-| `DashboardScreen()` | 73 | the screen: `<Screen header={Header} fab={FAB on phones}>` around `DashboardMain` |
-| `Header` | 89 | S1.0 |
-| `DashboardMain` | 98 | the one scroller: `HeroCard`, `StatTilesRow` |
-| `HeroCard` | 115 | S1.1 |
-| `StatTilesRow` | 134 | S1.2 row |
-| `StatTile` | 147 | S1.2 tile |
+## 1. The three slots
+
+| Slot | What is there | Function | Lines |
+| --- | --- | --- | --- |
+| Header | `TopAppBar large`: caption "FY 2026–27 overview" over the "Dashboard" title; no buttons | `Header` | 89-91 |
+| Main | one `ScrollView`: the hero card, then the row of three stat tiles; bottom = `useMainInset()` | `DashboardMain` | 98-112 |
+| Footer | none (no screen-level action bar) | — | — |
+| FAB | "+ New invoice" on phones → `nav.openCreate()`; the `fab` slot of `<Screen>` | in `DashboardScreen()` | 81 |
+| Nav / rail | owned by the shell (S0) | — | — |
+
+## 2. The file in reading order
+
+| # | Block | Lines | What you edit there |
+| --- | --- | --- | --- |
+| 1 | `STOCK_TILES` | 26-30 | the three tiles: label · icon · which stock figure |
+| 2 | `S1` | 34-41 | every number specific to this screen |
+| 3 | `fyLabel(d)` | 45-48 | the header caption |
+| 4 | `useDashboard()` | 53-68 | state and data (no JSX) |
+| 5 | `DashboardScreen()` | 73-86 | the screen on `<Screen header fab>` |
+| 6 | `Header` · `DashboardMain` · `HeroCard` · `StatTilesRow` · `StatTile` | 89-159 | one function per region, in on-screen order |
+
+## 3. Tree
 
 ```
 DashboardScreen()                                                    line 73
 │
-├─ Header              S1.0  TopAppBar large: caption fyLabel() above        89
-│                            the H2 "Dashboard"; no action buttons
+├─ Header               S1.0  TopAppBar large: fyLabel() caption, "Dashboard"  89
 │
-├─ DashboardMain             ScrollView: side 20, gap 16, bottom =           98
-│    │                       useMainInset() (clears nav + FAB);
-│    │                       maxWidth max(720, S1.readShare × window)
+├─ DashboardMain              ScrollView: sides 20, gap 16, top 4;            98
+│    │                        bottom = useMainInset(); maxWidth max(720, 90 %)
 │    │
-│    ├─ HeroCard       S1.1  Card, padding S1.heroPadding, gap S1.heroGap   115
-│    │    ├─ row (space-between)
-│    │    │    ├─ overline "Total billed · FY"                               120
-│    │    │    └─ Badge "N invoice(s)"  (kpis.invoiceCount, this FY)        121
-│    │    └─ ₹ kpis.billedPaise   type.hero (Bebas 44), shrinks to          126
-│    │                            S1.figureMinScale
+│    ├─ HeroCard        S1.1  Card padding 20, gap 6                          115
+│    │    ├─ row (space-between)                                              119
+│    │    │    ├─ overline "Total billed · FY"                                120
+│    │    │    └─ Badge "N invoice(s)"  (kpis.invoiceCount, this FY)          121
+│    │    └─ ₹ kpis.billedPaise   type.hero (Bebas 44), shrinks to 0.6        126
 │    │
-│    └─ StatTilesRow   S1.2  one row, 3 cells flex 1, gap 12 (never stacks) 134
-│         └─ StatTile × 3  (d.tiles, from STOCK_TILES)                     147
-│              ├─ IconChip  36×36 blue tint, blue icon 18                   150
-│              ├─ label     13 #666, 2 lines, minHeight S1.tileLabelHeight  151
-│              └─ value     type.figure (Bebas 28), shrinks to fit          154
+│    └─ StatTilesRow    S1.2  one row, 3 cells flex 1, gap 12 · never stacks  134
+│         └─ StatTile × 3  (d.tiles ← STOCK_TILES)                           147
+│              ├─ IconChip  36 × 36 blue tint, blue icon 18                   150
+│              ├─ label     13 #666, 2 lines, minHeight 36                    151
+│              └─ value     type.figure (Bebas 28), shrinks to 0.6            154
 │
-│         S1.2.a  "Products Sold"  stock.soldQty   shopping-cart             27
-│         S1.2.b  "Balance Stock"  stock.avlQty    box                       28
-│         S1.2.c  "Actual Stock"   stock.stockQty  layers                    29
+│         S1.2.a  "Products Sold"  stock.soldQty   shopping-cart               27
+│         S1.2.b  "Balance Stock"  stock.avlQty    box                         28
+│         S1.2.c  "Actual Stock"   stock.stockQty  layers                      29
 │
-└─ FAB (Screen slot)   S1.5  "+ New invoice", phones only → nav.openCreate() 81
+└─ fab slot (phones)    S1.5  FAB "New invoice" → nav.openCreate()             81
 ```
 
-## What each function does
+## 4. The `S1` numbers
 
-| Function | Line | Does |
-| --- | --- | --- |
-| `fyLabel(d)` | 45 | "FY 2026–27 overview": the April–March year that contains today |
-| `useDashboard()` | 53 | holds `kpis` and `stock`; `load()` (line 58) runs `getKpis()` and `getStockTotals()` in parallel and reruns whenever `nav.refreshKey` changes (any save anywhere); returns `{ kpis, tiles }` where `tiles` is `STOCK_TILES` with the rounded figures filled in |
-| `DashboardScreen()` | 73 | the screen on the `Screen` scaffold (C16): header slot, FAB slot on phones, `DashboardMain` as Main |
-| `Header` | 89 | S1.0 |
-| `DashboardMain` | 98 | the one scroller; its bottom padding comes from `useMainInset()` |
-| `HeroCard` | 115 | S1.1 |
-| `StatTilesRow` | 134 | S1.2: the row of three equal columns |
-| `StatTile({kpi, theme})` | 147 | one kit stat tile: small glass card (`Card small`), icon chip, label, figure |
-| `getKpis()` | dashboardRepo.ts:15 | invoice count and Σ total for the current FY, excluding void |
-| `getStockTotals()` | productsRepo.ts:40 | Σ `stock_qty`, Σ sold (same `SOLD_SQL` as the Products screen), avl = stock − sold |
+| Key | Value | ID | Means |
+| --- | --- | --- | --- |
+| `heroPadding` | 20 | S1.1 | the kit's hero card padding |
+| `heroGap` | 6 | S1.1 | between the overline row and the figure |
+| `tileGap` | 10 | S1.2 | inside a stat tile: chip · label · value |
+| `tileLabelHeight` | 36 | S1.2 | two-line label floor, so the three values line up |
+| `figureMinScale` | 0.6 | S1.1 / S1.2 | how far a figure may shrink to stay on one line |
+| `readShare` | 0.9 | Main | content max width = max(720, 90 % of the window) |
 
-## Where to change what
+## 5. Rows and columns
+
+| Row | Function | Cells | Rule |
+| --- | --- | --- | --- |
+| S1.1 overline row | `HeroCard` | 2: overline · badge | space-between; the badge never wraps |
+| S1.2 tiles | `StatTilesRow` | 3 equal (`flex: 1`) | **never stacks**: the kit's dashboard is 3-across at every width and each cell holds one figure (no label + value), so rule 3 holds down to 320 dp; the labels wrap to two lines instead. Not a `Columns` row for that reason |
+
+## 6. State and actions (`useDashboard()`)
+
+| Name | Does |
+| --- | --- |
+| `kpis` | `{ invoiceCount, billedPaise }` for the current FY, void excluded (`getKpis`) |
+| `stock` | `{ stockQty, soldQty, avlQty }`: Σ stock, Σ sold (same `SOLD_SQL` as S5), avl = stock − sold (`getStockTotals`) |
+| `load()` | runs both queries in parallel; reruns whenever `nav.refreshKey` changes (any save anywhere) |
+| `tiles` | `STOCK_TILES` with the rounded figures filled in, in tile order |
+
+## 7. Where to change what
 
 | You want to change | Go to |
 | --- | --- |
 | the header caption ("FY … overview") | `fyLabel()`, line 45 |
 | the title "Dashboard" | `Header`, line 90 |
-| the hero card's overline or badge text | `HeroCard`, lines 120-123 |
+| the hero overline or badge text | `HeroCard`, lines 120-123 |
 | the hero figure size | `type.hero` in `src/ui/tokens.ts` (44) |
 | the hero card's padding or inner gap | `S1.heroPadding`, `S1.heroGap` |
 | a tile's label, icon or which number it shows | `STOCK_TILES`, lines 26-30 |
-| tile order, or add a fourth tile | add to `STOCK_TILES`; every tile shares the row's width (`flex: 1`) |
-| tiles in a 2-column grid instead of 3 across | `StatTilesRow`: add `flexWrap: 'wrap'` and give each cell `minWidth` |
-| the tile's inside (chip, label size, gap) | `StatTile`, lines 147-158; `S1.tileGap`, `S1.tileLabelHeight` |
+| tile order, or a fourth tile | add to `STOCK_TILES`; every tile shares the row (`flex: 1`); for four, consider `flexWrap: 'wrap'` + `minWidth` in `StatTilesRow` |
+| the tile's inside (chip, label, gap) | `StatTile`, lines 147-158; `S1.tileGap`, `S1.tileLabelHeight` |
 | how far a figure may shrink before it clips | `S1.figureMinScale` |
-| gap between the card and the tiles | `gap: layout.gap` (16) in `DashboardMain` |
-| screen side padding | `layout.side` (20) in `DashboardMain` |
-| the content's maximum width | `S1.readShare` (90 % of the window, never under 720) |
-| the FAB's text or action | `DashboardScreen`, line 81; its look is the shared `FAB` (C9, `src/ui/components.tsx`) |
+| gap between the card and the tiles / side padding | `layout.gap` (16), `layout.side` (20) in `DashboardMain` |
+| the content's maximum width | `S1.readShare` |
+| the FAB's text or action | `DashboardScreen`, line 81; its look is `FAB` (C9, `src/ui/components.tsx`) |
 | colours, radii, fonts | `src/ui/tokens.ts` (never hex values in this file) |
 
-## Tablet (md+)
+## 8. Sizes
 
-Same blocks, no branch in the layout: only the FAB disappears (`bp.isPhone`, line 81) because the rail's "+" takes its place, and the bottom padding drops to the gesture inset (`useMainInset()` without a FAB).
+| Size | Layout | Last checked |
+| --- | --- | --- |
+| xs 320 · sm 360 · phone 411 | header, hero, three tiles (labels on two lines at 320), FAB above the floating nav | Prompt 44 (phones), Prompt 54 (phone, pixel-identical before / after) |
+| phone landscape (lg) | same blocks beside the rail, no FAB, bottom = gesture inset + 16 | Prompt 44 |
+| md 601 (8-inch portrait) | same blocks beside the rail, no FAB | Prompt 54 |
+| lg 800 · xl 961 · xxl 1280 | same, content capped at 90 % of the window | Prompt 54 (lg), Prompt 30 (xl, xxl) |
 
-## Three-Slot restructure (Prompt 54, 2026-10-23)
-
-108 → 159 lines: the inline numbers moved into `S1`, the three tiles into `STOCK_TILES`, the two `useState` + `load` into `useDashboard()`, and the hero card and tiles row became `HeroCard` / `StatTilesRow`. Phone screenshot before / after: 0.000 % differing pixels. lg (10-inch portrait) read from the size check: same blocks full width beside the rail, no FAB.
+Open findings (not applied): none.

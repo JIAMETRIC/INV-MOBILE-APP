@@ -187,7 +187,7 @@ function FilterRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
 }
 
 // S2.3a — one row, two equal columns: From | To (YYYY-MM-DD). Shown while the calendar button is on.
-// Columns stacks them only if a cell would fall under 44 wide (never at phone widths).
+// Columns kind="input": the two cells stay side by side while each is at least 128 wide (true at every phone width).
 function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
   return (
     <Columns kind="input" style={{ marginBottom: S2.dateRowPull }}>

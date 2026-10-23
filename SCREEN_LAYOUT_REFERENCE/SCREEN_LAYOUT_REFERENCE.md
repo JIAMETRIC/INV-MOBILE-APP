@@ -77,7 +77,7 @@ Start-up work: `getDb()` → `syncNextSeq()` → ready → `ensureDailyBackup()`
 │  [ active tab screen ]    │  flex:1
 │                           │
 ├───────────────────────────┤
-│ Home Invoices Products Set│  S0.4 BottomTabs, 80dp + gesture inset
+│ Home Invoices Products Set│  S0.4 BottomTabs, floating, 68 tall, 20 from the edges (or the gesture inset)
 └───────────────────────────┘
 Overlay "create-invoice" → S4 full screen (no tabs)
 Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen (also on md tablets, inside the content area beside the rail)
@@ -103,7 +103,7 @@ Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen (also o
 | S0.4.1 | `TABS` | 4 destinations, Feather icons: dashboard `home`, invoices `file-text`, products `tag`, settings `settings` | Nav.tsx:12-17 |
 | S0.4.2 | `BottomTabs` | kit floating bottom nav: absolute, 20 from the left/right edges and `useNavBottom()` (≥ 20) from the bottom; height 68 (`NAV_HEIGHT`), radius 16, glass nav fill + 1px border, `shadow.secondary`; 4 icon-only items (label is the accessibility label) | Nav.tsx:45-66 |
 | S0.4.2a | `NavItem` | 48×48, radius 14; active = blue fill, white 22px icon, `shadow.primary`; inactive = `#666` icon | Nav.tsx:21-41 |
-| S0.4.3 | `Rail` | tablet: width 88, glass nav fill, right border; "New invoice" primary button (52, radius 12) on top, then `NavItem`s; labels under them at xl+ | Nav.tsx:69-123 |
+| S0.4.3 | `Rail` | tablet: width 88, glass nav fill, right border; "New invoice" primary button (52, radius 12) on top, then `NavItem`s; labels under them at xl+ | Nav.tsx:69-116 |
 | S0.4.4 | `navMetrics.ts` | `NAV_HEIGHT` 68 · `useNavBottom()` · `useNavInset()` (space screens keep clear above the nav) · `useMainInset()` / `useFabClearance()` from `Screen.tsx` (C16) | navMetrics.ts |
 
 ### S0.5 Navigation state (`NavProvider`, navigation.tsx)
@@ -120,7 +120,7 @@ Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen (also o
 
 Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 52 + 2 * 16 + 8` (= 160; App.tsx:95).
 
-> **Per-screen tree files:** `SCREEN_CODE_STRUCTURE/` holds one `*_tree.md` per screen, overlay, document and shared component (S0–S6, P1–P3, D1–D2, C1–C4) with the current component tree, line numbers, a function table and a "where to change what" table. Line numbers there are refreshed more often than the ones in this file.
+> **Per-screen tree files:** `SCREEN_CODE_STRUCTURE/` holds one `*_tree.md` per screen, overlay, document and shared component (S0–S6, P1–P3, D1–D2, C1–C4) in the Three-Slot format (since Prompt 59, 2026-10-23): the three slots, the file in reading order, the tree with IDs and line numbers, the S-numbers block, rows and columns, state and actions, "where to change what", and the sizes checked. Line numbers there are refreshed more often than the ones in this file.
 
 ---
 
@@ -254,7 +254,7 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 │ [Record payment][Share PDF][Excel] S3.3 action row (wraps)
 ├───────────────────────────────┤
 │ Items (2)                      │ S3.4
-│ Item ............ Qty Rate Amt │ S3.4.h header (flex 3:1:1:1)
+│ Item ............ Qty Rate Amt │ S3.4.h header (flex 2.6:0.8:1.3:1.3)
 │ Shirt - M          2  500 1000 │ S3.4.r line rows
 ├───────────────────────────────┤
 │              Gross    1,000.00 │ S3.5 totals
@@ -276,7 +276,7 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 | S3.0 | Loading | centred spinner until the invoice loads | `InvoiceDetail` |
 | S3.1 | Header row | left column: invoice_no (title) + date · due; right: StatusGlyph | `HeaderRow` |
 | S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`) | `BillToCard` |
-| S3.3 | Primary actions | wrap row, gap 8: **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | `ActionRow` |
+| S3.3 | Primary actions | wrap row, gap 12 (`layout.grid`): **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | `ActionRow` |
 | S3.4 | Items table | SectionTitle "Items (n)"; `ItemsHeader` Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3** (`S3.itemColumns`, read by the header and the rows), numbers right-aligned; each `LineRow` (memo) padded 12, bottom border; description up to 2 lines | `ItemsCard`, `ItemsHeader`, `LineRow` |
 | S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | `TotalsCard` |
 | S3.6 | Secondary actions | not void → **Edit** (outline, opens S4 in edit mode) · **Void** (ghost, red) | `EditVoidRow` |

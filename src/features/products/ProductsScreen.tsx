@@ -190,7 +190,7 @@ function useProducts() {
   };
 
   // S5.2: the 6-column table needs S5.tableMinWidth. At lg the editor pane takes 38 %, so the
-  // list pane (62 % minus the rail) is ≈ 410 dp on a 10-inch portrait tablet: phone rows there,
+  // list pane (62 % of the width minus the rail) is ≈ 441 dp on a 10-inch portrait tablet: phone rows there,
   // the table from xl (and at md, where the list has the full width).
   const listPaneWidth = bp.atLeast('lg') ? (bp.width - S5.rail) * 0.62 : bp.width - S5.rail;
   const showTable = bp.atLeast('md') && listPaneWidth >= S5.tableMinWidth;
