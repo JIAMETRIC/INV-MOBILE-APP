@@ -449,7 +449,7 @@ All ten `*_tree.md` files in `SCREEN_CODE_STRUCTURE/` were rewritten from the so
 | --- | --- |
 | Every file has the eight sections in order | yes (headings listed) |
 | Declared-function line numbers cited in S0–S6 trees vs the sources (script) | 63 citations match; the 9 non-matches are second use sites (a component used twice), not errors |
-| `npm run typecheck` after the three comment edits | see below |
+| `npm run typecheck` after the three comment edits | clean |
 | README and `SCREEN_LAYOUT_REFERENCE.md` | the description of the tree files updated to the new format |
 
 Not re-run: the size checks. Section 8 of each file carries the breakpoint findings as recorded by the Prompt that observed them.
