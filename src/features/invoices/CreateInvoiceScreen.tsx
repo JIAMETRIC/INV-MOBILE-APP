@@ -480,7 +480,7 @@ function BillToCard({ f, theme }: { f: Form; theme: Theme }) {
   const set = (k: keyof typeof party) => (v: string) => f.patch({ party: { ...party, [k]: v } });
   const blur = () => void f.autosave();
   return (
-    <Card theme={theme}>
+    <Card theme={theme} style={{ backgroundColor: theme.sheet }}>
       <SectionTitle title="Bill to" theme={theme} />
       <Input label="Customer name *" value={party.party_name} autoCapitalize="words"
         onChange={set('party_name')} onBlur={blur} theme={theme} />

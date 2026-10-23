@@ -99,7 +99,7 @@ export const light: Theme = {
   glass, glassStrong, glassNav, glassBorder, glassBorderStrong,
   cardShadow: shadow.secondary, tileShadow: shadow.primary,
   primaryTint, primaryFill: alpha(brand.primary, 0.12), focusRing, link: brand.link,
-  inputFill: glassStrong, inputBorder: alpha(brand.secondary, 0.35), divider: brand.tertiary, sheet: brand.light,
+  inputFill: glassStrong, inputBorder: alpha(brand.secondary, 0.35), divider: brand.tertiary, sheet: '#ffffff', // modals and solid panels
   kpiSurface: glass, navSurface: glassNav, navBorder: glassBorderStrong,
   fab: brand.primary, onFab: brand.light,
   tone: {
