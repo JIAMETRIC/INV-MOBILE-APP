@@ -19,7 +19,7 @@ python -I scripts/tablet-tour.py <out_dir> tab10P 1200x1920 240
 python -I scripts/tablet-tour.py <out_dir> tab10L 1920x1200 240
 python -I scripts/tablet-tour.py <out_dir> reset
 ```
-Each run sets `wm size` / `wm density`, relaunches the dev client (fresh bundle), and screenshots S1, S2 (+ date range), S3, S4 (+ Items, P2 when reachable), S5, P3, S6, S6 Company. Controls are found by accessibility label or text through `uiautomator`. "MISSING x" in the log means that tap had nothing to hit at that size (often expected: no stepper at md+, the editor is a pane at lg+).
+Run them one after another from a single process (a small Python driver or one terminal), never as a background Bash `for` loop: killing the Python does not stop the loop, and a leftover loop resets the emulator while another tour runs. Each run sets `wm size` / `wm density`, relaunches the dev client (fresh bundle), and screenshots S1, S2 (+ date range), S3, S4 (+ Items, P2 when reachable), S5, P3, S6, S6 Company. Controls are found by accessibility label or text through `uiautomator`. "MISSING x" in the log means that tap had nothing to hit at that size (often expected: no stepper at md+, the editor is a pane at lg+).
 
 ## 3. Review
 Open every PNG. For each, check against `SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md` (tablet wireframes, pane widths) and the Three-Slot Screen rules:

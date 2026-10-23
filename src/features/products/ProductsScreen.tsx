@@ -290,6 +290,11 @@ export function ProductsScreen() {
   );
 
   const editorTitle = mode === 'restock' ? 'Restock' : editId ? 'Edit product' : 'New product';
+  // S5.2: the 6-column table needs about 480 dp (fixed columns 328 + a readable NAME).
+  // At lg the editor pane takes 38 %, so the list pane (62 % minus the 88 rail) is
+  // ≈ 410 dp on a 10-inch portrait tablet: use the phone rows there, the table from xl.
+  const listPaneWidth = bp.atLeast('lg') ? (bp.width - 88) * 0.62 : bp.width - 88;
+  const showTable = bp.atLeast('md') && listPaneWidth >= 480;
 
   return (
     <View style={{ flex: 1 }}>
@@ -309,7 +314,7 @@ export function ProductsScreen() {
             <SearchField value={search} onChange={setSearch} placeholder="Search products" theme={theme} />
           </View>
           <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
-            {bp.atLeast('md') ? headerRow : null}
+            {showTable ? headerRow : null}
             <FlatList
               data={products}
               keyExtractor={p => String(p.id)}
@@ -319,7 +324,7 @@ export function ProductsScreen() {
               ListEmptyComponent={search
                 ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
                 : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
-              renderItem={({ item, index }) => bp.atLeast('md')
+              renderItem={({ item, index }) => showTable
                 ? <ProductTableRow p={item} last={index === products.length - 1} onPress={startEdit} theme={theme} />
                 : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={startEdit} theme={theme} />}
             />
@@ -327,7 +332,9 @@ export function ProductsScreen() {
           {bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}
         </View>
         {bp.atLeast('lg') ? (
-          <ScrollView style={{ width: '38%' }}
+          // S5.5: a ScrollView grows by default (flexGrow 1), which made 38% only a
+          // basis and squeezed the table until NAME vanished. Pin it.
+          <ScrollView style={{ width: '38%', flexGrow: 0, flexShrink: 0 }}
             contentContainerStyle={{ paddingEnd: layout.side, paddingBottom: navInset }} keyboardShouldPersistTaps="handled">
             <Card theme={theme} style={{ padding: 20 }}>
               <SectionTitle title={editing ? editorTitle : 'Product editor'} theme={theme} />

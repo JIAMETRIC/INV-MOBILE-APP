@@ -455,7 +455,7 @@ md: table, but the editor opens as P3 (dialog)
 | --- | --- | --- | --- |
 | S5.0 | App bar | "Products", subtitle "N items"; actions: `add` New product (tablet only) · `download-outline` Export products to Excel (D2.3) | 270-278 |
 | S5.1 | Search | `SearchField` "Search products" | 281-283 |
-| S5.2 | Table header | md+ only. Columns **NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76** (dp; SIZE left-aligned, the rest right-aligned) | 240-251, 284 |
+| S5.2 | Table header | shown when `showTable`: md+ **and** the list pane ≥ 480 dp (so md full-width and xl / xxl beside the editor; at lg the editor pane leaves ≈ 410 dp and the phone rows S5.3 are used). Columns **NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76** (dp; SIZE left-aligned, the rest right-aligned) | `headerRow`, `showTable` |
 | S5.2.r | Table row | `ListRow` with the same 6 columns; AVL = `AvlBadge` | 253-264 |
 | S5.3 | Phone row | ListItem: leading circle = size · title name · subtitle "Stock n · Sold n" · trailing price + Avl badge | 294-307 |
 | S5.3.e | Empty states | searching → "No matches"; otherwise "No products" | 289-291 |
@@ -621,7 +621,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C12 | `StatusGlyph` / `Badge` | kit badge: pill, padding 4 × 10, 12/600, tinted fill; status adds a Feather glyph (circle, clock, pie-chart, check-circle, x-circle) | lists, S3 | components.tsx:282 / 299 |
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
-| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12; stacks into a column at `stackAt` or narrower, or whenever a cell would be narrower than `minCell` (44): Three-Slot Screen rule 4 | S2.3a, S5.6.4, S5.7.2 | Columns.tsx:14 |
+| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S2.3a, S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
 
 ### Design tokens (`src/ui/tokens.ts`)
 

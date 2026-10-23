@@ -13,6 +13,7 @@ import {
   Badge, Button, Card, Chip, IconButton, Input, ListItem, MoneyInput, MoneyText, SearchField, SectionTitle,
   SegmentedControl, TopAppBar, TotalRow, EmptyState,
 } from '../../ui/components';
+import { Columns } from '../../ui/Columns';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
 import { font, layout, radius, shadow, space, touch, type, maxReadWidth } from '../../ui/tokens';
@@ -299,18 +300,16 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
             onBlur={() => void autosave()} theme={theme} keyboardType="email-address" autoCapitalize="none" />
         </View>
       </View>
-      <View style={{ flexDirection: 'row', gap: layout.grid, marginBottom: -space[4] }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Invoice date" value={form.invoiceDate}
-            onChange={v => patch({ invoiceDate: v })} onBlur={() => void autosave()}
-            theme={theme} tabular placeholder="YYYY-MM-DD" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Input label="Due date" value={form.dueDate}
-            onChange={v => patch({ dueDate: v })} onBlur={() => void autosave()}
-            theme={theme} tabular placeholder="YYYY-MM-DD" />
-        </View>
-      </View>
+      {/* S4.A row 5: Columns stacks the two dates when the form is too narrow
+          for them side by side (the xl three-panel form), instead of clipping. */}
+      <Columns kind="input" style={{ marginBottom: -space[4] }}>
+        <Input label="Invoice date" value={form.invoiceDate}
+          onChange={v => patch({ invoiceDate: v })} onBlur={() => void autosave()}
+          theme={theme} tabular placeholder="YYYY-MM-DD" />
+        <Input label="Due date" value={form.dueDate}
+          onChange={v => patch({ dueDate: v })} onBlur={() => void autosave()}
+          theme={theme} tabular placeholder="YYYY-MM-DD" />
+      </Columns>
     </Card>
   );
 

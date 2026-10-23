@@ -178,3 +178,23 @@ Docs: S2 tree file line numbers refreshed; S5 tree file carries a shift note (+4
 | — | S1, S6, P3, S4.L2, S2/S3 at lg and xxl | all | as designed | ok |
 
 The 8-inch tablet in portrait is **md (601 dp)**, not phone width: the rail and two panes appear, and most of the "tight" findings are at that size. Material's compact class ends at 600 dp, so this is one dp over the line; treating md as single-pane (phone layout + rail) would remove findings 3, 4 and 5 at once. That is a decision for the owner.
+
+## Prompt 31 — The two tablet bugs fixed and re-checked (2026-10-23, session 14)
+
+| Fix | Where | Re-check |
+| --- | --- | --- |
+| Products editor pane pinned to 38 % (`flexGrow: 0, flexShrink: 0` on the `ScrollView`) | `ProductsScreen.tsx` S5.5 | xl and xxl: all six columns, names readable |
+| Table only when the list pane is ≥ 480 dp (`showTable`); phone rows otherwise | `ProductsScreen.tsx` S5.2 | lg: rows with full names beside the editor |
+| `Columns` decides from its own measured width (`onLayout`), window width only until the first layout | `src/ui/Columns.tsx` | — |
+| S4.A row 5 (dates) is `<Columns kind="input">` | `CreateInvoiceScreen.tsx` | xl: the two dates stack, values complete; lg and xxl: side by side |
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean (after one slip: a JSX comment inside the ternary branch broke the parse; fixed, re-run) |
+| `npm run test:columns` | 10/10 |
+| Tour at xl (1280×800 @ 213), lg (1200×1920 @ 240), xxl (1920×1200 @ 240); S4 and S5 screenshots reviewed | as in the table above; `MISSING Items` / `Date range (set)` expected |
+| Emulator | restored to 1080×2400 |
+
+Process note: killing the tour's `python.exe` does not stop the Bash `for` loop that launched it, so two leftover loops kept running and reset the emulator mid-run twice. Fixed by killing every process whose command line contains the script name and running the three profiles from one Python driver. The skill text should say: run the profiles from one process.
+
+Still open (tight, not bugs): S2 list pane at md / xl, S3 items header at md, S5 NAME + SIZE gap at md, S4.L3 product names at xl; and the md-as-single-pane decision.

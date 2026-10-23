@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 import { layout } from './tokens';
 import { useBreakpoint, type BP } from './useBreakpoint';
 import { CELL_MIN, columnsMode } from './columnsMode';
@@ -14,6 +14,10 @@ import { CELL_MIN, columnsMode } from './columnsMode';
 // (every cell on its own line) or, with `wrap`, flows onto more lines so a
 // 4th input goes down on a phone and comes back up on a tablet. `stackAt`
 // forces a stack at that breakpoint and narrower.
+//
+// The decision uses the row's own measured width (so it is right inside a
+// tablet pane, not just at full screen width); until the first layout it
+// uses the window width minus the screen's side padding.
 export function Columns({ children, gap = layout.grid, weights, kind = 'touch', minCell, stackAt, wrap, style }: {
   children: React.ReactNode;
   gap?: number;
@@ -25,11 +29,22 @@ export function Columns({ children, gap = layout.grid, weights, kind = 'touch', 
   style?: StyleProp<ViewStyle>;
 }) {
   const bp = useBreakpoint();
+  const [measured, setMeasured] = useState<number | null>(null);
   const kids = React.Children.toArray(children).filter(Boolean);
   const min = minCell ?? CELL_MIN[kind];
-  const mode = columnsMode({ width: bp.width, n: kids.length, gap, side: layout.side, minCell: min, bp: bp.bp, stackAt, wrap });
+  const mode = columnsMode({
+    width: measured ?? bp.width, side: measured === null ? layout.side : 0,
+    n: kids.length, gap, minCell: min, bp: bp.bp, stackAt, wrap,
+  });
+  const onLayout = (e: LayoutChangeEvent) => {
+    const w = Math.round(e.nativeEvent.layout.width);
+    if (w > 0 && w !== measured) setMeasured(w);
+  };
   return (
-    <View style={[{ flexDirection: mode === 'stack' ? 'column' : 'row', flexWrap: mode === 'wrap' ? 'wrap' : 'nowrap', gap }, style]}>
+    <View
+      onLayout={onLayout}
+      style={[{ flexDirection: mode === 'stack' ? 'column' : 'row', flexWrap: mode === 'wrap' ? 'wrap' : 'nowrap', gap }, style]}
+    >
       {kids.map((kid, i) => (
         <View
           key={i}

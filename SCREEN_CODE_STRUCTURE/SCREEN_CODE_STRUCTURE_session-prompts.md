@@ -219,3 +219,9 @@ Is it a problem now? No. The only 3-column row is the Dashboard tiles (S1.2), an
 ```
 Yes. Add a wrap mode to Columns (4th column goes to the next line, inputs default to a sensible minimum), then create 8-inch and 10-inch tablet AVDs and screenshot every screen on them.
 ```
+
+## Prompt 31
+
+```
+Yes, fix the two tablet bugs: the Products editor ScrollView flex basis so the NAME column shows at lg/xl/xxl, and the S4 date inputs clipping at xl. Re-run /tablet-check on S4 and S5 afterwards.
+```
