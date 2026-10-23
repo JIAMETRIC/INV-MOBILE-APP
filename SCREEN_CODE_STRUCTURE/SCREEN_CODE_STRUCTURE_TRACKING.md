@@ -134,3 +134,10 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | The rules stay in `three-slot-screen` (and `Columns`); the check only verifies | Rule and check are different kinds of work; mixing them makes the restructure skill the only time anyone checks. | — |
 | Phone landscape is a profile of its own | 914×411 dp is **lg**: a phone turned sideways gets the tablet two-pane layout with only 411 dp of height, which no one had looked at. It found the S2 collapse on the first run. | Treating landscape as "the same screens, rotated". |
 | `size-tour.py` goes Back after S3 on one-pane sizes | On phones S3 is an overlay; without the Back the rest of the tour tapped into the overlay (every later shot was S3). Detected by the "Invoice" back-bar title. | — |
+
+## Prompt 45 — S2 on short screens (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Under `S2.shortScreen` (600 dp of height) the filter rows become the FlatList's `ListHeaderComponent` and the card fills the pane (`InvoiceListCard fill header`) | On a phone in landscape (411 dp) the fixed filters left the hugging card nothing; letting the whole column scroll keeps every control reachable and keeps one scroller in Main (rule: no FlatList in a ScrollView). The three filter rows are built once in `ListPane` and placed either way. | A `minHeight` on the card: it would overflow the 411-dp pane and clip the last row. A compact header: fragile, only buys ≈ 40 dp. Hiding filters in landscape: loses the feature. |
+| Normal heights are untouched (filters fixed above a hugging card) | The portrait phone screenshot is unchanged; the short-screen branch is a separate return. | One layout for all heights (filters always scroll): a behaviour change on every phone for a landscape-only problem. |

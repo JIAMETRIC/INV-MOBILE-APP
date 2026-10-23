@@ -286,3 +286,19 @@ Everything is committed (`master` at `fa792f7` plus this log; no remote). Metro 
 Proposed fixes (not applied): #1 a `minHeight` of about two rows on `InvoiceListCard`, or the filter rows as the FlatList's `ListHeaderComponent` on short screens; #2 / #3 shorter labels or `adjustsFontSizeToFit` under 340 dp (xs is the floor, so "tight but readable" may be acceptable).
 
 Emulator restored to 1080×2400.
+
+## Prompt 45 — S2 short-screen fix, re-checked at phoneL (2026-10-23, session 14)
+
+| Change | File |
+| --- | --- |
+| `S2.shortScreen = 600`; `ListPane` builds the filters once and, on short screens, passes them to `InvoiceListCard` as `header` with `fill` | `InvoicesScreen.tsx` |
+| `InvoiceListCard`: `fill` → card `flex: 1`, list `flex: 1`; `header` → `ListHeaderComponent`; `keyboardShouldPersistTaps` | `InvoicesScreen.tsx` |
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `/size-check` phoneL (2400×1080 @ 420 = 914×411 dp) | S2 without dates: card fills the pane, search · tabs · row visible; with the date range open: search · tabs · From \| To visible, the row scrolls into view below; nothing collapses. S3 in the pane as before |
+| Phone portrait (1080×2400), S2 with the date range | unchanged (filters fixed, hugging card) |
+| Emulator | restored to 1080×2400 |
+
+Pushed to origin/master.

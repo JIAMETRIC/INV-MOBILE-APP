@@ -46,6 +46,7 @@ const S2 = {
   detailWidth: { 2: '50%', 3: '42%' } as const, // S2.7: detail pane width by pane count
   activityWidth: '26%', // S2.8: activity pane width
   activityFrom: 'xxl' as const, // S2.8: shown from this breakpoint; at xl (961 dp) three panes squeezed the list
+  shortScreen: 600, // S2.5: under this height (a phone in landscape is 411) the filters scroll with the list
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -146,12 +147,28 @@ function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
 
 // S2.1–S2.5 — the column under the header: filters, then the list card (the FAB, S2.6, is a <Screen> slot).
 function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
+  const bp = useBreakpoint();
   const navInset = useNavInset();
-  return (
-    <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
+  const filters = (
+    <>
       <FilterRow list={list} theme={theme} />
       <SegmentedControl label="Status" options={STATUSES} value={list.status} onChange={list.setStatus} theme={theme} />
       {list.dateOpen ? <DateRangeRow list={list} theme={theme} /> : null}
+    </>
+  );
+  // Short screens (a phone in landscape): the fixed filters left the list card no height,
+  // so they scroll with the list as its header and the card fills the pane instead.
+  if (bp.height < S2.shortScreen) {
+    return (
+      <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side }}>
+        <InvoiceListCard list={list} theme={theme} navInset={navInset} fill
+          header={<View style={{ gap: layout.gap, paddingTop: space[2], paddingBottom: layout.gap }}>{filters}</View>} />
+      </View>
+    );
+  }
+  return (
+    <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
+      {filters}
       <InvoiceListCard list={list} theme={theme} navInset={navInset} />
     </View>
   );
@@ -184,7 +201,11 @@ function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
 
 // S2.5 — the glass card holding the scrolling list, or an empty state.
 // It hugs its rows (flexShrink on the card, flexGrow 0 on the list) and stops above the nav.
-function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: Theme; navInset: number }) {
+// `fill` makes the card take the whole pane and the list scroll inside it (short screens);
+// `header` is rendered at the top of the list and scrolls with it.
+function InvoiceListCard({ list, theme, navInset, fill, header }: {
+  list: InvoiceList; theme: Theme; navInset: number; fill?: boolean; header?: React.ReactElement;
+}) {
   const nav = useNav();
   const bp = useBreakpoint();
   const fabClearance = useFabClearance(); // 0 when no FAB floats (tablets)
@@ -196,11 +217,15 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
     [single, nav],
   );
   return (
-    <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
+    <Card theme={theme} list style={fill
+      ? { flex: 1, marginTop: space[1], marginBottom: navInset, overflow: 'hidden' }
+      : { flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
       <FlatList
         data={rows}
         keyExtractor={r => String(r.id)}
-        style={{ flexGrow: 0 }}
+        style={fill ? { flex: 1 } : { flexGrow: 0 }}
+        ListHeaderComponent={header}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? fabClearance : 0 }}
         ListEmptyComponent={list.filtered
           ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />

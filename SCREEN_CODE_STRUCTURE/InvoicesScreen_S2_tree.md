@@ -75,7 +75,7 @@ ActivityPane          S2.8  3-pane tablets with a row selected: width 26 %,     
 | You want to change | Go to |
 | --- | --- |
 | a status tab's name, or add / remove a tab | `STATUSES` (31); the value must be an `InvoiceStatus` or `'all'` |
-| the gap between search and calendar, pane widths | `S2` (41-48), one line each; the FAB clearance lives in `src/ui/Screen.tsx` |
+| the gap between search and calendar, pane widths, the short-screen height | `S2` (41-49), one line each; the FAB clearance lives in `src/ui/Screen.tsx` |
 | the order of search / tabs / date fields | the 5 lines inside `ListPane` (147-151) |
 | the search placeholder or the calendar label | `FilterRow` (160-161) |
 | the date fields' labels, placeholder or keyboard | `DateRangeRow` (173, 175); to stack them always, add `stackAt="sm"` to `Columns` |
@@ -113,6 +113,6 @@ Since Prompt 37 the screen is built on `<Screen>` (C16): `InvoicesScreen()` pass
 | xs 320 × 568 | search placeholder "Search invoice no o…", tabs "Issu… Part…", From / To "YYYY-MM-…", row date wraps to 2 lines; FAB sits over the card's bottom padding | **tight** (the app's floor; readable, nothing hidden) |
 | sm 360 × 800 | everything complete | ok |
 | phone 411 × 914 | the baseline | ok |
-| phone landscape 914 × 411 (lg, 2 panes) | without the date range: fine. **With the date range open the list card collapses to an empty strip**: the card hugs its rows (`flexShrink: 1`) and is the only thing that can shrink once header + search + tabs + dates have taken ≈ 330 of the 411 dp | **bug** |
+| phone landscape 914 × 411 (lg, 2 panes) | ~~with the date range open the list card collapsed to nothing~~ → **since Prompt 45**, under `S2.shortScreen` (600 dp of height) the filters are the list's `ListHeaderComponent` inside a card that fills the pane (`fill`), so everything scrolls together; the row sits below the fold when the dates are open and the card never collapses | ok |
 
-Proposed fix (not applied): give `InvoiceListCard` a floor of about two rows (`minHeight` ≈ 140) so the filters give way instead, or move `FilterRow` / `SegmentedControl` / `DateRangeRow` into the FlatList's `ListHeaderComponent` on short screens so the whole column scrolls.
+Applied (Prompt 45): the `ListHeaderComponent` route. `ListPane` builds the three filter rows once and either stacks them above the card (normal heights) or hands them to `InvoiceListCard` as `header` with `fill` (short screens). Visual difference on short screens only: the filters sit inside the glass card.
