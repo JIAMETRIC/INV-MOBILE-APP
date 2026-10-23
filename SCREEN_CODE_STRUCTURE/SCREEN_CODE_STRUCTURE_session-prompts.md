@@ -479,3 +479,20 @@ What Prompt to give i want for 5inch Mobile Screen Size
 ```
 i want screen-map.html for 5 inch Mobile Screen size
 ```
+
+## Prompt 67
+
+```
+This is Optimized Prompt?: 
+
+Screen: S2
+Function: SegmentedControl
+Task: in options = STATUSES, Keep only "All" and Remove other "STATUSES"
+Rule: keep everything else identical
+```
+
+## Prompt 68
+
+```
+Continue and Comple the Task
+```

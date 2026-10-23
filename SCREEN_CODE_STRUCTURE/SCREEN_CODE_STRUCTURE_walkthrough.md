@@ -484,3 +484,12 @@ Not done: no screenshots of the page at phone width (the browser pane here is sm
 The map (`scripts/screen-map.py` → `screen-map.html`) now carries a `small` line per screen under the phone column with these observations; the page is republished at the same link. The profile is added to the size-check skill, the tour docstring, the portable skill and its tour template. Section 8 of each S1–S6 tree file has a `phone5` row.
 
 Open: the RATE / AMOUNT header gap on S3 at 360 dp and under (proposed fix unchanged: `adjustsFontSizeToFit` on the header labels, or a narrower item share).
+
+## Prompts 67–68 — S2 status tabs: only "All" (2026-10-23, session 15)
+
+Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (S2.2, `src/features/invoices/InvoicesScreen.tsx`) now holds only `{ value: 'all', label: 'All' }`; Issued, Partial, Paid and Void are removed. `SegmentedControl`, `useInvoiceList` (status state and the filter) and every other screen are unchanged, so the Status control shows one "All" tab and the list is never filtered by status.
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` | no errors |
+| On the emulator | not run |

@@ -31,10 +31,6 @@ type StatusFilter = InvoiceStatus | 'all';
 // S2.2 — the status tabs, in order.
 const STATUSES: ReadonlyArray<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'issued', label: 'Issued' },
-  { value: 'partial', label: 'Partial' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'void', label: 'Void' },
 ];
 
 // Every number that is specific to this screen. Shared spacing comes from
