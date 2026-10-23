@@ -598,9 +598,12 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
     <View style={{ gap: layout.gap }}>
       <Card theme={theme} style={{ gap: space[1] }}>
         <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
+        <Text style={[type.heading, { color: theme.text }]} numberOfLines={2}>
+          {form.party.party_name || '(no customer)'}
+        </Text>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space[2] }}>
-          <Text style={[type.heading, { color: theme.text, flex: 1 }]} numberOfLines={2}>
-            {form.party.party_name || '(no customer)'}
+          <Text style={[type.bodyMedium, { color: theme.textMuted, flex: 1 }]} numberOfLines={1}>
+            {form.party.party_mobile ? `Ph ${form.party.party_mobile}` : ''}
           </Text>
           <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
             <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{f.previewNo}</Text>
