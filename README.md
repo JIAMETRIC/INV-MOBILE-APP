@@ -162,6 +162,7 @@ INV-MOBILE-APP/
 ├── MOBILE_APP_CONVERSION/   TRACKING · walkthrough · session-prompts
 ├── design/                 DESIGN.md (Flat Glass spec) + screens/ (4 reference PNG + HTML)
 ├── .claude/skills/apply-design/  the kit's /apply-design skill
+├── .claude/skills/three-slot-screen/  /three-slot-screen: restructure a screen as Header / Main / Footer with named regions
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)
 ├── SCREEN_LAYOUT_REFERENCE/ per-screen layout map with IDs for edit prompts (+ TRACKING · walkthrough · session-prompts)

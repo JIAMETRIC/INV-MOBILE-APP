@@ -1,0 +1,603 @@
+<title>Three-Slot Screen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap">
+<style>
+  /* Layout: a phone-first page built like the app's own screens: a flat header,
+     a column of glass cards, a segmented control as section nav, a pinned bar.
+     Tokens are the Flat Glass · Brand Blue kit (design/DESIGN.md) with the
+     owner's exceptions (src/ui/tokens.ts): Bebas Neue numbers, radii 10/12/14/16/18. */
+  :root {
+    --primary: #2596be;
+    --secondary: #666666;
+    --tertiary: #ebeaea;
+    --dark: #000000;
+    --light: #ffffff;
+    --link: #1a6f8e;
+    --bg: var(--tertiary);
+    --text: var(--dark);
+    --text-muted: var(--secondary);
+    --glass: rgba(255,255,255,0.55);
+    --glass-strong: rgba(255,255,255,0.60);
+    --glass-nav: rgba(255,255,255,0.65);
+    --glass-border: rgba(255,255,255,0.85);
+    --glass-border-strong: rgba(255,255,255,0.90);
+    --divider: var(--tertiary);
+    --input-border: rgba(102,102,102,0.35);
+    --primary-tint: rgba(37,150,190,0.14);
+    --focus-ring: 0 0 0 3px rgba(37,150,190,0.35);
+    --shadow-primary: 0 4px 8px rgba(20,71,108,0.15);
+    --shadow-secondary: 0 8px 16px rgba(20,71,108,0.20);
+    --card-shadow: var(--shadow-secondary);
+    --tile-shadow: var(--shadow-primary);
+    --code-bg: rgba(255,255,255,0.75);
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-numeric: "Bebas Neue", "Inter", system-ui, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+    --r-chip: 10px; --r-control: 12px; --r-item: 14px; --r-card: 16px; --r-form: 18px; --r-pill: 999px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: var(--dark); --text: var(--light); --text-muted: var(--tertiary);
+      --glass: rgba(255,255,255,0.08); --glass-strong: rgba(255,255,255,0.08); --glass-nav: rgba(0,0,0,0.88);
+      --glass-border: rgba(255,255,255,0.16); --glass-border-strong: rgba(255,255,255,0.16);
+      --divider: rgba(255,255,255,0.18); --input-border: rgba(255,255,255,0.2);
+      --primary-tint: rgba(37,150,190,0.24); --link: var(--light);
+      --card-shadow: var(--shadow-secondary), inset 0 1px 0 rgba(255,255,255,0.2);
+      --tile-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255,255,255,0.2);
+      --code-bg: rgba(255,255,255,0.06);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--dark); --text: var(--light); --text-muted: var(--tertiary);
+    --glass: rgba(255,255,255,0.08); --glass-strong: rgba(255,255,255,0.08); --glass-nav: rgba(0,0,0,0.88);
+    --glass-border: rgba(255,255,255,0.16); --glass-border-strong: rgba(255,255,255,0.16);
+    --divider: rgba(255,255,255,0.18); --input-border: rgba(255,255,255,0.2);
+    --primary-tint: rgba(37,150,190,0.24); --link: var(--light);
+    --card-shadow: var(--shadow-secondary), inset 0 1px 0 rgba(255,255,255,0.2);
+    --tile-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255,255,255,0.2);
+    --code-bg: rgba(255,255,255,0.06);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 400 15px/1.4 var(--font); -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  .page {
+    max-width: 720px; margin: 0 auto;
+    padding-block: 56px 32px;
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  @media (min-width: 900px) { .page { max-width: 960px; } }
+
+  /* Type scale (DESIGN.md §3) */
+  .overline { font: 600 12px/16px var(--font); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+  .caption { font: 400 13px/18px var(--font); color: var(--text-muted); }
+  .micro { font: 600 11px/14px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { font: 600 28px/34px var(--font); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  h2 { font: 600 24px/30px var(--font); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  h3 { font: 600 16px/22px var(--font); margin: 0; }
+  p { margin: 0; }
+  .lead { font: 400 16px/24px var(--font); max-width: 62ch; }
+  .muted { color: var(--text-muted); }
+  .num { font: 400 1em/1 var(--font-numeric); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+  .kpi { font: 400 28px/32px var(--font-numeric); letter-spacing: 0.02em; }
+  .hero-num { font: 400 44px/48px var(--font-numeric); letter-spacing: 0.02em; }
+  code { font: 400 0.93em var(--mono); background: var(--primary-tint); padding: 1px 6px; border-radius: 6px; }
+
+  /* Header (C1, large) */
+  .top { display: flex; align-items: center; gap: 12px; }
+  .top .titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .top .caption { font-size: 14px; line-height: 20px; }
+
+  /* Glass pieces (DESIGN.md §2.4 + owner radii) */
+  .card {
+    background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--r-card);
+    box-shadow: var(--card-shadow); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;
+  }
+  .card.tile { box-shadow: var(--tile-shadow); gap: 10px; }
+  .card.pad-20 { padding: 20px; }
+  .card.list { padding: 8px 16px; gap: 0; }
+  .icon-btn {
+    width: 44px; height: 44px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--r-control); background: var(--glass-strong); border: 1px solid var(--glass-border-strong);
+    box-shadow: var(--shadow-primary); color: var(--text); cursor: pointer; padding: 0; font: inherit;
+    transition: transform 150ms cubic-bezier(.22,1,.36,1), background 150ms;
+  }
+  .icon-btn:active { transform: scale(0.96); }
+  .icon-btn.on { background: var(--primary); color: var(--light); border-color: transparent; }
+  .btn {
+    height: 52px; padding: 0 24px; border: 0; border-radius: var(--r-control); background: var(--primary); color: var(--light);
+    font: 600 16px var(--font); box-shadow: var(--shadow-secondary); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; transition: transform 150ms cubic-bezier(.22,1,.36,1);
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.glass { height: 50px; background: var(--glass-strong); color: var(--text); border: 1px solid var(--glass-border-strong); box-shadow: var(--shadow-primary); font-weight: 500; font-size: 15px; }
+  .chip-icon { width: 36px; height: 36px; flex: none; border-radius: var(--r-chip); background: var(--primary-tint); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+  .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--r-pill); background: var(--primary-tint); color: var(--text); font: 600 12px/16px var(--font); }
+  .badge.ok { background: rgba(46,125,50,0.14); }
+  .badge.warn { background: rgba(198,40,40,0.14); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.ok { background: rgba(102,187,106,0.22); } :root:not([data-theme="light"]) .badge.warn { background: rgba(239,83,80,0.2); } }
+  :root[data-theme="dark"] .badge.ok { background: rgba(102,187,106,0.22); }
+  :root[data-theme="dark"] .badge.warn { background: rgba(239,83,80,0.2); }
+  svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  svg.i.s { width: 18px; height: 18px; stroke-width: 2; }
+
+  /* Segmented control (C8a) as section nav */
+  .seg { display: flex; padding: 4px; gap: 2px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--r-pill); box-shadow: var(--shadow-primary); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+  .seg button { flex: 1; height: 36px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-muted); font: 500 14px var(--font); cursor: pointer; transition: background 150ms; }
+  .seg button[aria-selected="true"] { background: var(--primary); color: var(--light); font-weight: 600; box-shadow: var(--shadow-primary); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+
+  section[hidden] { display: none; }
+  section { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; flex-direction: row; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 160px; min-width: 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 420px) { .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .grid-3 .card { padding: 12px; } }
+
+  /* The phone diagram */
+  .phone { border: 1px solid var(--glass-border-strong); background: var(--glass-nav); border-radius: var(--r-card); padding: 10px; box-shadow: var(--shadow-primary); display: flex; flex-direction: column; gap: 8px; max-width: 320px; margin: 0 auto; width: 100%; }
+  .slot { border-radius: var(--r-control); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font: 500 13px/18px var(--font); }
+  .slot .micro { color: inherit; opacity: .85; }
+  .slot.header { background: var(--primary-tint); }
+  .slot.main { background: var(--glass-strong); border: 1px solid var(--glass-border-strong); min-height: 180px; }
+  .slot.footer { background: var(--primary); color: var(--light); }
+  .slot.nav { background: transparent; border: 1px dashed var(--input-border); color: var(--text-muted); text-align: center; }
+  .srow { display: flex; gap: 6px; }
+  .srow > span { flex: 1; border: 1px solid var(--input-border); border-radius: 8px; padding: 4px 8px; font: 400 12px/16px var(--font); color: var(--text-muted); background: var(--glass); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .srow > span.w2 { flex: 1.4; }
+
+  /* List rows (C7) */
+  .lrow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--divider); }
+  .lrow:last-child { border-bottom: 0; }
+  .lrow .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lrow .t b { font-weight: 500; font-size: 14px; line-height: 20px; }
+  .lrow .t small { font-size: 12px; line-height: 16px; color: var(--text-muted); }
+  .avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--primary); color: var(--light); display: inline-flex; align-items: center; justify-content: center; font: 600 14px var(--font); }
+  .avatar.alt { background: var(--tertiary); color: var(--dark); }
+
+  /* Tables */
+  .tbl { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 20px; }
+  th { text-align: left; font: 600 12px/16px var(--font); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); padding: 8px 10px 8px 0; border-bottom: 1px solid var(--divider); vertical-align: bottom; }
+  td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--divider); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 500; white-space: nowrap; }
+
+  /* Code blocks with copy */
+  .code { position: relative; display: flex; flex-direction: column; gap: 0; }
+  .code .bar { display: flex; align-items: center; gap: 12px; }
+  .code .bar .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .code pre { margin: 0; background: var(--code-bg); border: 1px solid var(--glass-border); border-radius: var(--r-control); padding: 14px 16px; overflow-x: auto; font: 400 13px/1.55 var(--mono); color: var(--text); tab-size: 2; }
+  .code pre code { background: none; padding: 0; font: inherit; }
+  .copy { position: relative; }
+  .copy .done { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+  .copy.ok .done { display: inline-flex; } .copy.ok .idle { display: none; }
+  .copy .fb { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; }
+
+  /* Pinned device bar (03-music-player) */
+  .devbar { margin-top: 8px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-card); background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--shadow-primary); }
+  .devbar .t { flex: 1; min-width: 0; font: 500 14px/20px var(--font); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+
+  <!-- Header: C1 TopAppBar, large -->
+  <header class="top">
+    <div class="titles">
+      <span class="caption">Invoice ERP · screen method</span>
+      <h1>Three-Slot Screen</h1>
+    </div>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle light and dark">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </header>
+
+  <!-- Hero card (02-dashboard "Revenue") -->
+  <div class="card pad-20">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <span class="overline">The method in one picture</span>
+      <span class="badge">3 slots</span>
+    </div>
+    <div class="phone" role="img" aria-label="A phone screen split into header, main and footer; main holds rows, one row has two columns; the bottom nav sits outside the screen">
+      <div class="slot header"><span class="micro">Header</span>title · glass buttons · fixed, never scrolls</div>
+      <div class="slot main">
+        <span class="micro">Main · scrolls · takes the remaining height</span>
+        <div class="srow"><span>row</span></div>
+        <div class="srow"><span>col · flex 1</span><span>col · flex 1</span></div>
+        <div class="srow"><span>row</span></div>
+        <div class="srow"><span>col</span><span class="w2">col · flex 1.4</span></div>
+      </div>
+      <div class="slot footer"><span class="micro">Footer</span>action bar · fixed · rises with the keyboard</div>
+      <div class="slot nav">bottom nav · owned by the app shell (S0)</div>
+    </div>
+    <p class="lead">Every screen is a column of three slots. Inside Main, rows stack top to bottom and a row may split into columns. Each slot and each row is a named function in the screen file, so an edit means opening the region by name.</p>
+  </div>
+
+  <!-- Stat tiles (S1.2) -->
+  <div class="grid-3">
+    <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/></svg></span><span class="caption">Slots per screen</span><span class="kpi">3</span></div>
+    <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg></span><span class="caption">Max columns on phones</span><span class="kpi">3</span></div>
+    <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><path d="M9 11a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span><span class="caption">Min touch size, dp</span><span class="kpi">44</span></div>
+  </div>
+
+  <!-- Section nav: C8a segmented control -->
+  <nav class="seg" role="tablist" aria-label="Sections">
+    <button role="tab" aria-selected="true" data-tab="method" id="tab-method">Method</button>
+    <button role="tab" aria-selected="false" data-tab="rules" id="tab-rules">Rules</button>
+    <button role="tab" aria-selected="false" data-tab="code" id="tab-code">Code</button>
+    <button role="tab" aria-selected="false" data-tab="prompts" id="tab-prompts">Prompts</button>
+  </nav>
+
+  <!-- ============ METHOD ============ -->
+  <section id="method" role="tabpanel" aria-labelledby="tab-method">
+    <div class="card">
+      <span class="overline">Name</span>
+      <h2>Three-Slot Screen <span class="muted" style="font-weight:400">(3SS)</span></h2>
+      <p>Three slots: <b>Header</b>, <b>Main</b>, <b>Footer</b>. Inside Main, <b>rows</b> and <b>columns</b>. Every region is a <b>named function</b> carrying its layout ID (S2.3a, S4.B.3). The name says the shape; the IDs say where.</p>
+      <div class="caption">Also fits as a Claude Code skill: <code>three-slot-screen</code>. A skill is a procedure the assistant runs; the design spec stays what things look like.</div>
+    </div>
+
+    <div class="card list">
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M3 12h18M3 18h12"/></svg></span><div class="t"><b>Header</b><small>Title, count, glass icon buttons. Pads the status-bar inset. Never scrolls.</small></div><span class="badge">C1</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></span><div class="t"><b>Main</b><small>Exactly one scroller: a ScrollView for forms, a FlatList for lists. Side padding 20, gap 16.</small></div><span class="badge">flex 1</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M3 4h18M3 9h10"/></svg></span><div class="t"><b>Footer</b><small>Action bar on phones only. Sits in the flex column, so it rises with the keyboard.</small></div><span class="badge">compact</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M8 12v6M16 12v6"/></svg></span><div class="t"><b>Row</b><small>A View with <code>flexDirection: 'row'</code> and <code>gap: 12</code>.</small></div><span class="badge">≤ 3 cols</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></span><div class="t"><b>Column</b><small>A child with <code>flex: 1</code> (equal) or <code>flex: 1.4</code> (wider). Tappable cells ≥ 44 wide.</small></div><span class="badge">flex</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="2" y="16" width="20" height="5" rx="2"/><path d="M7 18.5h.01M12 18.5h.01M17 18.5h.01"/></svg></span><div class="t"><b>Bottom nav</b><small>Belongs to the app shell (S0), never to a screen. Screens only reserve space above it.</small></div><span class="badge">S0.4</span></div>
+    </div>
+
+    <div class="card">
+      <span class="overline">Reading order of a screen file</span>
+      <div class="tbl"><table>
+        <tr><th>#</th><th>Block</th><th>What you edit there</th></tr>
+        <tr><td><span class="num">1</span></td><td><code>STATUSES</code>, labels</td><td>text that appears on screen</td></tr>
+        <tr><td><span class="num">2</span></td><td><code>S2 = { … }</code></td><td>every number specific to this screen, one per line with its ID</td></tr>
+        <tr><td><span class="num">3</span></td><td><code>useInvoiceList()</code></td><td>all state and data, no JSX</td></tr>
+        <tr><td><span class="num">4</span></td><td><code>InvoicesScreen()</code></td><td>the phone / tablet switch, ~20 lines</td></tr>
+        <tr><td><span class="num">5</span></td><td><code>Header</code> → <code>Main</code> rows → <code>Footer</code></td><td>one function per region, in on-screen order</td></tr>
+      </table></div>
+      <p class="caption">The tree order is also the screen-reader order: Header, then rows left to right, then Footer.</p>
+    </div>
+  </section>
+
+  <!-- ============ RULES ============ -->
+  <section id="rules" role="tabpanel" aria-labelledby="tab-rules" hidden>
+    <div class="card">
+      <span class="overline">The six conventions</span>
+      <div class="tbl"><table>
+        <tr><th>#</th><th>Rule</th><th>Detail</th></tr>
+        <tr><td><span class="num">1</span></td><td>Header</td><td>fixed; pads the status inset; title has <code>accessibilityRole="header"</code>; glass icon buttons for actions</td></tr>
+        <tr><td><span class="num">2</span></td><td>Main</td><td>one scroller; sides 20, gap 16; bottom padding = nav inset + footer height (+ FAB when one floats)</td></tr>
+        <tr><td><span class="num">3</span></td><td>Footer</td><td>compact widths only; in the flex column; pads the gesture inset; hide while typing if taller than one row</td></tr>
+        <tr><td><span class="num">4</span></td><td>Rows / columns</td><td><code>gap: 12</code>; equal columns <code>flex: 1</code>; ≤ 3 columns on phones; cells ≥ 44 wide; every split row says when it stacks</td></tr>
+        <tr><td><span class="num">5</span></td><td>Lists</td><td>rows are their own <code>React.memo</code> component; the last row clears footer and nav</td></tr>
+        <tr><td><span class="num">6</span></td><td>Navigation</td><td>bottom nav and tablet rail live in the shell, never in a screen</td></tr>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <span class="overline">Fit with the mobile rules</span>
+      <div class="tbl"><table>
+        <tr><th>Rule set</th><th>Fit</th><th>Watch</th></tr>
+        <tr><td>React Native flexbox</td><td><span class="badge ok">native</span></td><td>Main holds one scroller; the scaffold never adds its own</td></tr>
+        <tr><td>Material 3</td><td><span class="badge ok">fits</span></td><td>no collapsing titles; footer is compact-only, tablets put actions in their pane</td></tr>
+        <tr><td>Apple HIG</td><td><span class="badge ok">fits</span></td><td>iOS would need KeyboardAvoidingView in the scaffold</td></tr>
+        <tr><td>Safe areas, edge-to-edge</td><td><span class="badge ok">fits</span></td><td>insets are owned by the scaffold so a new screen can't forget</td></tr>
+        <tr><td>Touch targets 44</td><td><span class="badge warn">columns</span></td><td>3 columns at 360 dp ≈ 105 dp each: fine for buttons, tight for labels</td></tr>
+        <tr><td>Reflow</td><td><span class="badge ok">with care</span></td><td>each split row states when it stacks (xs by default)</td></tr>
+        <tr><td>Lists</td><td><span class="badge warn">coupling</span></td><td>last row must clear footer + nav; measure the footer with onLayout</td></tr>
+        <tr><td>Keyboard</td><td><span class="badge ok">Android</span></td><td><code>adjustResize</code> shrinks the window; the column reflows</td></tr>
+        <tr><td>Accessibility</td><td><span class="badge ok">quiet win</span></td><td>tree order = reading order</td></tr>
+        <tr><td>RTL</td><td><span class="badge ok">fits</span></td><td>flex rows mirror; keep start / end</td></tr>
+        <tr><td>Performance</td><td><span class="badge warn">one habit</span></td><td>memoise list rows</td></tr>
+        <tr><td>Flat Glass kit</td><td><span class="badge ok">exact</span></td><td>the four reference screens are header / body / footer</td></tr>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <span class="overline">Pitfalls and how the scaffold avoids them</span>
+      <div class="tbl"><table>
+        <tr><th>Pitfall</th><th>Why it breaks</th><th>Scaffold</th></tr>
+        <tr><td>FlatList inside a ScrollView</td><td>two scrollers fight; rows stop recycling</td><td>Main is a plain <code>flex: 1</code> column; the screen puts one scroller inside</td></tr>
+        <tr><td>No <code>flex: 1</code> on Main</td><td>footer sits under the last row; tall content pushes it off-screen</td><td>set once by the scaffold</td></tr>
+        <tr><td>Footer vs keyboard</td><td>breaks under <code>adjustPan</code> or on iOS</td><td>footer in the column; window resizes on Android</td></tr>
+        <tr><td>Per-screen bottom nav</td><td>rebuilt on every tab switch</td><td>nav stays in the shell; screens reserve the space</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============ CODE ============ -->
+  <section id="code" role="tabpanel" aria-labelledby="tab-code" hidden>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>1 · The scaffold</h3><span class="caption">src/ui/Screen.tsx · three slots, insets, background, flex 1 written once</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the scaffold" data-copy="c1"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c1">// src/ui/Screen.tsx — Header and Footer keep their own height; Main fills the rest.
+import React from 'react';
+import { View } from 'react-native';
+import { useTheme } from '../shell/providers';
+import { useNavBottom } from './navMetrics';
+
+export function Screen({ header, footer, children }: {
+  header?: React.ReactNode; footer?: React.ReactNode; children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  const navBottom = useNavBottom(); // max(gesture inset, 20)
+  return (
+    &lt;View style={{ flex: 1, backgroundColor: theme.bg }}&gt;
+      {header}
+      &lt;View style={{ flex: 1, minHeight: 0 }}&gt;{children}&lt;/View&gt;
+      {footer ? &lt;View style={{ paddingBottom: navBottom }}&gt;{footer}&lt;/View&gt; : null}
+    &lt;/View&gt;
+  );
+}</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>2 · A screen file, in reading order</h3><span class="caption">numbers block · state hook · the switch · Header · Main · Footer</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the screen skeleton" data-copy="c2"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c2">// Every number specific to this screen, one per line, labelled with its ID.
+const S5 = {
+  searchGap: 10,                      // S5.1: search field | export button
+  fabClearance: touch.button + layout.gap, // S5.3: last row clears the FAB
+  editorWidth: '38%',                 // S5.5: tablet editor pane
+} as const;
+
+// All state and data. No JSX.
+function useProductList() {
+  const [rows, setRows] = useState&lt;ProductRow[]&gt;([]);
+  const [search, setSearch] = useState('');
+  useEffect(() => { void listProducts(search).then(setRows); }, [search]);
+  return { rows, search, setSearch };
+}
+type ProductList = ReturnType&lt;typeof useProductList&gt;;
+
+// The switch: phone = Header + Main + Footer; tablet = Header + [Main | Editor].
+export function ProductsScreen() {
+  const theme = useTheme();
+  const bp = useBreakpoint();
+  const list = useProductList();
+  return (
+    &lt;Screen
+      header={&lt;Header list={list} theme={theme} /&gt;}
+      footer={bp.isPhone ? &lt;Footer theme={theme} /&gt; : null}
+    &gt;
+      &lt;Main list={list} theme={theme} /&gt;
+    &lt;/Screen&gt;
+  );
+}
+
+// S5.0 — title, "N items", export button.
+function Header({ list, theme }: { list: ProductList; theme: Theme }) {
+  return &lt;TopAppBar title="Products" subtitle={`${list.rows.length} items`} large theme={theme} /&gt;;
+}
+
+// S5.1–S5.3 — the column under the header: search row, then the list card.
+function Main({ list, theme }: { list: ProductList; theme: Theme }) {
+  return (
+    &lt;View style={{ flex: 1, paddingHorizontal: layout.side, gap: layout.gap }}&gt;
+      &lt;SearchRow list={list} theme={theme} /&gt;
+      &lt;ProductListCard list={list} theme={theme} /&gt;
+    &lt;/View&gt;
+  );
+}
+
+// S5.4 — phone only.
+function Footer({ theme }: { theme: Theme }) {
+  const nav = useNav();
+  return &lt;FAB icon="plus" label="Add product" onPress={() => nav.openProduct()} theme={theme} /&gt;;
+}</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>3 · A row with two columns</h3><span class="caption">equal columns with flex 1 · stacks on the smallest phones</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the row example" data-copy="c3"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c3">// S4.A row 3 — City | Pincode. One row, two equal columns; a column on xs (&lt; 360 dp).
+function CityPincodeRow({ form, patch, theme }: { form: InvoiceForm; patch: Patch; theme: Theme }) {
+  const bp = useBreakpoint();
+  return (
+    &lt;View style={{ flexDirection: bp.bp === 'xs' ? 'column' : 'row', gap: layout.grid }}&gt;
+      &lt;View style={{ flex: 1 }}&gt;
+        &lt;Input label="City" value={form.party.party_city}
+          onChange={v => patch({ party: { ...form.party, party_city: v } })} theme={theme} /&gt;
+      &lt;/View&gt;
+      &lt;View style={{ flex: 1 }}&gt;
+        &lt;Input label="Pincode" value={form.party.party_pincode} keyboardType="numeric" maxLength={6}
+          onChange={v => patch({ party: { ...form.party, party_pincode: v } })} theme={theme} /&gt;
+      &lt;/View&gt;
+    &lt;/View&gt;
+  );
+}
+// Wider right column: give it flex: 1.4. Fixed column: width: 120 instead of flex.</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>4 · A list with a memoised row</h3><span class="caption">one FlatList in Main · the row is its own component · last row clears the footer</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the list example" data-copy="c4"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c4">// S2.5 — the card hugs its rows and scrolls when full. Never wrap it in a ScrollView.
+function InvoiceListCard({ list, theme }: { list: InvoiceList; theme: Theme }) {
+  const navInset = useNavInset();
+  const { rows } = list;
+  return (
+    &lt;Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}&gt;
+      &lt;FlatList
+        data={rows}
+        keyExtractor={r => String(r.id)}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? S2.fabClearance : 0 }}
+        renderItem={({ item, index }) => (
+          &lt;InvoiceRow item={item} alt={index % 2 === 1} last={index === rows.length - 1} theme={theme} /&gt;
+        )}
+      /&gt;
+    &lt;/Card&gt;
+  );
+}
+
+// One row: avatar · party · "no · date" · ₹ total over the status pill.
+const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, theme }: {
+  item: Invoice; alt: boolean; last: boolean; theme: Theme;
+}) {
+  return (
+    &lt;ListItem theme={theme} flush leadingText={initials(item.party_name)} leadingAlt={alt} divider={!last}
+      title={item.party_name} subtitle={`${item.invoice_no} · ${formatDateDisplay(item.invoice_date)}`}
+      trailing={&lt;MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small /&gt;} /&gt;
+  );
+});</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>5 · A footer action bar</h3><span class="caption">S4.L1.3 · running total + the step's primary action · rises with the keyboard</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the footer example" data-copy="c5"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c5">// Footer: a floating glass bar (bottom-nav recipe). Left = TOTAL, right = the action.
+function Footer({ total, step, onNext, actions, theme }: {
+  total: number; step: number; onNext: () => void; actions: React.ReactNode; theme: Theme;
+}) {
+  return (
+    &lt;View style={{
+      marginHorizontal: layout.side, marginTop: space[2],
+      paddingStart: 20, paddingEnd: space[2], paddingVertical: space[2],
+      borderRadius: radius.card, backgroundColor: theme.navSurface,
+      borderWidth: 1, borderColor: theme.navBorder, boxShadow: shadow.secondary,
+      flexDirection: 'row', alignItems: 'center', gap: space[2],
+    }}&gt;
+      &lt;View style={{ flex: 1 }}&gt;
+        &lt;Text style={[type.overline, { color: theme.textMuted }]}&gt;Total&lt;/Text&gt;
+        &lt;Text style={[type.figure, { color: theme.text }]} numberOfLines={1}&gt;₹{formatPaise(total)}&lt;/Text&gt;
+      &lt;/View&gt;
+      {step &lt; 2 ? &lt;Button label="Next" icon="arrow-right" theme={theme} onPress={onNext} /&gt; : actions}
+    &lt;/View&gt;
+  );
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ============ PROMPTS ============ -->
+  <section id="prompts" role="tabpanel" aria-labelledby="tab-prompts" hidden>
+    <div class="card">
+      <span class="overline">How to ask for a change</span>
+      <p class="lead">Name the screen by ID, the region by its function, and say the shape in rows and columns. Copy a line, change the bracketed parts.</p>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Restructure a screen</h3><span class="caption">applies the method to one file, behaviour unchanged</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the restructure prompt" data-copy="p1"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p1">Apply the Three-Slot Screen method to [S5 Products]: Header / Main / Footer as named
+functions in on-screen order, an S5 numbers block, state in useProductList(). Behaviour
+and the kit components stay identical. Verify in the emulator before and after.</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Change a row's columns</h3><span class="caption">rows and columns in plain words</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the columns prompt" data-copy="p2"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p2">In [S2] DateRangeRow make it three columns: From | To | a Clear button (44 wide).
+Stack them on xs.</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Move a region</h3><span class="caption">reorder inside Main</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the move prompt" data-copy="p3"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p3">In [S2] ListPane put the status tabs above the search row.</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Change a number</h3><span class="caption">one line in the S block</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the number prompt" data-copy="p4"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p4">In [S2] set S2.detailWidth to 45% at 2 panes and 40% at 3 panes.</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Add a footer action</h3><span class="caption">a Footer slot that was empty</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the footer prompt" data-copy="p5"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p5">In [S3 Invoice detail] move Edit and Void from S3.6 into a Footer bar: Void (ghost, red)
+on the left, Edit (glass) on the right. Phones only; tablets keep them in the pane.</code></pre>
+    </div>
+
+    <div class="card list">
+      <div class="lrow"><span class="avatar">S1</span><div class="t"><b>Dashboard</b><small>Header · Main: hero card, tiles row · Footer: FAB</small></div></div>
+      <div class="lrow"><span class="avatar alt">S2</span><div class="t"><b>Invoices</b><small>Header · Main: filter rows, list card · Footer: FAB</small></div><span class="badge ok">done</span></div>
+      <div class="lrow"><span class="avatar">S3</span><div class="t"><b>Invoice detail</b><small>Header (shell) · Main: bill-to, actions, items, totals · Footer: Edit / Void</small></div></div>
+      <div class="lrow"><span class="avatar alt">S4</span><div class="t"><b>Create invoice</b><small>Header · stepper · Main: step body · Footer: TOTAL bar</small></div><span class="badge">next</span></div>
+      <div class="lrow"><span class="avatar">S5</span><div class="t"><b>Products</b><small>Header · Main: search, list · Footer: FAB</small></div></div>
+      <div class="lrow"><span class="avatar alt">S6</span><div class="t"><b>Settings</b><small>Header · Main: list or section · Footer: version</small></div></div>
+    </div>
+  </section>
+
+  <!-- Pinned bar (03-music-player device bar) -->
+  <div class="devbar">
+    <svg class="i" viewBox="0 0 24 24" style="color:var(--primary)"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+    <span class="t">Flat Glass · Brand Blue · Inter 300–600 · Bebas Neue numbers</span>
+    <span class="badge">v1 · <span class="num">2026-10-23</span></span>
+  </div>
+</div>
+
+<script>
+  // Section nav: segmented control switches panels; a bare hash token restores one.
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.seg [role="tab"]'));
+    var panels = { method: 'method', rules: 'rules', code: 'code', prompts: 'prompts' };
+    function show(name) {
+      if (!panels[name]) name = 'method';
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.tab === name)); });
+      Object.keys(panels).forEach(function (k) { document.getElementById(k).hidden = k !== name; });
+      try { localStorage.setItem('tss-tab', name); } catch (e) {}
+    }
+    tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.tab); }); });
+    var start = (location.hash || '').replace('#', '');
+    if (!panels[start]) { try { start = localStorage.getItem('tss-tab') || 'method'; } catch (e) { start = 'method'; } }
+    show(start);
+  })();
+
+  // Copy buttons: clipboard inside the click handler; on refusal, select the text so Ctrl+C works.
+  (function () {
+    document.querySelectorAll('.copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var src = document.getElementById(btn.dataset.copy);
+        var text = src ? src.textContent : '';
+        function done() {
+          btn.classList.add('ok'); btn.setAttribute('aria-label', 'Copied');
+          setTimeout(function () { btn.classList.remove('ok'); btn.setAttribute('aria-label', 'Copy'); }, 1500);
+        }
+        function fallback() {
+          try {
+            var r = document.createRange(); r.selectNodeContents(src);
+            var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+            var ok = document.execCommand && document.execCommand('copy');
+            if (ok) { s.removeAllRanges(); done(); }
+          } catch (e) {}
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, fallback);
+        } else { fallback(); }
+      });
+    });
+  })();
+
+  // Theme button: explicit light / dark on the root; the system setting is the default.
+  (function () {
+    var btn = document.getElementById('themeBtn');
+    var root = document.documentElement;
+    function current() {
+      var t = root.getAttribute('data-theme');
+      if (t) return t;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('tss-theme', next); } catch (e) {}
+    });
+    try { var saved = localStorage.getItem('tss-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  })();
+</script>

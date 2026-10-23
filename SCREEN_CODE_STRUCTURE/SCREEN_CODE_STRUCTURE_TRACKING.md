@@ -45,3 +45,23 @@ Files (10): `AppShell_S0_tree.md` · `DashboardScreen_S1_tree.md` · `InvoicesSc
 | Dedupe in the loop with a `lastInvoiceNo` marker, keeping the single joined query | Smallest change; one query, one pass, batches unchanged. Rows of one invoice are contiguous under `ORDER BY i.id`, so a marker is enough and it survives batch boundaries. | Two queries (invoices, then items): clean, but changes the batching and the `MAX_ROWS` rule. `GROUP BY` / `DISTINCT`: would need a second query for the items anyway. |
 | Extract `collectRegisterRows()` and export it | Lets the integration harness assert on rows without parsing an .xlsx. | Parsing the workbook in the test: the xlsx tests have an unzip helper, but it is far more code for the same assertion. |
 | Harness compiles `src/export/xlsx.ts` with `--rootDir src` and mocks `expo-file-system` + `./pdf` | `xlsx.ts` must share the same compiled `db.js` as the repos (one in-memory DB), so it joins the existing compile instead of a second one. | A second `tsc` run into another folder: a second `getDb()` and an empty database. |
+
+## Prompt 21 — The method gets a name and a page (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Name: **Three-Slot Screen (3SS)** | Says the whole method in three words: three slots (Header / Main / Footer), and "screen" because it is applied per screen file; rows and columns are the inside of Main. No clash with existing names in the repo. | "Frame-Row-Column" (FRC): accurate but a mouthful. "Slot-Row-Column" (SRC): clashes with `src/`. "Shelf layout": too vague. |
+| It is a **skill** (`three-slot-screen`), not a design document | The method is a procedure the assistant runs on a file (inspect → plan → split → verify), which is what `.claude/skills/*/SKILL.md` holds (`apply-design` is the precedent). `design/DESIGN.md` describes what things look like; it stays as is. The analysis file is the skill's reference. | Adding a "Layout" chapter to DESIGN.md: it would mix how code is organised into a visual spec. |
+| A web page, `SCREEN_CODE_STRUCTURE/three-slot-screen.html`, styled with the app's own tokens | The owner asked for a page with copyable snippets that looks exactly like the mobile UI: it reuses the kit's five colours, glass recipes, the two shadows, Inter 300–600, Bebas Neue numbers and the owner's radii (10/12/14/16/18), and borrows the reference layouts (large header, hero card, stat tiles, segmented control, list rows, pinned device bar). Dark mode follows the Sign In recipe. Published as a private artifact as well. | A plain Markdown page: no copy buttons, no kit styling. |
+
+The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
+
+## Prompt 24 — The `three-slot-screen` skill (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Same shape as `apply-design`: frontmatter (name, description with trigger phrases), numbered steps, a checklist, a "report" line | One skill format in the repo; the assistant already follows it. | A long essay: harder to execute step by step. |
+| Step 1 ends with "wait for the owner's OK" | The S2 restructure was approved from a plan first; that is the owner's preferred flow. | Edit straight away. |
+| Step 5 names what must not change (behaviour, kit components, tokens, IDs) and hands restyling to `/apply-design` | Keeps the two skills separate: one reorganises code, the other changes looks. | One combined skill. |
+| Step 7 makes the docs part of the skill (tree file, layout reference, topic files) | Otherwise the tree files drift the first time the method is applied without me. | Leaving docs to AGENTS.md alone. |
+| `CLAUDE.md` gets one line under "How to work" naming the method and the skill | So every future session knows screens follow it, even without the skill being invoked. | — |

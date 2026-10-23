@@ -43,3 +43,4 @@ These override the rules above for this app only. Don't "fix" them back.
 - When asked to restyle or build a screen, match the closest reference screen's layout, spacing and hierarchy.
 - When unsure about a value, look it up in `design/DESIGN.md` or the reference HTML. Don't guess.
 - After a UI change, compare the result to the reference PNG and list any differences.
+- **Screen code is organised with the Three-Slot Screen method** (`/three-slot-screen`, `.claude/skills/three-slot-screen/SKILL.md`): Header / Main / Footer, rows and columns inside Main, one named function per region in on-screen order, a state hook, and an `S<n>` block for the screen's numbers. S2 Invoices is the finished example; each screen's tree file is in `SCREEN_CODE_STRUCTURE/`.

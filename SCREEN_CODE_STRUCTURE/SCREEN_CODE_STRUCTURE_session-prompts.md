@@ -87,3 +87,91 @@ OK, apply the InvoicesScreen restructure plan as proposed.
 ```
 Commit the working tree changes with a sensible message.
 ```
+
+## Prompt 14
+
+```
+What is this Meaning?( before vs After): InvoicesScreen.tsx is restructured as planned
+```
+
+## Prompt 15
+
+```
+Which is Best?
+```
+
+## Prompt 16
+
+```
+My Method is like a Row Columns?
+```
+
+## Prompt 17
+
+```
+Can we make Each Screen as header, main, Footer layout concept inside each row and Columns?: Suggestion
+```
+
+## Prompt 18
+
+```
+This wont Break the : The rule in React Native?
+```
+
+## Prompt 19
+
+```
+This is Correct or Not?: Where you’d break the rule, and how the scaffold avoids it:
+```
+
+## Prompt 20
+
+```
+Deep analysis and Tradeoff of My method and Above Table: in All Mobile Rules: 
+
+┌──────────────────────────┐
+│ HEADER   title · buttons │  fixed, never scrolls
+├──────────────────────────┤
+│ MAIN     rows            │  scrolls (or a list), takes the remaining height
+│   row                    │
+│   row  [ col | col ]     │
+│   row                    │
+├──────────────────────────┤
+│ FOOTER   action bar      │  fixed, rises with the keyboard
+└──────────────────────────┘
+   bottom nav (global, owned by the app shell, not by the screen)
+```
+
+## Prompt 21
+
+```
+1.What Name we can Give for this New Method? 2.We can create this as a Skill or Design(which Name is Better), 3.Create as a Web page using HTML,CSS and Javascript with code snippet with copy buttons (Use UI Design(colors, Fonts, Styling match exatly as in the Mobile UI)
+```
+
+## Prompt 22
+
+```
+Create this also as webpage: The full analysis is in LAYOUT_METHOD_header-main-footer_analysis.md. Here is the substance.
+
+Verdict
+```
+
+## Prompt 23
+
+```
+I asking to create a Webpage of the Whole Discussion
+Starting line:
+Verdict
+
+Your method is sound. It's the structure that React Native's flexbox, Material Design 3, Apple's HIG and this project's own design kit all already assume, so it adds no new mechanism and breaks no rule. Its real costs are three couplings it creates, each with a known fix the scaffold can own once:
+
+
+Ending Line:
+Recommendation: adopt it, build src/ui/Screen.tsx, apply to S4 first and confirm each screen in the emulator before the next. The analysis and logs are written but not committed.
+```
+
+## Prompt 24
+
+```
+Shall I create the three-slot-screen skill now?: yes
+```

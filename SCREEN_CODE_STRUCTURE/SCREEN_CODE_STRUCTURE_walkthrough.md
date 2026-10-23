@@ -104,3 +104,35 @@ Kept exactly: the kit components and their props, the FlatList settings (`flexGr
 | Tablet panes (S2.7, S2.8) | read only; no tablet AVD in this session |
 
 Docs: `InvoicesScreen_S2_tree.md` rewritten for the new functions; `SCREEN_LAYOUT_REFERENCE.md` S2 tables now name functions instead of line numbers; rationale in `SCREEN_CODE_STRUCTURE_TRACKING.md`.
+
+## Prompts 14–20 — Q&A on the restructure and the Header / Main / Footer method (2026-10-23, session 14)
+
+| Question | Answer (summary) |
+| --- | --- |
+| Meaning of "restructured" (before vs after) | Same screen, reorganised code: one 159-line function → named regions in on-screen order; behaviour unchanged. |
+| Which is best? | The restructured version; the only cost is line count. Apply next to S4. |
+| Is my method "rows and columns"? | Yes: `View` = column, `flexDirection: 'row'` = row, `flex` = column widths; the function names now say which is which. |
+| Header / Main / Footer for every screen? | Suggested a shared `Screen` scaffold (`src/ui/Screen.tsx`) and three functions per screen; S4 already has all three parts. |
+| Does it break the React Native rule? | No: it is a flex column with three children. Pitfalls (nested scrollers, missing `flex: 1`, keyboard, per-screen nav) and how the scaffold avoids them. |
+| Is the pitfalls table correct? | Mostly; two refinements: the `flex: 1` wording, and the keyboard reason is Android `adjustResize` (AndroidManifest.xml:19), not the flex column alone. |
+| Deep analysis against all mobile rules | `LAYOUT_METHOD_header-main-footer_analysis.md`: rule-by-rule table (flexbox, Material 3, HIG, safe areas / edge-to-edge, touch targets, reflow, lists, keyboard, accessibility, RTL, performance, the kit, sheets), the pitfalls re-checked, trade-offs, 6 conventions, recommendation. |
+
+## Prompt 21 — Name, skill vs design, and the method page (2026-10-23, session 14)
+
+1. **Name:** Three-Slot Screen (3SS). 2. **Skill** (`three-slot-screen`) rather than a design doc; rationale in the TRACKING file. 3. **Page:** `SCREEN_CODE_STRUCTURE/three-slot-screen.html` (single file, HTML + CSS + JS, no libraries; Inter and Bebas Neue from Google Fonts).
+
+Page contents: large header with a light/dark button · hero card with the three-slot phone diagram · 3 stat tiles (slots 3 · max columns 3 · touch 44) · segmented control switching four panels: **Method** (name, the six pieces as list rows, the reading order of a screen file) · **Rules** (six conventions, fit with 12 rule sets, pitfalls) · **Code** (5 snippets with copy buttons: the `Screen` scaffold, a screen file in reading order, a row with two columns, a list with a memoised row, a footer action bar) · **Prompts** (5 copyable prompt templates and the S1–S6 slot map) · pinned device bar. Copy uses `navigator.clipboard` inside the click handler with a select-and-`execCommand` fallback; the active tab is remembered per browser; a bare `#code`-style hash opens a panel.
+
+Styling check against the kit: colours are the five tokens plus §2.2 variants only; cards 55 % white / 85 % border / radius 16 / `shadow.secondary`; tiles `shadow.primary`; icon buttons 44, radius 12; primary buttons 52, radius 12, white 16/600; segmented control pill with 4 px padding; overline 12/600 0.06em; numbers in Bebas Neue; dark theme = black, 8 % glass, 16 % borders, inner highlight. Not matched (browser vs app): the page has `backdrop-filter`-free glass to stay identical to Android, where there is no blur.
+
+## Prompt 22 — The analysis as a web page (2026-10-23, session 14)
+
+`SCREEN_CODE_STRUCTURE/three-slot-analysis.html`: the same single-file build and kit stylesheet as the method page (the `<style>` block is copied verbatim, so the two pages stay identical in look). Header with a link to the method page and the light/dark button · Verdict card with the three couplings drawn as slots · 3 stat tiles (13 rule sets · 3 need care · 6 conventions) · segmented control: **Rule by rule** (13 list rows: the rule, the method, a fit badge, what to watch) · **Pitfalls** (re-checked table) · **Trade-offs** (gain / pay table, S2 before-and-after tiles) · **Conventions** (six numbered rows, recommendation, button to the method page) · pinned bar naming the source Markdown. Published as a private artifact.
+
+## Prompt 23 — The analysis page is the discussion itself (2026-10-23, session 14)
+
+The owner wanted the chat reply as a page, verbatim in order, from "Verdict" to the "Recommendation" line, not the tabbed re-cut of Prompt 22. `three-slot-analysis.html` was rebuilt as one scrolling document with those sections: Verdict (three couplings, the "where it bends" note) · Rule by rule (short-form table, 13 rows) · Your pitfalls table, re-checked · Trade-offs in one view · The six conventions · Recommendation. Same kit stylesheet; the segmented control was dropped because the page is read top to bottom. Republished at the same link.
+
+## Prompt 24 — Skill created and everything committed (2026-10-23, session 14)
+
+`.claude/skills/three-slot-screen/SKILL.md`: 7 steps (inspect and wait for OK · file order · rows and columns · slots · what must not change · verify · document). `README.md` lists it in the tree; `CLAUDE.md` names the method under "How to work". Committed together with the two pages, the analysis Markdown and the session logs (see `git log`).

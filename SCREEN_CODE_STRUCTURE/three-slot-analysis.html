@@ -1,0 +1,313 @@
+<title>Layout Method Analysis</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap">
+<style>
+  /* Layout: a phone-first page built like the app's own screens: a flat header,
+     a column of glass cards, a segmented control as section nav, a pinned bar.
+     Tokens are the Flat Glass · Brand Blue kit (design/DESIGN.md) with the
+     owner's exceptions (src/ui/tokens.ts): Bebas Neue numbers, radii 10/12/14/16/18. */
+  :root {
+    --primary: #2596be;
+    --secondary: #666666;
+    --tertiary: #ebeaea;
+    --dark: #000000;
+    --light: #ffffff;
+    --link: #1a6f8e;
+    --bg: var(--tertiary);
+    --text: var(--dark);
+    --text-muted: var(--secondary);
+    --glass: rgba(255,255,255,0.55);
+    --glass-strong: rgba(255,255,255,0.60);
+    --glass-nav: rgba(255,255,255,0.65);
+    --glass-border: rgba(255,255,255,0.85);
+    --glass-border-strong: rgba(255,255,255,0.90);
+    --divider: var(--tertiary);
+    --input-border: rgba(102,102,102,0.35);
+    --primary-tint: rgba(37,150,190,0.14);
+    --focus-ring: 0 0 0 3px rgba(37,150,190,0.35);
+    --shadow-primary: 0 4px 8px rgba(20,71,108,0.15);
+    --shadow-secondary: 0 8px 16px rgba(20,71,108,0.20);
+    --card-shadow: var(--shadow-secondary);
+    --tile-shadow: var(--shadow-primary);
+    --code-bg: rgba(255,255,255,0.75);
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-numeric: "Bebas Neue", "Inter", system-ui, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+    --r-chip: 10px; --r-control: 12px; --r-item: 14px; --r-card: 16px; --r-form: 18px; --r-pill: 999px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: var(--dark); --text: var(--light); --text-muted: var(--tertiary);
+      --glass: rgba(255,255,255,0.08); --glass-strong: rgba(255,255,255,0.08); --glass-nav: rgba(0,0,0,0.88);
+      --glass-border: rgba(255,255,255,0.16); --glass-border-strong: rgba(255,255,255,0.16);
+      --divider: rgba(255,255,255,0.18); --input-border: rgba(255,255,255,0.2);
+      --primary-tint: rgba(37,150,190,0.24); --link: var(--light);
+      --card-shadow: var(--shadow-secondary), inset 0 1px 0 rgba(255,255,255,0.2);
+      --tile-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255,255,255,0.2);
+      --code-bg: rgba(255,255,255,0.06);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--dark); --text: var(--light); --text-muted: var(--tertiary);
+    --glass: rgba(255,255,255,0.08); --glass-strong: rgba(255,255,255,0.08); --glass-nav: rgba(0,0,0,0.88);
+    --glass-border: rgba(255,255,255,0.16); --glass-border-strong: rgba(255,255,255,0.16);
+    --divider: rgba(255,255,255,0.18); --input-border: rgba(255,255,255,0.2);
+    --primary-tint: rgba(37,150,190,0.24); --link: var(--light);
+    --card-shadow: var(--shadow-secondary), inset 0 1px 0 rgba(255,255,255,0.2);
+    --tile-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255,255,255,0.2);
+    --code-bg: rgba(255,255,255,0.06);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 400 15px/1.4 var(--font); -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  .page {
+    max-width: 720px; margin: 0 auto;
+    padding-block: 56px 32px;
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  @media (min-width: 900px) { .page { max-width: 960px; } }
+
+  /* Type scale (DESIGN.md §3) */
+  .overline { font: 600 12px/16px var(--font); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+  .caption { font: 400 13px/18px var(--font); color: var(--text-muted); }
+  .micro { font: 600 11px/14px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { font: 600 28px/34px var(--font); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  h2 { font: 600 24px/30px var(--font); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  h3 { font: 600 16px/22px var(--font); margin: 0; }
+  p { margin: 0; }
+  .lead { font: 400 16px/24px var(--font); max-width: 62ch; }
+  .muted { color: var(--text-muted); }
+  .num { font: 400 1em/1 var(--font-numeric); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+  .kpi { font: 400 28px/32px var(--font-numeric); letter-spacing: 0.02em; }
+  .hero-num { font: 400 44px/48px var(--font-numeric); letter-spacing: 0.02em; }
+  code { font: 400 0.93em var(--mono); background: var(--primary-tint); padding: 1px 6px; border-radius: 6px; }
+
+  /* Header (C1, large) */
+  .top { display: flex; align-items: center; gap: 12px; }
+  .top .titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .top .caption { font-size: 14px; line-height: 20px; }
+
+  /* Glass pieces (DESIGN.md §2.4 + owner radii) */
+  .card {
+    background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--r-card);
+    box-shadow: var(--card-shadow); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;
+  }
+  .card.tile { box-shadow: var(--tile-shadow); gap: 10px; }
+  .card.pad-20 { padding: 20px; }
+  .card.list { padding: 8px 16px; gap: 0; }
+  .icon-btn {
+    width: 44px; height: 44px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--r-control); background: var(--glass-strong); border: 1px solid var(--glass-border-strong);
+    box-shadow: var(--shadow-primary); color: var(--text); cursor: pointer; padding: 0; font: inherit;
+    transition: transform 150ms cubic-bezier(.22,1,.36,1), background 150ms;
+  }
+  .icon-btn:active { transform: scale(0.96); }
+  .icon-btn.on { background: var(--primary); color: var(--light); border-color: transparent; }
+  .btn {
+    height: 52px; padding: 0 24px; border: 0; border-radius: var(--r-control); background: var(--primary); color: var(--light);
+    font: 600 16px var(--font); box-shadow: var(--shadow-secondary); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; transition: transform 150ms cubic-bezier(.22,1,.36,1);
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.glass { height: 50px; background: var(--glass-strong); color: var(--text); border: 1px solid var(--glass-border-strong); box-shadow: var(--shadow-primary); font-weight: 500; font-size: 15px; }
+  .chip-icon { width: 36px; height: 36px; flex: none; border-radius: var(--r-chip); background: var(--primary-tint); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+  .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--r-pill); background: var(--primary-tint); color: var(--text); font: 600 12px/16px var(--font); }
+  .badge.ok { background: rgba(46,125,50,0.14); }
+  .badge.warn { background: rgba(198,40,40,0.14); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.ok { background: rgba(102,187,106,0.22); } :root:not([data-theme="light"]) .badge.warn { background: rgba(239,83,80,0.2); } }
+  :root[data-theme="dark"] .badge.ok { background: rgba(102,187,106,0.22); }
+  :root[data-theme="dark"] .badge.warn { background: rgba(239,83,80,0.2); }
+  svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  svg.i.s { width: 18px; height: 18px; stroke-width: 2; }
+
+  /* Segmented control (C8a) as section nav */
+  .seg { display: flex; padding: 4px; gap: 2px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--r-pill); box-shadow: var(--shadow-primary); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+  .seg button { flex: 1; height: 36px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-muted); font: 500 14px var(--font); cursor: pointer; transition: background 150ms; }
+  .seg button[aria-selected="true"] { background: var(--primary); color: var(--light); font-weight: 600; box-shadow: var(--shadow-primary); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+
+  section[hidden] { display: none; }
+  section { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; flex-direction: row; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 160px; min-width: 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 420px) { .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .grid-3 .card { padding: 12px; } }
+
+  /* The phone diagram */
+  .phone { border: 1px solid var(--glass-border-strong); background: var(--glass-nav); border-radius: var(--r-card); padding: 10px; box-shadow: var(--shadow-primary); display: flex; flex-direction: column; gap: 8px; max-width: 320px; margin: 0 auto; width: 100%; }
+  .slot { border-radius: var(--r-control); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font: 500 13px/18px var(--font); }
+  .slot .micro { color: inherit; opacity: .85; }
+  .slot.header { background: var(--primary-tint); }
+  .slot.main { background: var(--glass-strong); border: 1px solid var(--glass-border-strong); min-height: 180px; }
+  .slot.footer { background: var(--primary); color: var(--light); }
+  .slot.nav { background: transparent; border: 1px dashed var(--input-border); color: var(--text-muted); text-align: center; }
+  .srow { display: flex; gap: 6px; }
+  .srow > span { flex: 1; border: 1px solid var(--input-border); border-radius: 8px; padding: 4px 8px; font: 400 12px/16px var(--font); color: var(--text-muted); background: var(--glass); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .srow > span.w2 { flex: 1.4; }
+
+  /* List rows (C7) */
+  .lrow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--divider); }
+  .lrow:last-child { border-bottom: 0; }
+  .lrow .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lrow .t b { font-weight: 500; font-size: 14px; line-height: 20px; }
+  .lrow .t small { font-size: 12px; line-height: 16px; color: var(--text-muted); }
+  .avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--primary); color: var(--light); display: inline-flex; align-items: center; justify-content: center; font: 600 14px var(--font); }
+  .avatar.alt { background: var(--tertiary); color: var(--dark); }
+
+  /* Tables */
+  .tbl { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 20px; }
+  th { text-align: left; font: 600 12px/16px var(--font); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); padding: 8px 10px 8px 0; border-bottom: 1px solid var(--divider); vertical-align: bottom; }
+  td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--divider); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 500; white-space: nowrap; }
+
+  /* Code blocks with copy */
+  .code { position: relative; display: flex; flex-direction: column; gap: 0; }
+  .code .bar { display: flex; align-items: center; gap: 12px; }
+  .code .bar .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .code pre { margin: 0; background: var(--code-bg); border: 1px solid var(--glass-border); border-radius: var(--r-control); padding: 14px 16px; overflow-x: auto; font: 400 13px/1.55 var(--mono); color: var(--text); tab-size: 2; }
+  .code pre code { background: none; padding: 0; font: inherit; }
+  .copy { position: relative; }
+  .copy .done { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+  .copy.ok .done { display: inline-flex; } .copy.ok .idle { display: none; }
+  .copy .fb { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; }
+
+  /* Pinned device bar (03-music-player) */
+  .devbar { margin-top: 8px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-card); background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--shadow-primary); }
+  .devbar .t { flex: 1; min-width: 0; font: 500 14px/20px var(--font); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+
+  <header class="top">
+    <div class="titles">
+      <span class="caption">Three-Slot Screen · the discussion</span>
+      <h1>Layout Method Analysis</h1>
+    </div>
+    <a class="icon-btn" href="https://claude.ai/artifact/MBKMrWnRkEjQyqpgqG6WHE" aria-label="Open the Three-Slot Screen method page" title="Method page">
+      <svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/></svg>
+    </a>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle light and dark">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </header>
+
+  <p class="caption">The full analysis is in <code>SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md</code>. Here is the substance.</p>
+
+  <!-- Verdict -->
+  <div class="card pad-20" id="verdict">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <h2>Verdict</h2>
+      <span class="badge ok">sound</span>
+    </div>
+    <p class="lead">Your method is sound. It's the structure that React Native's flexbox, Material Design 3, Apple's HIG and this project's own design kit all already assume, so it adds no new mechanism and breaks no rule. Its real costs are <b>three couplings</b> it creates, each with a known fix the scaffold can own once:</p>
+    <div class="phone" style="max-width:none;gap:6px" role="list" aria-label="The three couplings">
+      <div class="slot header" role="listitem"><span class="micro">1</span>footer height ↔ Main's bottom padding</div>
+      <div class="slot header" role="listitem"><span class="micro">2</span>keyboard ↔ footer</div>
+      <div class="slot header" role="listitem"><span class="micro">3</span>number of columns ↔ screen width</div>
+    </div>
+    <p>The one place it bends: on wide screens "footer" stops being a global bar and becomes a per-pane action row. Material says the same, so that's a rule to write down, not a flaw.</p>
+  </div>
+
+  <!-- Rule by rule -->
+  <div class="card" id="rules">
+    <h2>Rule by rule <span class="muted" style="font-weight:400;font-size:18px">(short form)</span></h2>
+    <div class="tbl"><table>
+      <tr><th>Rule set</th><th>Fit</th><th>What to watch</th></tr>
+      <tr><td>React Native flexbox</td><td><span class="badge ok">native</span></td><td>Main holds exactly <b>one</b> scroller (ScrollView for forms, FlatList for lists); the scaffold must never add its own</td></tr>
+      <tr><td>Material 3</td><td><span class="badge ok">fits</span></td><td>Fixed header gives up M3's collapsing titles (fine here); bottom action bar is for compact width only, so on tablets actions move into their pane (S4.F already does)</td></tr>
+      <tr><td>Apple HIG</td><td><span class="badge ok">structure</span></td><td>iOS would need <code>KeyboardAvoidingView</code> in the scaffold (Android's <code>adjustResize</code> does it free)</td></tr>
+      <tr><td>Safe areas / edge-to-edge</td><td><span class="badge ok">fits</span></td><td><code>edgeToEdgeEnabled=true</code> in this app makes inset padding mandatory; the scaffold should own top and bottom insets so a new screen can't forget</td></tr>
+      <tr><td>Touch targets 44</td><td><span class="badge warn">columns</span></td><td>3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44</td></tr>
+      <tr><td>Responsive reflow</td><td><span class="badge ok">with care</span></td><td>every split row states when it stacks (xs by default)</td></tr>
+      <tr><td>Lists</td><td><span class="badge warn">coupling</span></td><td>last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with <code>onLayout</code></td></tr>
+      <tr><td>Keyboard</td><td><span class="badge ok">Android</span></td><td>S4 keeps ≈ 300 dp of form with the keyboard open; hide tall footers while typing if that's ever too little</td></tr>
+      <tr><td>Accessibility</td><td><span class="badge ok">quiet win</span></td><td>tree order = reading order: Header → rows left-to-right → Footer</td></tr>
+      <tr><td>RTL</td><td><span class="badge ok">fits</span></td><td>flex rows mirror; keep <code>start</code> / <code>end</code></td></tr>
+      <tr><td>Performance</td><td><span class="badge warn">one habit</span></td><td>list rows should be <code>React.memo</code> (S2's <code>InvoiceRow</code> isn't yet; pre-existing)</td></tr>
+      <tr><td>The design kit</td><td><span class="badge ok">exact</span></td><td>the four reference screens are literally header / body / footer</td></tr>
+      <tr><td>Sheets P1–P3</td><td><span class="badge ok">fits</span></td><td><code>Sheet.tsx</code> already has the three slots</td></tr>
+    </table></div>
+  </div>
+
+  <!-- Pitfalls re-checked -->
+  <div class="card" id="pitfalls">
+    <h2>Your pitfalls table, re-checked</h2>
+    <p>All four rows hold. Two refinements: "forgetting <code>flex: 1</code>" makes the footer sit right under the last row (and tall content pushes it off-screen); and the footer rises with the keyboard because Android <code>adjustResize</code> shrinks the window and the column reflows, not because of the flex column alone.</p>
+  </div>
+
+  <!-- Trade-offs -->
+  <div class="card" id="tradeoffs">
+    <h2>Trade-offs in one view</h2>
+    <div class="tbl"><table>
+      <tr><th>You gain</th><th>You pay</th></tr>
+      <tr><td style="white-space:normal">One reading order for every screen, same as the screen-reader order</td><td>More lines per screen (S2: 159 → 265)</td></tr>
+      <tr><td style="white-space:normal">Insets, background, padding, keyboard handling written once</td><td>One shared component to maintain (~40 lines)</td></tr>
+      <tr><td style="white-space:normal">Edits become "open the named region"</td><td>Pieces sharing one state object re-render together (memoise list rows)</td></tr>
+      <tr><td style="white-space:normal">1-to-1 with flexbox, Material and the kit</td><td>Columns need a stacking rule; ≤ 3 on phones</td></tr>
+      <tr><td style="white-space:normal">A real footer slot</td><td>Footer height couples to Main padding until measured</td></tr>
+      <tr><td style="white-space:normal">Tablets = Main becomes a row of panes</td><td>"Footer" has two forms by width</td></tr>
+    </table></div>
+  </div>
+
+  <!-- Six conventions -->
+  <div class="card list" id="conventions">
+    <div style="padding:8px 0 4px"><h2>The six conventions</h2></div>
+    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">1</span></span><div class="t"><b>Header</b><small>fixed, pads the status inset, title marked as a heading.</small></div></div>
+    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">2</span></span><div class="t"><b>Main</b><small>one scroller; sides 20, gap 16; bottom padding = nav + footer (+ FAB).</small></div></div>
+    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">3</span></span><div class="t"><b>Footer</b><small>compact widths only; in the flex column; pads the gesture inset.</small></div></div>
+    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">4</span></span><div class="t"><b>Rows / columns</b><small><code>gap: 12</code>, equal columns <code>flex: 1</code>, ≤ 3 on phones, cells ≥ 44, each split row says when it stacks.</small></div></div>
+    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">5</span></span><div class="t"><b>Lists</b><small>memoised rows; the last row clears footer and nav.</small></div></div>
+    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">6</span></span><div class="t"><b>Navigation</b><small>nav and rail belong to the shell, never to a screen.</small></div></div>
+  </div>
+
+  <!-- Recommendation -->
+  <div class="card pad-20" id="recommendation">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <span class="overline">Recommendation</span>
+      <span class="badge">adopt</span>
+    </div>
+    <p class="lead">Adopt it, build <code>src/ui/Screen.tsx</code>, apply to S4 first and confirm each screen in the emulator before the next. The analysis and logs are written but not committed.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a class="btn" href="https://claude.ai/artifact/MBKMrWnRkEjQyqpgqG6WHE">Open the method page</a>
+    </div>
+  </div>
+
+  <div class="devbar">
+    <svg class="i" viewBox="0 0 24 24" style="color:var(--primary)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+    <span class="t">Source: SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md</span>
+    <span class="badge"><span class="num">2026-10-23</span></span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeBtn');
+    var root = document.documentElement;
+    function current() {
+      var t = root.getAttribute('data-theme');
+      if (t) return t;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('tss-theme', next); } catch (e) {}
+    });
+    try { var saved = localStorage.getItem('tss-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  })();
+</script>
