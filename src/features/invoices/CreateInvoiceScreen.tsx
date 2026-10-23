@@ -619,23 +619,20 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
         </View>
         {form.lines.map((l, i) => (
           // one row: description (flex 1) | "qty × rate" | amount
+          // one row: description (flex 1) | "qty × rate" | amount | Edit | Delete
           <View key={i} style={{
-            paddingVertical: space[3], gap: space[2],
+            flexDirection: 'row', alignItems: 'center', paddingVertical: space[3], gap: space[3],
             borderBottomWidth: i < form.lines.length - 1 ? 1 : 0, borderColor: theme.divider,
           }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space[2] }}>
-              <IconButton icon="edit-2" label={`Edit item ${i + 1}`} onPress={() => f.setStep(1)} theme={theme}
-                color={white} fill={theme.fillStrong} />
-              <IconButton icon="trash-2" label={`Remove item ${i + 1}`} onPress={() => f.removeLine(i)} theme={theme}
-                color={white} fill={theme.destructive} />
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[3] }}>
-              <Text style={[type.label, { color: theme.text, flex: 1 }]} numberOfLines={2}>
-                {l.description || '(no description)'}
-              </Text>
-              <Text style={[type.caption, { color: theme.textMuted }]}>{l.qty} × {formatPaise(l.unit_paise)}</Text>
-              <MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small />
-            </View>
+            <Text style={[type.label, { color: theme.text, flex: 1 }]} numberOfLines={2}>
+              {l.description || '(no description)'}
+            </Text>
+            <Text style={[type.caption, { color: theme.textMuted }]}>{l.qty} × {formatPaise(l.unit_paise)}</Text>
+            <MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small />
+            <IconButton icon="edit-2" label={`Edit item ${i + 1}`} onPress={() => f.setStep(1)} theme={theme}
+              color={white} fill={theme.fillStrong} />
+            <IconButton icon="trash-2" label={`Remove item ${i + 1}`} onPress={() => f.removeLine(i)} theme={theme}
+              color={white} fill={theme.destructive} />
           </View>
         ))}
       </Card>
