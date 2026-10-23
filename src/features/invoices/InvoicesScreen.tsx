@@ -4,7 +4,7 @@
 //   InvoicesScreen()    the phone / tablet switch
 //   Header … ActivityPane   one function per region, in the order they appear on screen
 // IDs (S2.0 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
@@ -21,16 +21,18 @@ import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { listInvoices } from '../../data/invoicesRepo';
+import { listDrafts } from '../../data/draftsRepo';
 import { exportInvoicesXlsx, exportConsolidatedRegister } from '../../export/xlsx';
 import { shareFile } from '../../export/pdf';
 import { InvoiceDetail } from './InvoiceDetail';
-import type { Invoice, InvoiceStatus } from '../../data/types';
+import type { Draft, Invoice } from '../../data/types';
 
-type StatusFilter = InvoiceStatus | 'all';
+type StatusFilter = 'all' | 'draft';
 
-// S2.2 — the status tabs, in order.
+// S2.2 — the status tabs, in order: All (issued invoices) and Draft (autosaved, not yet issued).
 const STATUSES: ReadonlyArray<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All' },
+  { value: 'draft', label: 'Draft' },
 ];
 
 // Every number that is specific to this screen. Shared spacing comes from
@@ -51,21 +53,32 @@ const S2 = {
 function useInvoiceList() {
   const nav = useNav();
   const [rows, setRows] = useState<Invoice[]>([]);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [dateOpen, setDateOpen] = useState(false);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [busy, setBusy] = useState<'list' | 'register' | null>(null);
+  const isDraft = status === 'draft';
 
   const load = useCallback(async () => {
+    if (status === 'draft') {
+      setDrafts(await listDrafts());
+      return;
+    }
     setRows(await listInvoices({
-      search: search.trim(), status: status === 'all' ? undefined : status,
-      from: from || undefined, to: to || undefined, limit: 500,
+      search: search.trim(), from: from || undefined, to: to || undefined, limit: 500,
     }));
   }, [search, status, from, to]);
 
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
+
+  // Drafts are searched by customer name or draft number (the drafts table has no search query).
+  const shownDrafts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? drafts.filter(d => d.party_name.toLowerCase().includes(q) || d.draft_no.toLowerCase().includes(q)) : drafts;
+  }, [drafts, search]);
 
   const runExport = (kind: 'list' | 'register') => {
     setBusy(kind);
@@ -76,13 +89,14 @@ function useInvoiceList() {
   };
 
   return {
-    rows,
+    rows, drafts: shownDrafts, isDraft,
+    count: isDraft ? shownDrafts.length : rows.length,
     search, setSearch,
     status, setStatus,
     dateOpen, toggleDates: () => setDateOpen(o => !o),
     from, setFrom, to, setTo,
     datesSet: !!from || !!to,
-    filtered: status !== 'all' || !!search || !!from || !!to,
+    filtered: !!search || !!from || !!to,
     selected: rows.find(r => r.id === nav.selectedInvoiceId) ?? null,
     busy, runExport,
   };
@@ -126,7 +140,7 @@ export function InvoicesScreen() {
 
 // S2.0 — title, "N invoices", and the two Excel export buttons.
 function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
-  const n = list.rows.length;
+  const n = list.count;
   return (
     <TopAppBar
       title="Invoices"
@@ -212,34 +226,71 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
     (id: number) => single ? nav.showInvoice(id, true) : nav.selectInvoice(id),
     [single, nav],
   );
+  const onOpenDraft = useCallback((d: Draft) => nav.openCreate({ draftId: d.id }), [nav]);
   return (
     <Card theme={theme} list style={fill
       ? { flex: 1, marginTop: space[1], marginBottom: navInset, overflow: 'hidden' }
       : { flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
-      <FlatList
-        data={rows}
-        keyExtractor={r => String(r.id)}
-        style={fill ? { flex: 1 } : { flexGrow: 0 }}
-        ListHeaderComponent={header}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? fabClearance : 0 }}
-        ListEmptyComponent={list.filtered
-          ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
-          : <EmptyState icon="file-text" title="No invoices yet" text="Tap New invoice to create the first one." theme={theme} />}
-        renderItem={({ item, index }) => (
-          <InvoiceRow
-            item={item}
-            alt={index % 2 === 1}
-            last={index === rows.length - 1}
-            selected={!single && item.id === nav.selectedInvoiceId}
-            onPress={onPressRow}
-            theme={theme}
-          />
-        )}
-      />
+      {list.isDraft ? (
+        <FlatList
+          data={list.drafts}
+          keyExtractor={d => `draft-${d.id}`}
+          style={fill ? { flex: 1 } : { flexGrow: 0 }}
+          ListHeaderComponent={header}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: list.drafts.length > S2.longList ? fabClearance : 0 }}
+          ListEmptyComponent={list.filtered
+            ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
+            : <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />}
+          renderItem={({ item, index }) => (
+            <DraftRow d={item} alt={index % 2 === 1} last={index === list.drafts.length - 1} onOpen={onOpenDraft} theme={theme} />
+          )}
+        />
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={r => String(r.id)}
+          style={fill ? { flex: 1 } : { flexGrow: 0 }}
+          ListHeaderComponent={header}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? fabClearance : 0 }}
+          ListEmptyComponent={list.filtered
+            ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
+            : <EmptyState icon="file-text" title="No invoices yet" text="Tap New invoice to create the first one." theme={theme} />}
+          renderItem={({ item, index }) => (
+            <InvoiceRow
+              item={item}
+              alt={index % 2 === 1}
+              last={index === rows.length - 1}
+              selected={!single && item.id === nav.selectedInvoiceId}
+              onPress={onPressRow}
+              theme={theme}
+            />
+          )}
+        />
+      )}
     </Card>
   );
 }
+
+// S2.2 Draft tab row — avatar · customer · "DRAFT-n · date" · ₹ total. Tap opens S4 with the draft.
+const DraftRow = React.memo(function DraftRow({ d, alt, last, onOpen, theme }: {
+  d: Draft; alt: boolean; last: boolean; onOpen: (d: Draft) => void; theme: Theme;
+}) {
+  return (
+    <ListItem
+      theme={theme}
+      flush
+      leadingText={initials(d.party_name)}
+      leadingAlt={alt}
+      divider={!last}
+      title={d.party_name || '(no customer)'}
+      subtitle={`${d.draft_no} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
+      onPress={() => onOpen(d)}
+      trailing={<MoneyText paiseText={`₹${formatPaise(d.total_paise)}`} theme={theme} small />}
+    />
+  );
+});
 
 // S2.5 row — avatar (initials) · party name · "invoice no · date" · ₹ total over the status pill.
 // Memoised: a row re-renders only when its own props change (rule 5).
