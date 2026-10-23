@@ -602,8 +602,8 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
           {form.party.party_name || '(no customer)'}
         </Text>
         <View style={{ alignItems: 'flex-end' }}>
-          {form.party.party_mobile ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Ph {form.party.party_mobile}</Text> : null}
           <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{f.previewNo}</Text>
+          {form.party.party_mobile ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Ph {form.party.party_mobile}</Text> : null}
           <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
             {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
           </Text>
