@@ -65,3 +65,12 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Step 5 names what must not change (behaviour, kit components, tokens, IDs) and hands restyling to `/apply-design` | Keeps the two skills separate: one reorganises code, the other changes looks. | One combined skill. |
 | Step 7 makes the docs part of the skill (tree file, layout reference, topic files) | Otherwise the tree files drift the first time the method is applied without me. | Leaving docs to AGENTS.md alone. |
 | `CLAUDE.md` gets one line under "How to work" naming the method and the skill | So every future session knows screens follow it, even without the skill being invoked. | — |
+
+## Prompt 28 — Memoised rows and the `Columns` helper (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| List rows are `React.memo` components with a stable `onPress` that takes the id / row (`useCallback`) | Rule 5 of the method. Without a stable handler, `memo` is useless: a new arrow per render changes the props. S2 `InvoiceRow`; S5 `ProductTableRow` and `ProductListRow`. | Memo without the stable handler: no effect. `useMemo` on `renderItem`: still recreates the row element. |
+| `Columns` (`src/ui/Columns.tsx`, C15): children become equal `flex: 1` columns (or `weights`), gap 12; stacks at `stackAt` or narrower, or when a cell would be under `minCell` (44) | Rule 4 written once. Any new row gets the touch-minimum guard for free and states its stacking rule in one prop. | A rule in the skill only: nothing enforces it. A `Row` with no guard: same as today. |
+| Used now in S2.3a and S5's two editor rows; S4 and S6 rows wait for their own restructures | Those files are about to be rewritten; touching them twice is churn. | Convert every 2-column row now. |
+| Products' bare `52 + layout.gap` became `touch.button + layout.gap` | The last bare FAB-clearance literal; the scaffold will replace the constant with a measurement later. | — |

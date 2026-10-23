@@ -10,6 +10,7 @@ import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { useNavInset } from '../../ui/navMetrics';
+import { Columns } from '../../ui/Columns';
 import {
   Card, EmptyState, FAB, IconButton, Input, ListItem, MoneyText, SearchField, SegmentedControl, StatusGlyph,
   TopAppBar, initials,
@@ -165,18 +166,15 @@ function FilterRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
 }
 
 // S2.3a — one row, two equal columns: From | To (YYYY-MM-DD). Shown while the calendar button is on.
+// Columns stacks them only if a cell would fall under 44 wide (never at phone widths).
 function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
   return (
-    <View style={{ flexDirection: 'row', gap: layout.grid, marginBottom: S2.dateRowPull }}>
-      <View style={{ flex: 1 }}>
-        <Input label="From" value={list.from} onChange={list.setFrom} placeholder="YYYY-MM-DD"
-          theme={theme} tabular keyboardType="numeric" maxLength={10} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Input label="To" value={list.to} onChange={list.setTo} placeholder="YYYY-MM-DD"
-          theme={theme} tabular keyboardType="numeric" maxLength={10} />
-      </View>
-    </View>
+    <Columns style={{ marginBottom: S2.dateRowPull }}>
+      <Input label="From" value={list.from} onChange={list.setFrom} placeholder="YYYY-MM-DD"
+        theme={theme} tabular keyboardType="numeric" maxLength={10} />
+      <Input label="To" value={list.to} onChange={list.setTo} placeholder="YYYY-MM-DD"
+        theme={theme} tabular keyboardType="numeric" maxLength={10} />
+    </Columns>
   );
 }
 
@@ -186,6 +184,11 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
   const nav = useNav();
   const bp = useBreakpoint();
   const { rows } = list;
+  // Stable, so the memoised rows don't re-render on every keystroke in the search box.
+  const onPressRow = useCallback(
+    (id: number) => bp.isPhone ? nav.showInvoice(id, true) : nav.selectInvoice(id),
+    [bp.isPhone, nav],
+  );
   return (
     <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
       <FlatList
@@ -202,7 +205,7 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
             alt={index % 2 === 1}
             last={index === rows.length - 1}
             selected={!bp.isPhone && item.id === nav.selectedInvoiceId}
-            onPress={() => bp.isPhone ? nav.showInvoice(item.id, true) : nav.selectInvoice(item.id)}
+            onPress={onPressRow}
             theme={theme}
           />
         )}
@@ -212,8 +215,9 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
 }
 
 // S2.5 row — avatar (initials) · party name · "invoice no · date" · ₹ total over the status pill.
-function InvoiceRow({ item, alt, last, selected, onPress, theme }: {
-  item: Invoice; alt: boolean; last: boolean; selected: boolean; onPress: () => void; theme: Theme;
+// Memoised: a row re-renders only when its own props change (rule 5).
+const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, selected, onPress, theme }: {
+  item: Invoice; alt: boolean; last: boolean; selected: boolean; onPress: (id: number) => void; theme: Theme;
 }) {
   return (
     <ListItem
@@ -225,7 +229,7 @@ function InvoiceRow({ item, alt, last, selected, onPress, theme }: {
       selected={selected}
       title={item.party_name || '(no party)'}
       subtitle={`${item.invoice_no} · ${formatDateDisplay(item.invoice_date)}`}
-      onPress={onPress}
+      onPress={() => onPress(item.id)}
       trailing={(
         <View style={{ alignItems: 'flex-end', gap: space[1] }}>
           <MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small />
@@ -234,7 +238,7 @@ function InvoiceRow({ item, alt, last, selected, onPress, theme }: {
       )}
     />
   );
-}
+});
 
 // S2.7 — tablet only: the selected invoice (S3) or a placeholder, behind a left divider.
 function DetailPane({ selected, width, theme }: { selected: Invoice | null; width: string; theme: Theme }) {

@@ -621,6 +621,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C12 | `StatusGlyph` / `Badge` | kit badge: pill, padding 4 × 10, 12/600, tinted fill; status adds a Feather glyph (circle, clock, pie-chart, check-circle, x-circle) | lists, S3 | components.tsx:282 / 299 |
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
+| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12; stacks into a column at `stackAt` or narrower, or whenever a cell would be narrower than `minCell` (44): Three-Slot Screen rule 4 | S2.3a, S5.6.4, S5.7.2 | Columns.tsx:14 |
 
 ### Design tokens (`src/ui/tokens.ts`)
 

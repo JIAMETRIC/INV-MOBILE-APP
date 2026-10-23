@@ -175,3 +175,33 @@ Recommendation: adopt it, build src/ui/Screen.tsx, apply to S4 first and confirm
 ```
 Shall I create the three-slot-screen skill now?: yes
 ```
+
+## Prompt 25
+
+```
+All three must be updated for any Skill?: SKILL.md, CLAUDE.md and README.md: beacuse ui also having same Names: How can i have UI as Sepaarte Skill and Layout as Separet skill?: the Folder Names Makes the Diffrence?
+```
+
+## Prompt 26
+
+```
+Where is the Skill folders?
+```
+
+## Prompt 27
+
+```
+The Below three are Problems?: How can we Improve this?
+
+Touch targets 44	⚠️ columns	3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44
+
+Lists	⚠️ coupling	last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with onLayout
+
+Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn't yet; pre-existing)
+```
+
+## Prompt 28
+
+```
+Yes. Memoise the list rows in S2 and S5, and add the Columns helper in src/ui; leave footer measuring for the Screen scaffold.
+```

@@ -9,9 +9,10 @@ import {
   Badge, Button, Card, Chip, EmptyState, FAB, Input, ListItem, ListRow, MoneyInput, SearchField, SectionTitle, TopAppBar,
 } from '../../ui/components';
 import { useNavInset } from '../../ui/navMetrics';
+import { Columns } from '../../ui/Columns';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { layout, space, type } from '../../ui/tokens';
+import { layout, space, touch, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise } from '../../data/money';
 import { PRODUCT_SIZES, PRODUCT_SEED_NAMES } from '../../data/schema';
@@ -33,6 +34,49 @@ function AvlBadge({ avl, theme }: { avl: number; theme: Theme }) {
   const n = Math.round(avl);
   return <Badge label={`Avl ${n}`} tone={n < 0 ? 'error' : n === 0 ? 'neutral' : 'success'} theme={theme} />;
 }
+
+// S5.2.r — one table row (md+): NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76.
+// Memoised: typing in the search box re-renders the list, not every row.
+const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, theme }: {
+  p: ProductRow; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
+}) {
+  return (
+    <ListRow theme={theme} flush divider={!last} onPress={() => onPress(p)}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={[type.label, { color: theme.text, flex: 3 }]} numberOfLines={1}>{p.name}</Text>
+        <Text style={[type.number, { color: theme.text, width: 52 }]}>{p.size || '—'}</Text>
+        <Text style={[type.number, { color: theme.text, width: 84, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
+        <Text style={[type.number, { color: theme.text, width: 60, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
+        <Text style={[type.number, { color: theme.textMuted, width: 56, textAlign: 'right' }]}>{num(String(p.sold_qty))}</Text>
+        <View style={{ width: 76 }}><AvlBadge avl={p.avl_qty} theme={theme} /></View>
+      </View>
+    </ListRow>
+  );
+});
+
+// S5.3 — one phone row: size circle · name · "Stock n · Sold n" · price over the Avl badge.
+const ProductListRow = React.memo(function ProductListRow({ p, alt, last, onPress, theme }: {
+  p: ProductRow; alt: boolean; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
+}) {
+  return (
+    <ListItem
+      theme={theme}
+      flush
+      divider={!last}
+      leadingText={p.size || '—'}
+      leadingAlt={alt}
+      title={p.name}
+      subtitle={`Stock ${num(String(p.stock_qty))} · Sold ${num(String(p.sold_qty))}`}
+      onPress={() => onPress(p)}
+      trailing={(
+        <View style={{ alignItems: 'flex-end', gap: space[1] }}>
+          <Text style={[type.number, { color: theme.text }]}>₹{formatPaise(p.unit_paise)}</Text>
+          <AvlBadge avl={p.avl_qty} theme={theme} />
+        </View>
+      )}
+    />
+  );
+});
 
 export function ProductsScreen() {
   const theme = useTheme();
@@ -73,7 +117,8 @@ export function ProductsScreen() {
     }
   }, []);
 
-  const startEdit = (p?: ProductRow) => {
+  // Stable, so the memoised rows don't re-render when unrelated state changes.
+  const startEdit = useCallback((p?: ProductRow) => {
     setEditId(p?.id);
     setDraft(p ? { name: p.name, size: p.size, unit_paise: p.unit_paise, stock_qty: p.stock_qty } : blank());
     setDraftSold(p?.sold_qty ?? 0);
@@ -82,7 +127,7 @@ export function ProductsScreen() {
     setHistory([]);
     if (p) void loadHistory(p.id);
     setEditing(true);
-  };
+  }, [loadHistory]);
 
   const save = async () => {
     if (!draft.name.trim()) {
@@ -160,16 +205,12 @@ export function ProductsScreen() {
       <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
         {draft.name} · {draft.size || 'No size'} — current stock {num(String(draft.stock_qty))}
       </Text>
-      <View style={{ flexDirection: 'row', gap: layout.grid }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Qty to add" value={rQty} error={qtyError || undefined}
-            onChange={v => { setRQty(num(v)); setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
-        </View>
-        <View style={{ flex: 1 }}>
-          <MoneyInput label="New price (₹)" valuePaise={rPricePaise} onChangePaise={setRPricePaise}
-            theme={theme} placeholder="Keep current" helper="Blank keeps price" />
-        </View>
-      </View>
+      <Columns>
+        <Input label="Qty to add" value={rQty} error={qtyError || undefined}
+          onChange={v => { setRQty(num(v)); setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
+        <MoneyInput label="New price (₹)" valuePaise={rPricePaise} onChangePaise={setRPricePaise}
+          theme={theme} placeholder="Keep current" helper="Blank keeps price" />
+      </Columns>
       <Input label="Note (lot / supplier)" value={rNote}
         onChange={setRNote} theme={theme} placeholder="Optional" />
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space[2] }}>
@@ -218,18 +259,14 @@ export function ProductsScreen() {
         <Chip label="No size" active={draft.size === ''}
           onPress={() => setDraft({ ...draft, size: '' })} theme={theme} />
       </View>
-      <View style={{ flexDirection: 'row', gap: layout.grid }}>
-        <View style={{ flex: 1 }}>
-          <MoneyInput label="Price (₹)" valuePaise={draft.unit_paise}
-            onChangePaise={p => setDraft(d => ({ ...d, unit_paise: p }))} theme={theme} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Input label="Stock" value={String(draft.stock_qty)}
-            onChange={v => setDraft({ ...draft, stock_qty: Number(num(v)) })}
-            theme={theme} keyboardType="numeric" tabular
-            helper={editId ? `Sold ${draftSold} · Avl ${draft.stock_qty - draftSold}` : 'Sold counts once invoiced'} />
-        </View>
-      </View>
+      <Columns>
+        <MoneyInput label="Price (₹)" valuePaise={draft.unit_paise}
+          onChangePaise={p => setDraft(d => ({ ...d, unit_paise: p }))} theme={theme} />
+        <Input label="Stock" value={String(draft.stock_qty)}
+          onChange={v => setDraft({ ...draft, stock_qty: Number(num(v)) })}
+          theme={theme} keyboardType="numeric" tabular
+          helper={editId ? `Sold ${draftSold} · Avl ${draft.stock_qty - draftSold}` : 'Sold counts once invoiced'} />
+      </Columns>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[2], marginTop: space[1] }}>
         {editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger theme={theme} onPress={remove} /> : null}
         {editId ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={openRestock} /> : null}
@@ -250,19 +287,6 @@ export function ProductsScreen() {
         }]}>{h}</Text>
       ))}
     </View>
-  );
-
-  const tableRow = (p: ProductRow, last: boolean) => (
-    <ListRow theme={theme} flush divider={!last} onPress={() => startEdit(p)}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={[type.label, { color: theme.text, flex: 3 }]} numberOfLines={1}>{p.name}</Text>
-        <Text style={[type.number, { color: theme.text, width: 52 }]}>{p.size || '—'}</Text>
-        <Text style={[type.number, { color: theme.text, width: 84, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
-        <Text style={[type.number, { color: theme.text, width: 60, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
-        <Text style={[type.number, { color: theme.textMuted, width: 56, textAlign: 'right' }]}>{num(String(p.sold_qty))}</Text>
-        <View style={{ width: 76 }}><AvlBadge avl={p.avl_qty} theme={theme} /></View>
-      </View>
-    </ListRow>
   );
 
   const editorTitle = mode === 'restock' ? 'Restock' : editId ? 'Edit product' : 'New product';
@@ -291,30 +315,13 @@ export function ProductsScreen() {
               keyExtractor={p => String(p.id)}
               style={{ flexGrow: 0 }}
               // Phones, long lists: keep the last row clear of the Add product button.
-              contentContainerStyle={{ paddingBottom: bp.isPhone && products.length > 6 ? 52 + layout.gap : 0 }}
+              contentContainerStyle={{ paddingBottom: bp.isPhone && products.length > 6 ? touch.button + layout.gap : 0 }}
               ListEmptyComponent={search
                 ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
                 : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
               renderItem={({ item, index }) => bp.atLeast('md')
-                ? tableRow(item, index === products.length - 1)
-                : (
-                  <ListItem
-                    theme={theme}
-                    flush
-                    divider={index < products.length - 1}
-                    leadingText={item.size || '—'}
-                    leadingAlt={index % 2 === 1}
-                    title={item.name}
-                    subtitle={`Stock ${num(String(item.stock_qty))} · Sold ${num(String(item.sold_qty))}`}
-                    onPress={() => startEdit(item)}
-                    trailing={(
-                      <View style={{ alignItems: 'flex-end', gap: space[1] }}>
-                        <Text style={[type.number, { color: theme.text }]}>₹{formatPaise(item.unit_paise)}</Text>
-                        <AvlBadge avl={item.avl_qty} theme={theme} />
-                      </View>
-                    )}
-                  />
-                )}
+                ? <ProductTableRow p={item} last={index === products.length - 1} onPress={startEdit} theme={theme} />
+                : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={startEdit} theme={theme} />}
             />
           </Card>
           {bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}

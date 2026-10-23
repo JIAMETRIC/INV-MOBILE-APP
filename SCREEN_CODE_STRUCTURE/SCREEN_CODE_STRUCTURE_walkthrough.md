@@ -136,3 +136,23 @@ The owner wanted the chat reply as a page, verbatim in order, from "Verdict" to 
 ## Prompt 24 — Skill created and everything committed (2026-10-23, session 14)
 
 `.claude/skills/three-slot-screen/SKILL.md`: 7 steps (inspect and wait for OK · file order · rows and columns · slots · what must not change · verify · document). `README.md` lists it in the tree; `CLAUDE.md` names the method under "How to work". Committed together with the two pages, the analysis Markdown and the session logs (see `git log`).
+
+## Prompts 25–28 — Skill folders Q&A, the three risks, memoised rows + `Columns` (2026-10-23, session 14)
+
+**Q&A (25–27):** only `SKILL.md` is required for a skill (folder = `/name`, `description` = trigger); `CLAUDE.md` is for rules that apply without invoking, `README.md` is the AGENTS.md convention. The two skills are separate folders under `.claude/skills/` (hidden folder; opened in Explorer). The three "⚠️" rows of the analysis are risks, not bugs today.
+
+**Changes (28):**
+
+| File | Change |
+| --- | --- |
+| `src/ui/Columns.tsx` (new, C15) | one row of equal columns; `weights`, `gap`, `minCell` (44), `stackAt`; stacks when a cell would be too narrow or at the named breakpoint |
+| `src/features/invoices/InvoicesScreen.tsx` | `InvoiceRow` is `React.memo` with `onPress(id)`; `InvoiceListCard` has a `useCallback` `onPressRow`; `DateRangeRow` uses `Columns` |
+| `src/features/products/ProductsScreen.tsx` | `tableRow()` and the inline phone `ListItem` became `ProductTableRow` / `ProductListRow` (`React.memo`, `onPress(p)`); `startEdit` is a `useCallback`; S5.6.4 and S5.7.2 use `Columns`; the bare `52 + layout.gap` became `touch.button + layout.gap` |
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| Emulator (restarted: Metro + AVD had been stopped with the previous Claude Code process); fresh bundle `Bundled 507ms (807 modules)` | Products: 60 rows, same layout, FAB clearance kept · Invoices with the date range open: From \| To row identical · Product editor sheet: Price \| Stock row identical |
+| Tablet table rows (S5.2.r) | read only; no tablet AVD |
+
+Docs: S2 tree file line numbers refreshed; S5 tree file carries a shift note (+40 after the two row components) rather than a full renumber; `SCREEN_LAYOUT_REFERENCE.md` gained C15; rationale in TRACKING.
