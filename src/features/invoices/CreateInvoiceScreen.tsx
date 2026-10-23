@@ -602,7 +602,7 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
           <Text style={[type.heading, { color: theme.text, flex: 1 }]} numberOfLines={2}>
             {form.party.party_name || '(no customer)'}
           </Text>
-          <Text style={[type.bodyMedium, { color: theme.textMuted, textAlign: 'right' }]}>
+          <Text style={[type.bodyMedium, { color: theme.textMuted, textAlign: 'right', flexShrink: 0 }]} numberOfLines={1}>
             {f.previewNo} · {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
           </Text>
         </View>
