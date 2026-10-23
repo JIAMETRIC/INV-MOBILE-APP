@@ -19,7 +19,7 @@ import { useSnackbar } from '../../ui/Snackbar';
 import { layout, space, type, maxReadWidth } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
-import { getInvoice, getLines, setStatus } from '../../data/invoicesRepo';
+import { deleteInvoice, getInvoice, getLines } from '../../data/invoicesRepo';
 import { paidPaiseForInvoice, recordPayment } from '../../data/paymentsRepo';
 import { logAudit } from '../../data/auditRepo';
 import { exportInvoicePdf, exportInvoicePdfAndShare, shareFile } from '../../export/pdf';
@@ -40,7 +40,7 @@ const S3 = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// State and data: the invoice, its lines and payments, the two exports, Void,
+// State and data: the invoice, its lines and payments, the two exports, Delete,
 // and the Record-payment sheet (P1).
 // ---------------------------------------------------------------------------
 // The share actions: the PDF, the picture (Image and WhatsApp), and Save (PDF into the app's Invoices folder).
@@ -72,17 +72,20 @@ function useInvoiceDetail(invoiceId: number) {
 
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
 
-  const voidInvoice = () => {
+  const deleteThisInvoice = () => {
     if (!inv) return;
-    alert('Void invoice?', `${inv.invoice_no} will be marked Void. It stays in the register.`, [
+    alert('Delete invoice?', `${inv.invoice_no} and its items will be removed. This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Void', style: 'destructive',
+        text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await setStatus(inv.id, 'void');
-          await logAudit('invoice.void', 'invoice', inv.invoice_no);
+          const no = inv.invoice_no;
+          await deleteInvoice(inv.id);
+          await logAudit('invoice.delete', 'invoice', no);
+          nav.selectInvoice(null);
+          nav.closeOverlay();
           nav.refresh();
-          snack(`${inv.invoice_no} voided`);
+          snack(`${no} deleted`);
         },
       },
     ]);
@@ -143,7 +146,7 @@ function useInvoiceDetail(invoiceId: number) {
   return {
     inv, lines, settings, imageRef, paid, outstanding, busy, canPay, party, contact,
     payOpen, closePayment: () => setPayOpen(false), payAmount, setPayAmount, payError, setPayError, payMode, setPayMode,
-    voidInvoice, askPayment, submitPayment, share,
+    deleteThisInvoice, askPayment, submitPayment, share,
     openEdit: () => { if (inv) nav.openCreate({ invoiceId: inv.id }); },
   };
 }
@@ -184,7 +187,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
 // Main
 // ---------------------------------------------------------------------------
 
-// S3 — the one scroller, capped at the reading width: header row, bill-to, actions, items, totals, Edit / Void.
+// S3 — the one scroller, capped at the reading width: header row, bill-to, actions, items, totals, Edit / Delete.
 function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <ScrollView contentContainerStyle={{
@@ -196,7 +199,7 @@ function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
       <ActionRow s={s} theme={theme} />
       <ItemsCard s={s} theme={theme} />
       <TotalsCard s={s} theme={theme} />
-      {s.inv.status !== 'void' ? <EditVoidRow s={s} theme={theme} /> : null}
+      <EditDeleteRow s={s} theme={theme} />
     </ScrollView>
   );
 }
@@ -314,12 +317,13 @@ function TotalsCard({ s, theme }: { s: Loaded; theme: Theme }) {
   );
 }
 
-// S3.6 — Edit (glass) · Void (ghost, red); hidden once the invoice is void.
-function EditVoidRow({ s, theme }: { s: Loaded; theme: Theme }) {
+// S3.6 — Edit (glass) · Delete (solid red, white text); the invoice and its items are removed.
+function EditDeleteRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: layout.grid }}>
       <Button label="Edit" icon="edit-2" variant="outline" theme={theme} onPress={s.openEdit} />
-      <Button label="Void" icon="x-circle" variant="ghost" danger theme={theme} onPress={s.voidInvoice} />
+      <Button label="Delete" icon="trash-2" theme={theme} onPress={s.deleteThisInvoice}
+        style={{ backgroundColor: theme.destructive }} />
     </View>
   );
 }
