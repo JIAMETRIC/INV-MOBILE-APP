@@ -598,15 +598,19 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
     <View style={{ gap: layout.gap }}>
       <Card theme={theme} style={{ gap: space[1] }}>
         <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
-        <Text style={[type.heading, { color: theme.text }]} numberOfLines={2}>
-          {form.party.party_name || '(no customer)'}
-        </Text>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{f.previewNo}</Text>
-          {form.party.party_mobile ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Ph {form.party.party_mobile}</Text> : null}
-          <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
-            {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
-          </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space[2] }}>
+          <View style={{ flex: 1, gap: space[1] }}>
+            <Text style={[type.heading, { color: theme.text }]} numberOfLines={2}>
+              {form.party.party_name || '(no customer)'}
+            </Text>
+            {form.party.party_mobile ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Ph {form.party.party_mobile}</Text> : null}
+          </View>
+          <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
+            <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{f.previewNo}</Text>
+            <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
+              {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
+            </Text>
+          </View>
         </View>
       </Card>
       <Card theme={theme} list>
