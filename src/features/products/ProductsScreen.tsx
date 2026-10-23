@@ -25,7 +25,7 @@ import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise } from '../../data/money';
 import { PRODUCT_SIZES, PRODUCT_SEED_NAMES } from '../../data/schema';
-import { listProducts, upsertProduct, deleteProduct, restockProduct, listRestocks, type ProductInput } from '../../data/productsRepo';
+import { countProducts, listProducts, upsertProduct, deleteProduct, restockProduct, listRestocks, type ProductInput } from '../../data/productsRepo';
 import { exportProductsXlsx } from '../../export/xlsx';
 import { shareFile } from '../../export/pdf';
 import { logAudit } from '../../data/auditRepo';
@@ -74,6 +74,7 @@ function useProducts() {
   const bp = useBreakpoint();
   const snack = useSnackbar();
   const [products, setProducts] = useState<ProductRow[]>([]);
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(false);
   const [editId, setEditId] = useState<number | undefined>(undefined);
@@ -91,6 +92,7 @@ function useProducts() {
   const load = useCallback(async () => {
     try {
       setProducts(await listProducts(search.trim()));
+      setTotal(await countProducts());
     } catch (e) {
       console.error('Products load failed:', e);
     }
@@ -196,7 +198,7 @@ function useProducts() {
   const showTable = bp.atLeast('md') && listPaneWidth >= S5.tableMinWidth;
 
   return {
-    products, search, setSearch,
+    products, total, search, setSearch,
     editing, closeEditor: () => setEditing(false), editId, draft, setDraft, draftSold,
     mode, setMode, rQty, setRQty, rPricePaise, setRPricePaise, rNote, setRNote,
     nameError, setNameError, qtyError, setQtyError, history, busy,
@@ -235,7 +237,7 @@ function Header({ p, theme }: { p: Products; theme: Theme }) {
   return (
     <TopAppBar
       title="Products"
-      subtitle={`${p.products.length} items`}
+      subtitle={`${p.total} items`}
       theme={theme}
       large
       actions={[

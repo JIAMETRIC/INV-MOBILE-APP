@@ -35,6 +35,14 @@ export async function listProducts(search = ''): Promise<ProductRow[]> {
   return db.getAllAsync<ProductRow>(`${SELECT_ROW} ORDER BY name COLLATE NOCASE, size, id`);
 }
 
+// Every product, ignoring the search box: the Products header count.
+export async function countProducts(): Promise<number> {
+  const db = await getDb();
+  await ensureSeeded(db);
+  const row = await db.getFirstAsync<{ c: number }>('SELECT COUNT(*) c FROM products');
+  return row?.c ?? 0;
+}
+
 // Catalog-wide totals for the Dashboard stock KPIs. Same sold/avl rules as the
 // per-product rows, so the tiles always add up to the Products table.
 export async function getStockTotals(): Promise<{ stockQty: number; soldQty: number; avlQty: number }> {
