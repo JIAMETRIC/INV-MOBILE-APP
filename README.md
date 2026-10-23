@@ -110,6 +110,8 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | `npm run test:money` | Money core / amount-in-words unit tests |
 | `npm run test:integration` | Headless SQLite harness over the real data layer |
 | `npm run test:xlsx` | ZIP / OOXML checks on the spreadsheet writer |
+| `npm run test:columns` | Layout decisions of the `Columns` helper (row / wrap / stack by width) |
+| `python -I scripts/tablet-tour.py <out> <tag> <WxH> <dpi>` | Resize the running phone emulator to a tablet size and screenshot every screen (see `/tablet-check`) |
 | `python -I scripts/build-pdf-fonts.py` | Rebuilds `src/export/pdfFonts.ts` (Inter + Bebas Neue subsets for the PDF). Needs `pip install fonttools brotli`; re-run after upgrading either `@expo-google-fonts` package |
 | `cd android && gradlew.bat assembleRelease -x lintVitalAnalyzeRelease -x lintVitalRelease` | Release APK → `android/app/build/outputs/apk/release/app-release.apk`. The `-x lint…` flags are required: lint runs out of memory (Metaspace). Set `JAVA_HOME` to Android Studio's `jbr`. |
 | `cd android && gradlew.bat assembleDebug` | Debug APK (needs Metro: `npx expo start --port 8081` + `adb reverse tcp:8081 tcp:8081`) |
@@ -163,6 +165,7 @@ INV-MOBILE-APP/
 ├── design/                 DESIGN.md (Flat Glass spec) + screens/ (4 reference PNG + HTML)
 ├── .claude/skills/apply-design/  the kit's /apply-design skill
 ├── .claude/skills/three-slot-screen/  /three-slot-screen: restructure a screen as Header / Main / Footer with named regions
+├── .claude/skills/tablet-check/  /tablet-check: screenshot every screen at 8-inch and 10-inch sizes (scripts/tablet-tour.py)
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)
 ├── SCREEN_LAYOUT_REFERENCE/ per-screen layout map with IDs for edit prompts (+ TRACKING · walkthrough · session-prompts)

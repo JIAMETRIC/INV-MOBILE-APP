@@ -205,7 +205,7 @@ export function ProductsScreen() {
       <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
         {draft.name} · {draft.size || 'No size'} — current stock {num(String(draft.stock_qty))}
       </Text>
-      <Columns>
+      <Columns kind="input">
         <Input label="Qty to add" value={rQty} error={qtyError || undefined}
           onChange={v => { setRQty(num(v)); setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
         <MoneyInput label="New price (₹)" valuePaise={rPricePaise} onChangePaise={setRPricePaise}
@@ -259,7 +259,7 @@ export function ProductsScreen() {
         <Chip label="No size" active={draft.size === ''}
           onPress={() => setDraft({ ...draft, size: '' })} theme={theme} />
       </View>
-      <Columns>
+      <Columns kind="input">
         <MoneyInput label="Price (₹)" valuePaise={draft.unit_paise}
           onChangePaise={p => setDraft(d => ({ ...d, unit_paise: p }))} theme={theme} />
         <Input label="Stock" value={String(draft.stock_qty)}

@@ -123,3 +123,19 @@ restockFields
 | md+ (≥ 600) | the list Card becomes a **table**: `headerRow` (S5.2: NAME · SIZE · PRICE · STOCK · SOLD · AVL) above `tableRow`s (S5.2.r) instead of ListItems; a "New product" plus button joins the app bar; no FAB | 288, 298-299, 278 |
 | md only | the editor still opens as the P3 **sheet** (a centred dialog, from `Sheet`) | 333-337 |
 | lg+ (≥ 768) | S5.5 **editor pane**: a 38 %-wide ScrollView on the right with one Card (padding 20) titled "Product editor" (empty state "Select a product to edit, or add a new one.") or `editorTitle` with S5.6 / S5.7 inside; the sheet is not used | 322-332 |
+
+## Tablet check (Prompt 30)
+
+Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+
+| Size | Seen | Verdict |
+| --- | --- | --- |
+| md 601 | table in one pane: NAME ≈ 140 dp truncated "Acid Wash T-S..", and the SIZE glyph touches the ellipsis (no gap between the columns) | **tight** |
+| lg 800 | editor pane open: list card ≈ 300 dp, **NAME column gone, STOCK cut, SOLD / AVL off-screen** | **bug** |
+| xl 961 | list card ≈ 335 dp: NAME gone, AVL cut | **bug** |
+| xxl 1280 | list card ≈ 347 dp: NAME gone, AVL badges clipped | **bug** |
+| P3 sheet (md) | Price \| Stock `Columns` row fine | ok |
+
+Root cause (`ProductsScreen.tsx:330`): the editor is `<ScrollView style={{ width: '38%' }}>`; a ScrollView's default style has `flexGrow: 1`, so 38 % is only its flex basis and it grows into the leftover space, leaving the list ≈ 25–27 %. The fixed table columns (52 + 84 + 60 + 56 + 76 = 328 dp) then eat the whole card and NAME (flex 3) collapses to 0.
+
+Proposed fix (not applied): `flexGrow: 0, flexShrink: 0` on that ScrollView (or wrap it in a `View` of 38 %), a `minWidth` ≈ 420 on the list pane, and `gap: 8` between the table columns so SIZE never touches NAME. Same ScrollView pattern in S4.L2 / L3 (`:565`), harmless there.

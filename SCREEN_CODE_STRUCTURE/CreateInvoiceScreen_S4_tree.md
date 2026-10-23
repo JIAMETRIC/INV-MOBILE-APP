@@ -178,3 +178,16 @@ previewPane                                                           line 454
 | the md toggle icons / labels | lines 584-586 |
 | the page-size options | line 459 |
 | the preview frame (border, radius, min height) | lines 462-465 |
+
+## Tablet check (Prompt 30)
+
+Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+
+| Size | Layout | Seen | Verdict |
+| --- | --- | --- | --- |
+| md 601 | S4.L2 single pane + eye toggle | Bill-to card with 2-column rows, all readable | ok |
+| xl 961 | S4.L3 three panels (25 / 38 / 37) | products panel names truncated "Acid Wash T…"; **date inputs clip their first digit ("'026-10-23")**: the form is ≈ 330 dp, each date cell ≈ 134 dp, text area ≈ 102 dp | **bug** |
+| lg 800 | S4.L2 form + 40 % preview | readable | ok |
+| xxl 1280 | S4.L3 | readable, product names fit | ok |
+
+Proposed fix (not applied): S4.A row 5 (Invoice date | Due date) as `<Columns kind="input" minCell={150}>` so it stacks inside the narrow xl form; the S4.L3 products panel title + size on two lines under 300 dp. Note: `ScrollView style={{ width: '38%' }}` (S4.L2 and L3) is a flex *basis*, not a fixed width: ScrollView has `flexGrow: 1` by default, so the form grows into leftover space (harmless here, a bug in S5).

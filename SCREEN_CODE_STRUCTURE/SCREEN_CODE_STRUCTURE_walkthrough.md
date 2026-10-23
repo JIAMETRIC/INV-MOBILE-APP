@@ -156,3 +156,25 @@ The owner wanted the chat reply as a page, verbatim in order, from "Verdict" to 
 | Tablet table rows (S5.2.r) | read only; no tablet AVD |
 
 Docs: S2 tree file line numbers refreshed; S5 tree file carries a shift note (+40 after the two row components) rather than a full renumber; `SCREEN_LAYOUT_REFERENCE.md` gained C15; rationale in TRACKING.
+
+## Prompts 29–30 — `Columns` wrap, tablet AVDs, the tablet tour and its findings (2026-10-23, session 14)
+
+**Columns** (`src/ui/Columns.tsx`, decision in `src/ui/columnsMode.ts`): `kind` presets (`touch` 44 · `input` 128 · `button` 96), `wrap` mode (flex-wrap, `flexBasis = minCell`), `stackAt`. `scripts/run-columns-tests.mjs` (`npm run test:columns`): 10 cases, all pass; `npm run typecheck` clean. The three existing uses (S2.3a, S5.6.4, S5.7.2) now pass `kind="input"`; at phone widths nothing changes (2 inputs: 142 dp each ≥ 128).
+
+**AVDs:** `Tablet_8in` (800×1280 @ 213) and `Tablet_10in` (1200×1920 @ 240) created on the installed API 37 image. Neither was usable here: on the host GPU the 8-inch one came up `offline` with "DisplaySurfaceGlContextHelper context was preempted" errors; with `-gpu swiftshader_indirect` it booted, but `screencap` aborted (`Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma`) and the guest rebooted itself mid-tour (boot animation, adb offline). Switched to the phone AVD resized with `wm size` / `wm density`, which is what the layout code reads (`useWindowDimensions`).
+
+**Tour:** `scripts/tablet-tour.py` (also the new `/tablet-check` skill). Four profiles, 7–9 screenshots each; `MISSING` taps were expected ones (no "Items" stepper at md+, no "Acid Wash T-Shirt" text when the table shows only sizes, "Close" on the sheet has no label). The emulator was restored to 1080×2400 afterwards.
+
+**Findings** (details and proposed fixes in each screen's tree file, "Tablet check" section):
+
+| # | Where | Size | What | Severity |
+| --- | --- | --- | --- | --- |
+| 1 | S5 Products table | lg, xl, xxl | **NAME column collapses to nothing; SOLD / AVL cut.** The editor `ScrollView` with `width: '38%'` grows (`flexGrow: 1` default) and leaves the list ≈ 25 %; the fixed columns (328 dp) then eat the card | bug |
+| 2 | S4.A dates | xl (S4.L3) | date inputs clip the first digit in the 38 % form (cells ≈ 134 dp) | bug |
+| 3 | S2 list pane | md, xl | search placeholder, status tabs, From/To and row text truncated at ≈ 235–280 dp | tight |
+| 4 | S3 items header | md | "QTY", "AMOUNT" truncated in the 300 dp pane | tight |
+| 5 | S5 table | md | NAME truncated; SIZE glyph touches the ellipsis (no column gap) | tight |
+| 6 | S4.L3 products panel | xl | product names truncated at 25 % (≈ 240 dp) | cosmetic |
+| — | S1, S6, P3, S4.L2, S2/S3 at lg and xxl | all | as designed | ok |
+
+The 8-inch tablet in portrait is **md (601 dp)**, not phone width: the rail and two panes appear, and most of the "tight" findings are at that size. Material's compact class ends at 600 dp, so this is one dp over the line; treating md as single-pane (phone layout + rail) would remove findings 3, 4 and 5 at once. That is a decision for the owner.

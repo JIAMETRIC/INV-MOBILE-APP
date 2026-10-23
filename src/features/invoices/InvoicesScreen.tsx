@@ -169,7 +169,7 @@ function FilterRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
 // Columns stacks them only if a cell would fall under 44 wide (never at phone widths).
 function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
   return (
-    <Columns style={{ marginBottom: S2.dateRowPull }}>
+    <Columns kind="input" style={{ marginBottom: S2.dateRowPull }}>
       <Input label="From" value={list.from} onChange={list.setFrom} placeholder="YYYY-MM-DD"
         theme={theme} tabular keyboardType="numeric" maxLength={10} />
       <Input label="To" value={list.to} onChange={list.setTo} placeholder="YYYY-MM-DD"

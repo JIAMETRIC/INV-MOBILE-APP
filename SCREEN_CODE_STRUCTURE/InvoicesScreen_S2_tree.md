@@ -88,3 +88,16 @@ ActivityPane          S2.8  3-pane tablets with a row selected: width 26 %,     
 ## Tablet (md+)
 
 Same `Header` and `ListPane`; the row adds `DetailPane` (50 % at 2 panes, 42 % at 3) and, at 3 panes with a row selected, `ActivityPane` (26 %). Tapping a row selects it (`nav.selectInvoice`) instead of opening the S3 overlay. Not verified on a device in this session (phone emulator only); checked by reading the code.
+
+## Tablet check (Prompt 30)
+
+Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+
+| Size | Seen | Verdict |
+| --- | --- | --- |
+| md 601 | rail + 2 panes; the list pane gets ≈ 235 dp: search placeholder "Search inv…", tabs "Is… P… P… V…", From/To "YYYY-…", row "aSAs… / PRE-0 01 · 22…" all truncated | **too tight** |
+| xl 961 | 3 panes (detail 42 % + activity 26 %): list ≈ 280 dp, tabs "Iss… Pa… Pa… Vo…", row date wraps | **too tight** |
+| lg 800 | 2 panes, list ≈ 340 dp: everything readable | ok |
+| xxl 1280 | 3 panes: everything readable | ok |
+
+Proposed fix (not applied): give the list pane a floor (`minWidth` ≈ 340) and let the detail pane take the rest; show `ActivityPane` only at xxl (`bp.width >= 1200`), not at every 3-pane width. One line each in `S2` / `InvoicesScreen()`.

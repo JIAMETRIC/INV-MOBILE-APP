@@ -105,3 +105,16 @@ InvoiceDetail({ invoiceId })                                         line 18
 | Tablet (md+) | S2 renders `<InvoiceDetail key={id} invoiceId={id} />` in its detail pane (50% wide, or 42% at xl+), with no extra app bar | `src/features/invoices/InvoicesScreen.tsx:138-142` |
 
 P1 opens as a bottom sheet on phones and as a centred dialog on tablets; that switch lives in `Sheet` (C10), not here.
+
+## Tablet check (Prompt 30)
+
+Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+
+| Size | Seen | Verdict |
+| --- | --- | --- |
+| md 601 | in the 50 % pane (≈ 300 dp): items header "ITEM Q… RATE AMO…" truncated, "22 Oct 26 · due 05 Nov 26" wraps, Share PDF / Excel wrap to two rows | **tight** |
+| xl 961 | pane ≈ 370 dp: readable, item names wrap to 2 lines | ok |
+| lg 800 | pane ≈ 370 dp: readable | ok |
+| xxl 1280 | pane ≈ 460 dp: everything on one line | ok |
+
+Proposed fix (not applied): the S3.4 header labels get `numberOfLines={1}` with `adjustsFontSizeToFit`, or the flex ratio moves to `2.2 : 0.8 : 1.3 : 1.5` under 340 dp; depends on the S2 pane fix above.

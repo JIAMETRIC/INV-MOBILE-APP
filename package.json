@@ -41,7 +41,8 @@
     "test:integration": "node scripts/run-integration-tests.mjs",
     "prebuild": "expo prebuild --platform android",
     "build:apk": "eas build --profile preview --platform android",
-    "test:xlsx": "node scripts/run-xlsx-tests.mjs"
+    "test:xlsx": "node scripts/run-xlsx-tests.mjs",
+    "test:columns": "node scripts/run-columns-tests.mjs"
   },
   "private": true
 }

@@ -205,3 +205,17 @@ Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn
 ```
 Yes. Memoise the list rows in S2 and S5, and add the Columns helper in src/ui; leave footer measuring for the Screen scaffold.
 ```
+
+## Prompt 29
+
+```
+This where responsive works?: if someone add 4th column it must go down right?:1. Touch targets vs columns
+
+Is it a problem now? No. The only 3-column row is the Dashboard tiles (S1.2), and it already copes: labels get numberOfLines={2} with minHeight: 36 so the values line up, and figures shrink with adjustsFontSizeToFit. The risk is the next row someone adds with 3 or 4 columns on a 360 dp phone. and My App is Responsive for 8inch and 10 inch Tablet?(This tablet responisve which SKILL we can add?)
+```
+
+## Prompt 30
+
+```
+Yes. Add a wrap mode to Columns (4th column goes to the next line, inputs default to a sensible minimum), then create 8-inch and 10-inch tablet AVDs and screenshot every screen on them.
+```

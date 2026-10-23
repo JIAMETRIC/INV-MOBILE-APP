@@ -53,7 +53,7 @@ Each region function starts with a one-line comment: its ID and what it draws (`
 ## 6. Verify
 - [ ] `npm run typecheck` is clean
 - [ ] Reload the dev client (`adb shell am force-stop` + the `invoiceerp://expo-development-client/?url=…` deep link, so Metro sends a fresh bundle), open the screen, exercise each region (toggle filters, open sheets), and compare a screenshot with one taken before the change: identical
-- [ ] Tablet layouts read correctly in code when no tablet AVD is available; say so in the report
+- [ ] When the change touches a tablet branch (`bp.isPhone`, `bp.panes`, `bp.atLeast`), run `/tablet-check` (resizes the phone emulator to the 8-inch and 10-inch sizes and screenshots every screen); otherwise say the tablet layouts were read only
 - [ ] Only one scroller inside Main; `flex: 1` on Main; no `FlatList` inside a `ScrollView`
 
 ## 7. Document
