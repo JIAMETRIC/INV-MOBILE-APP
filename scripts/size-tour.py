@@ -1,8 +1,12 @@
 """Drive the app through every screen at a given window size and save screenshots.
-Usage: python -I scripts/tablet-tour.py <out_dir> <tag> <WxH px> <density>
-       python -I scripts/tablet-tour.py <out_dir> reset        (restore the phone size)
+Usage: python -I scripts/size-tour.py <out_dir> <tag> <WxH px> <density>
+       python -I scripts/size-tour.py <out_dir> reset        (restore the phone size)
 
-Profiles used by /tablet-check (dp = px / (density / 160)):
+Profiles used by /size-check (dp = px / (density / 160)):
+  xs      640x1136  320   320 x 568 dp   xs   smallest supported phone
+  sm      720x1600  320   360 x 800 dp   sm   common budget phone
+  phone   1080x2400 420   411 x 914 dp   sm   the default emulator (baseline)
+  phoneL  2400x1080 420   914 x 411 dp   lg   phone in landscape (tablet two-pane layout)
   tab8P   800x1280  213   601 x 961 dp   md   8-inch portrait
   tab8L   1280x800  213   961 x 601 dp   xl   8-inch landscape
   tab10P  1200x1920 240   800 x 1280 dp  lg   10-inch portrait
@@ -81,6 +85,9 @@ if tap(label="Date range"):
     tap(label="Date range (set)") or tap(label="Date range")
 if tap(text="aSAsda"):
     shot("S3_detail")
+    # One-pane sizes open S3 as an overlay under an "Invoice" back bar: go back to the list.
+    if find(text="Invoice"):
+        adb("shell", "input", "keyevent", "4"); time.sleep(2)
 if tap(label="New invoice") or tap(text="New invoice"):
     shot("S4_create")
     if tap(text="Items"):

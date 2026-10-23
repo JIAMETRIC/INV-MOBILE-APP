@@ -108,7 +108,7 @@ P1 opens as a bottom sheet on phones and as a centred dialog on tablets; that sw
 
 ## Tablet check (Prompt 30)
 
-Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+Checked on 2026-10-23 with `/size-check` (then `/tablet-check`) (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
 
 | Size | Seen | Verdict |
 | --- | --- | --- |
@@ -118,3 +118,13 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 | xxl 1280 | pane ≈ 460 dp: everything on one line | ok |
 
 Proposed fix (not applied): the S3.4 header labels get `numberOfLines={1}` with `adjustsFontSizeToFit`, or the flex ratio moves to `2.2 : 0.8 : 1.3 : 1.5` under 340 dp; depends on the S2 pane fix above.
+
+## Size check, phones (Prompt 44)
+
+| Size | Seen | Verdict |
+| --- | --- | --- |
+| xs 320 | overlay; Share PDF and Excel wrap to two rows; items header "RATEAMOU…" (the AMOUNT label clips at 320 dp) | **tight** (same header issue as md before Prompt 32) |
+| sm 360, phone 411 | ok | ok |
+| phone landscape (lg) | S3 in the 50 % pane, scrolls | ok |
+
+Proposed fix (not applied): header labels with `adjustsFontSizeToFit` / `numberOfLines={1}`, or "AMT" under 340 dp.

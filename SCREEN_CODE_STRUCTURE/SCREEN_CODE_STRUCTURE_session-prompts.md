@@ -297,3 +297,16 @@ Already is there
 ```
 https://github.com/JIAMETRIC/INV-MOBILE-APP
 ```
+
+## Prompt 43
+
+```
+Can We have Seperate SKILL for Tablet and Mobile Responsives?
+or three-slot-screen(SKILLS) we can append?
+```
+
+## Prompt 44
+
+```
+Yes. Rename tablet-check to size-check, add the phone profiles (xs 320, sm 360, 411 default, phone landscape) to the tour script and the skill, update CLAUDE.md, README and three-slot-screen step 6, and run the phone profiles once to see what they show.
+```

@@ -125,3 +125,12 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Pieces take the whole hook object `f` plus `theme`; `CityPincodeRow` takes explicit props because S4.A and S4.B.6 share it | Short call sites; the one shared row is the one that needs to be generic. | Explicit props everywhere: 20 pieces × 3–6 props. |
 | `LineItemCard` is not `React.memo` | Its handlers close over `form` (new each render), so `memo` would never hit; there are a few cards, not a list. Rule 5 is for lists. | Rewriting `updateLine` / `removeLine` with functional `setForm` to make them stable: a behaviour-adjacent change outside this restructure. |
 | All five hand-written two-column rows became `Columns kind="input"` (`qtyRateWeights` for Qty \| Rate) | Rule 4; on the phone the cells are 163 dp, well above 128, so nothing moves (pixel-identical screenshots). | — |
+
+## Prompts 43–44 — `tablet-check` becomes `size-check` (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| One verification skill, `size-check`, with a profile table (xs 320 · sm 360 · phone 411 · phone landscape 914×411 · tab8P · tab8L · tab10P · tab10L); "check the phones" = the first four rows | The procedure (resize, relaunch, tour, screenshot, review) is identical for every size; only the numbers differ. Two skills would be the same script and checklist twice and would drift apart. | Separate `mobile-check` and `tablet-check`: duplication. Folding the check into `three-slot-screen`: it already calls the check in step 6 and must stay runnable on its own ("is it responsive?"). |
+| The rules stay in `three-slot-screen` (and `Columns`); the check only verifies | Rule and check are different kinds of work; mixing them makes the restructure skill the only time anyone checks. | — |
+| Phone landscape is a profile of its own | 914×411 dp is **lg**: a phone turned sideways gets the tablet two-pane layout with only 411 dp of height, which no one had looked at. It found the S2 collapse on the first run. | Treating landscape as "the same screens, rotated". |
+| `size-tour.py` goes Back after S3 on one-pane sizes | On phones S3 is an overlay; without the Back the rest of the tour tapped into the overlay (every later shot was S3). Detected by the "Invoice" back-bar title. | — |

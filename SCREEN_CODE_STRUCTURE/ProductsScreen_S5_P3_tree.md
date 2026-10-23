@@ -126,7 +126,7 @@ restockFields
 
 ## Tablet check (Prompt 30)
 
-Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+Checked on 2026-10-23 with `/size-check` (then `/tablet-check`) (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
 
 | Size | Seen | Verdict |
 | --- | --- | --- |

@@ -104,7 +104,7 @@ SettingsScreen()                                                    line 34
 
 ## Tablet check (Prompt 32)
 
-Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait).
+Checked on 2026-10-23 with `/size-check` (then `/tablet-check`) (phone AVD resized): **md** 601×961 dp (8-inch portrait).
 
 | Size | Seen | Verdict |
 | --- | --- | --- |

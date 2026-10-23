@@ -97,4 +97,4 @@ Not memoised on purpose: `LineItemCard` (a handful of cards, not a list; its han
 
 ## Tablet check (Prompt 37, after the restructure)
 
-Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp · **lg** 800×1280 dp · **xl** 961×601 dp · **xxl** 1280×800 dp. See the walkthrough, Prompt 37, for what was seen; the layouts are unchanged from Prompts 31–33 (dates stack at xl; catalog names on two lines at xl; the form may grow past 38 % at xl and lg since the ScrollView keeps its default `flexGrow`).
+Checked on 2026-10-23 with `/size-check` (then `/tablet-check`) (phone AVD resized): **md** 601×961 dp · **lg** 800×1280 dp · **xl** 961×601 dp · **xxl** 1280×800 dp. See the walkthrough, Prompt 37, for what was seen; the layouts are unchanged from Prompts 31–33 (dates stack at xl; catalog names on two lines at xl; the form may grow past 38 % at xl and lg since the ScrollView keeps its default `flexGrow`).

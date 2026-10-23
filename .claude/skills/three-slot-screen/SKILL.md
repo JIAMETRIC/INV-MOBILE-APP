@@ -53,7 +53,7 @@ Each region function starts with a one-line comment: its ID and what it draws (`
 ## 6. Verify
 - [ ] `npm run typecheck` is clean
 - [ ] Reload the dev client (`adb shell am force-stop` + the `invoiceerp://expo-development-client/?url=…` deep link, so Metro sends a fresh bundle), open the screen, exercise each region (toggle filters, open sheets), and compare a screenshot with one taken before the change: identical
-- [ ] When the change touches a tablet branch (`bp.isPhone`, `bp.panes`, `bp.atLeast`), run `/tablet-check` (resizes the phone emulator to the 8-inch and 10-inch sizes and screenshots every screen); otherwise say the tablet layouts were read only
+- [ ] When the change touches a breakpoint branch (`bp.isPhone`, `bp.panes`, `bp.atLeast`) or a `Columns` row, run `/size-check` (resizes the phone emulator to the phone and tablet profiles and screenshots every screen); otherwise say which sizes were read only
 - [ ] Only one scroller inside Main; `flex: 1` on Main; no `FlatList` inside a `ScrollView`
 
 ## 7. Document

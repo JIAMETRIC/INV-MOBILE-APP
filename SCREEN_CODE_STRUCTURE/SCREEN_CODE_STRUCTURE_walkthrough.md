@@ -266,3 +266,23 @@ Docs: `CreateInvoiceScreen_S4_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S
 ## Session 14 close (2026-10-23)
 
 Everything is committed (`master` at `fa792f7` plus this log; no remote). Metro and the phone emulator were stopped. Next up when the owner returns: `/three-slot-screen` on S5 Products, then S6, S3, S1; the `Tablet_8in` / `Tablet_10in` AVDs exist but the tablet check runs on the resized phone AVD (`/tablet-check`).
+
+## Prompts 43–44 — `size-check` (was `tablet-check`) and the first phone run (2026-10-23, session 14)
+
+**Renamed:** `.claude/skills/tablet-check` → `size-check` (profile table with four phone rows and four tablet rows), `scripts/tablet-tour.py` → `size-tour.py`; references in README, CLAUDE.md, `three-slot-screen` step 6 and the tree files. The tour now goes Back after S3 on one-pane sizes (the first xs/sm runs tapped into the S3 overlay for the rest of the tour; detected, fixed, re-run).
+
+**Phone profiles run:** xs 640×1136 @ 320 (320×568 dp), sm 720×1600 @ 320 (360×800 dp), phoneL 2400×1080 @ 420 (914×411 dp, **lg**). The 411 default is the baseline already checked at every step.
+
+| # | Where | Size | What | Severity |
+| --- | --- | --- | --- | --- |
+| 1 | S2 list card | phone landscape (914×411, lg), date range open | **the list card collapses to an empty strip**: header + search + tabs + dates take ≈ 330 of 411 dp and the hugging card (`flexShrink: 1`) is the only thing that gives. Without the date range the row shows | **bug** |
+| 2 | S2 filters | xs 320 | search placeholder, status tabs and From / To placeholders truncated; row date wraps | tight |
+| 3 | S3 items header | xs 320 | "AMOUNT" clips ("RATEAMOU…") | tight |
+| — | S4 | xs 320 | `Columns` stacks City / Pincode, Mobile / Email and the dates (cells 118 dp < 128): rule 4 working as designed; stepper, cards, TOTAL bar fine | ok |
+| — | S5, P3, S6 | xs 320 | phone rows, the editor sheet, the settings list and drill-in all fine; the FAB floats over the list as on every phone | ok |
+| — | everything | sm 360 | complete, nothing truncated | ok |
+| — | S3, S4 (form \| preview), S5 (rows \| editor), S6 | phone landscape | the lg layouts fit in 411 dp of height and scroll | ok |
+
+Proposed fixes (not applied): #1 a `minHeight` of about two rows on `InvoiceListCard`, or the filter rows as the FlatList's `ListHeaderComponent` on short screens; #2 / #3 shorter labels or `adjustsFontSizeToFit` under 340 dp (xs is the floor, so "tight but readable" may be acceptable).
+
+Emulator restored to 1080×2400.

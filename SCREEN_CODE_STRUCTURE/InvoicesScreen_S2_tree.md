@@ -93,7 +93,7 @@ Same `Header` and `ListPane`; the row adds `DetailPane` (50 % at 2 panes, 42 % a
 
 ## Tablet check (Prompt 30)
 
-Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
+Checked on 2026-10-23 with `/size-check` (then `/tablet-check`) (phone AVD resized): **md** 601×961 dp (8-inch portrait) · **xl** 961×601 dp (8-inch landscape) · **lg** 800×1280 dp (10-inch portrait) · **xxl** 1280×800 dp (10-inch landscape).
 
 | Size | Seen | Verdict |
 | --- | --- | --- |
@@ -105,3 +105,14 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 Applied for md (Prompt 32): `InvoicesScreen()` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`; `onPressRow` opens the overlay when single-pane. Applied for xl (Prompt 33): `showActivity = bp.atLeast(S2.activityFrom) && selected`, with `S2.activityFrom = 'xxl'`; the detail pane is 42 % only when the activity pane shows, else 50 %.
 
 Since Prompt 37 the screen is built on `<Screen>` (C16): `InvoicesScreen()` passes `Header` as `header` and the phone FAB as `fab`; `ListPane` is Main. Line numbers after the switch moved by a few lines; names are unchanged.
+
+## Size check, phones (Prompt 44)
+
+| Size | Seen | Verdict |
+| --- | --- | --- |
+| xs 320 × 568 | search placeholder "Search invoice no o…", tabs "Issu… Part…", From / To "YYYY-MM-…", row date wraps to 2 lines; FAB sits over the card's bottom padding | **tight** (the app's floor; readable, nothing hidden) |
+| sm 360 × 800 | everything complete | ok |
+| phone 411 × 914 | the baseline | ok |
+| phone landscape 914 × 411 (lg, 2 panes) | without the date range: fine. **With the date range open the list card collapses to an empty strip**: the card hugs its rows (`flexShrink: 1`) and is the only thing that can shrink once header + search + tabs + dates have taken ≈ 330 of the 411 dp | **bug** |
+
+Proposed fix (not applied): give `InvoiceListCard` a floor of about two rows (`minHeight` ≈ 140) so the filters give way instead, or move `FilterRow` / `SegmentedControl` / `DateRangeRow` into the FlatList's `ListHeaderComponent` on short screens so the whole column scrolls.
