@@ -515,7 +515,9 @@ function ItemsSection({ f, theme }: { f: Form; theme: Theme }) {
     <View style={{ gap: layout.gap }}>
       <SectionTitle title={`Items (${f.form.lines.length})`} theme={theme}
         right={xl ? undefined : (
-          <Button label="Add from products" icon="tag" variant="ghost" theme={theme} onPress={f.openCatalog} />
+          <Button label="Add from products" icon="tag" theme={theme} onPress={f.openCatalog}
+            style={{ minHeight: touch.min, paddingHorizontal: space[3] }}
+            labelStyle={{ ...type.label, fontFamily: font.semibold }} />
         )}
       />
       {f.form.lines.length === 0
