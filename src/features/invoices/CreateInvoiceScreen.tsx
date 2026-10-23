@@ -628,6 +628,9 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
             </Text>
             <Text style={[type.caption, { color: theme.textMuted }]}>{l.qty} × {formatPaise(l.unit_paise)}</Text>
             <MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small />
+            <IconButton icon="edit-2" label={`Edit item ${i + 1}`} onPress={() => f.setStep(1)} theme={theme} />
+            <IconButton icon="trash-2" label={`Remove item ${i + 1}`} onPress={() => f.removeLine(i)} theme={theme}
+              color={white} fill={theme.destructive} />
           </View>
         ))}
       </Card>
