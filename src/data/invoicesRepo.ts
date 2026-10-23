@@ -69,9 +69,9 @@ export async function saveInvoice(
       invoiceNo,
       opts.status ?? 'issued',
       form.invoiceDate,
-      form.dueDate || null,
-      form.party.party_name, form.party.party_address, form.party.party_city,
-      form.party.party_pincode, form.party.party_mobile, form.party.party_email,
+      null, // no due date: the Bill to card no longer asks for one
+      form.party.party_name, '', form.party.party_city, // address is no longer asked for
+      form.party.party_pincode, form.party.party_mobile, '', // email is no longer asked for
       totals.gross, form.discountPercent, totals.discount,
       totals.roundOff, totals.total,
       amountInWords, form.notes,

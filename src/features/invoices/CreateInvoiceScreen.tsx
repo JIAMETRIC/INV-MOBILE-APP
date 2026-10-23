@@ -27,7 +27,7 @@ import { useSnackbar } from '../../ui/Snackbar';
 import { font, layout, radius, shadow, space, touch, type, maxReadWidth } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import {
-  addDaysIso, computeTotals, formatInvoiceNo, formatPaise, linePaise, numberToWordsIndian, todayIso,
+  computeTotals, formatInvoiceNo, formatPaise, linePaise, numberToWordsIndian, todayIso,
 } from '../../data/money';
 import { getSettings } from '../../data/settingsRepo';
 import { listProducts } from '../../data/productsRepo';
@@ -70,7 +70,7 @@ function blankForm(): InvoiceForm {
   return {
     party: emptyParty(),
     invoiceDate: today,
-    dueDate: addDaysIso(today, 14),
+    dueDate: '',
     discountPercent: 0,
     lines: [],
     notes: '',
@@ -491,21 +491,6 @@ function BillToCard({ f, theme }: { f: Form; theme: Theme }) {
   );
 }
 
-// S4.A row 3 and S4.B.6 — one row, two equal columns: City | Pincode (6 digits).
-// Columns stacks them only if a cell would be under 128 wide.
-function CityPincodeRow({ city, pincode, onCity, onPincode, onBlur, theme }: {
-  city: string; pincode: string; onCity: (v: string) => void; onPincode: (v: string) => void;
-  onBlur: () => void; theme: Theme;
-}) {
-  return (
-    <Columns kind="input">
-      <Input label="City" value={city} onChange={onCity} onBlur={onBlur} theme={theme} />
-      <Input label="Pincode" value={pincode} onChange={onPincode} onBlur={onBlur}
-        theme={theme} keyboardType="numeric" maxLength={6} />
-    </Columns>
-  );
-}
-
 // S4.A — Invoice date (YYYY-MM-DD). The last input in the card, so it pulls the card's bottom padding up.
 function DatesRow({ f, theme }: { f: Form; theme: Theme }) {
   return (
@@ -608,7 +593,7 @@ function AdjustmentsCard({ f, theme }: { f: Form; theme: Theme }) {
   );
 }
 
-// S4.B.6 — Consignee · Ship-to address · City | Pincode; all printed on the invoice (D1.2).
+// S4.B.6 — Consignee · Ship-to address; all printed on the invoice (D1.2).
 function ShippingFields({ f, theme }: { f: Form; theme: Theme }) {
   const ship = f.form.ship;
   const set = (k: keyof typeof ship) => (v: string) => f.patch({ ship: { ...ship, [k]: v } });
@@ -617,8 +602,6 @@ function ShippingFields({ f, theme }: { f: Form; theme: Theme }) {
     <>
       <Input label="Consignee" value={ship.ship_name} onChange={set('ship_name')} onBlur={blur} theme={theme} />
       <Input label="Ship-to address" value={ship.ship_address} onChange={set('ship_address')} onBlur={blur} theme={theme} />
-      <CityPincodeRow city={ship.ship_city} pincode={ship.ship_pincode}
-        onCity={set('ship_city')} onPincode={set('ship_pincode')} onBlur={blur} theme={theme} />
     </>
   );
 }
