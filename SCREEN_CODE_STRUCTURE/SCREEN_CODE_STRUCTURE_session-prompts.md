@@ -267,3 +267,9 @@ Yes. Run /three-slot-screen on S4 Create invoice, including the Screen scaffold 
 ```
 OK, build the Screen scaffold and apply the S4 plan as proposed.
 ```
+
+## Prompt 38
+
+```
+i WILL SHUTDOWN NOW..
+```

@@ -262,3 +262,7 @@ The proposed tree is in the chat (Prompt 36); it is copied here once approved.
 Not memoised: `LineItemCard` (see TRACKING). Not changed: `components.tsx` and `tokens.ts` (`ListItem titleLines` was Prompt 33), the data calls, the navigation calls.
 
 Docs: `CreateInvoiceScreen_S4_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S4 tables name functions, C16 added, S2.6 updated; `InvoicesScreen_S2_tree.md` updated; rationale in TRACKING.
+
+## Session 14 close (2026-10-23)
+
+Everything is committed (`master` at `fa792f7` plus this log; no remote). Metro and the phone emulator were stopped. Next up when the owner returns: `/three-slot-screen` on S5 Products, then S6, S3, S1; the `Tablet_8in` / `Tablet_10in` AVDs exist but the tablet check runs on the resized phone AVD (`/tablet-check`).
