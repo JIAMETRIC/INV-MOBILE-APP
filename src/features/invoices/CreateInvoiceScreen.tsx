@@ -603,7 +603,7 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
             <Text style={[type.heading, { color: theme.text }]} numberOfLines={2}>
               {form.party.party_name || '(no customer)'}
             </Text>
-            {form.party.party_mobile ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Ph {form.party.party_mobile}</Text> : null}
+            {form.party.party_mobile ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{form.party.party_mobile}</Text> : null}
           </View>
           <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
             <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{f.previewNo}</Text>
