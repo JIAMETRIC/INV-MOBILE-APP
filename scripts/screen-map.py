@@ -9,6 +9,7 @@ Usage:  python -I scripts/screen-map.py            (writes the page)
 Edit:   the SCREENS data below (one entry per screen; nodes nest).
         A node is a dict: fn · id · what · cells (list of cell labels) · kids (list of nodes)
         · columns (true when the kids sit side by side) · dashed (an optional part).
+        A screen may carry `small`: one line on what a 5-inch phone (360 x 640 dp) shows, from a size check.
 Source of truth for the data: the tree file of each screen
 (SCREEN_CODE_STRUCTURE/<Screen>_<ID>_tree.md, sections 1 and 3).
 """
@@ -28,6 +29,7 @@ def n(fn, id="", what="", cells=None, kids=None, columns=False, dashed=False):
 SCREENS = [
   dict(key="S1", title="Dashboard", file="src/features/dashboard/DashboardScreen.tsx",
     note="One layout at every width; only the FAB (phones) and the bottom padding change.",
+    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): Header, hero, three tiles (labels on two lines), FAB above the nav; about 200 dp of empty space below the tiles.",
     phone=[
       n("Header", "S1.0", "TopAppBar large: fyLabel() caption · Dashboard"),
       n("DashboardMain", "", "Main: one ScrollView; bottom = useMainInset()", kids=[
@@ -46,6 +48,7 @@ SCREENS = [
 
   dict(key="S2", title="Invoices", file="src/features/invoices/InvoicesScreen.tsx",
     note="One pane when bp.panes === 1. Under 600 dp of height the three filter blocks move inside InvoiceListCard as the list header (same order on screen).",
+    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): 640 dp is above S2.shortScreen (600), so the filters stay as rows above the card; with the date range open one invoice row is visible above the FAB.",
     phone=[
       n("Header", "S2.0", "TopAppBar large: N invoices · Invoices · download · book"),
       n("ListPane", "", "Main: the column below, sides 20, gap 16", kids=[
@@ -69,6 +72,7 @@ SCREENS = [
 
   dict(key="S3", title="Invoice detail", file="src/features/invoices/InvoiceDetail.tsx",
     note="An embeddable Main: no Screen wrapper, no header or footer of its own. One pane: the shell's Invoice back bar hosts it (App.tsx); lg+: S2's DetailPane.",
+    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): Back bar, header row, bill-to, Share PDF | Excel on one line, items table; the RATE and AMOUNT labels nearly touch (known, same as xs 320). Scrolls for totals and Edit / Void.",
     phone=[
       n("host: TopAppBar Invoice", "S0", "back = nav.closeOverlay (App.tsx, not this file)", dashed=True),
       n("DetailMain", "", "Main: one ScrollView, maxWidth 720, bottom S3.bottomPad", kids=[
@@ -92,6 +96,7 @@ SCREENS = [
 
   dict(key="S4", title="Create / Edit invoice", file="src/features/invoices/CreateInvoiceScreen.tsx",
     note="An overlay (no nav under it). Phones: Header · below = Stepper · one step at a time · footer = TotalBar. md / lg: form pane (+ preview at lg). xl: three panes.",
+    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): Stepper, then about four fields of Bill to above the TOTAL bar (Party name, Address, City | Pincode, Mobile | Email); Items step: title row, empty card, Add free line, the adjustments card below the fold.",
     phone=[
       n("Header", "S4.L1", "TopAppBar: f.title · f.previewNo · back = f.leave"),
       n("below: Stepper", "S4.L1.1", "STEPS × 3, tap = f.setStep", cells=["Bill to", "Items", "Review"]),
@@ -138,6 +143,7 @@ SCREENS = [
 
   dict(key="S5", title="Products", file="src/features/products/ProductsScreen.tsx",
     note="One pane: list only, the editor is the P3 sheet. lg+: list | editor pane 38 %. The table shows when the list pane is at least 520 dp wide, else card rows.",
+    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): Search, then four list rows visible; the FAB floats over the fifth. P3 opens as a bottom sheet at 92 % height: name, quick-pick chips wrapping in 2 to 3 per line.",
     phone=[
       n("Header", "S5.0", "TopAppBar large: N items · Products · New product (md+) · download"),
       n("ListPane", "S5.1–S5.3", "Main: column, sides 20, gap 16", kids=[
@@ -174,6 +180,7 @@ SCREENS = [
 
   dict(key="S6", title="Settings", file="src/features/settings/SettingsScreen.tsx",
     note="One pane: the section list, or the open section under a back header. lg+: list 300 | section capped at 720. No footer: Save is the last row of CompanyForm.",
+    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): The four-row section list and the version line with room to spare; Company: Business name, Subtitle, Address, City | Pincode above the nav, the rest by scrolling.",
     phone=[
       n("Header", "S6.0", "TopAppBar large: Settings; section open → its label + back"),
       n("SectionScroll", "", "Main: one ScrollView; bottom = useNavInset()", kids=[
@@ -282,8 +289,9 @@ def render(node, depth=0):
     out.append('</div>')
     return "".join(out)
 
-def device(label, nodes):
-    return f'<div class="dev"><span class="lbl">{esc(label)}</span>' + "".join(render(x) for x in nodes) + '</div>'
+def device(label, nodes, foot=""):
+    tail = f'<span class="what" style="padding:2px 4px">{esc(foot)}</span>' if foot else ""
+    return f'<div class="dev"><span class="lbl">{esc(label)}</span>' + "".join(render(x) for x in nodes) + tail + '</div>'
 
 def page():
     tabs = "".join(f'<button role="tab" aria-selected="{"true" if i == 0 else "false"}" data-tab="{s["key"]}">{s["key"]}</button>' for i, s in enumerate(SCREENS))
@@ -295,7 +303,7 @@ def page():
     <p class="caption">{esc(s["note"])}</p>
     <p class="caption">Point at a piece as <code>Function</code> + cell: "DateRangeRow, first column". Blue blocks hold other blocks; dashed blocks are optional or belong to another file.</p>
   </div>
-  <div class="two">{device("Phone · one pane (xs, sm, md)", s["phone"])}{device("Tablet · panes (lg+)", s["tablet"])}</div>
+  <div class="two">{device("Phone · one pane (xs, sm, md)", s["phone"], s.get("small", ""))}{device("Tablet · panes (lg+)", s["tablet"])}</div>
 </section>''')
     return f'''<title>Screen Map</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">

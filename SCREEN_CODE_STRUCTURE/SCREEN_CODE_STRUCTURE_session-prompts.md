@@ -467,3 +467,15 @@ i want to know the Exact Screen items and its Funtions even Graphical way also f
 ```
 Perfect Same way Give me for all Screen and How you remember? this we can create this as a Skill? or Template?: beacuse i will do this for Every APP
 ```
+
+## Prompt 65
+
+```
+What Prompt to give i want for 5inch Mobile Screen Size
+```
+
+## Prompt 66
+
+```
+i want screen-map.html for 5 inch Mobile Screen size
+```

@@ -103,6 +103,7 @@ DashboardScreen()                                                    line 73
 
 | Size | Layout | Last checked |
 | --- | --- | --- |
+| phone5 360 × 640 (5-inch) | Header, hero, three tiles (labels on two lines), FAB above the nav; about 200 dp of empty space below the tiles. | Prompt 65 |
 | xs 320 · sm 360 · phone 411 | header, hero, three tiles (labels on two lines at 320), FAB above the floating nav | Prompt 44 (phones), Prompt 54 (phone, pixel-identical before / after) |
 | phone landscape (lg) | same blocks beside the rail, no FAB, bottom = gesture inset + 16 | Prompt 44 |
 | md 601 (8-inch portrait) | same blocks beside the rail, no FAB | Prompt 54 |

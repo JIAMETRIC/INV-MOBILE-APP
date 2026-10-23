@@ -168,6 +168,7 @@ Both list rows are `React.memo` with explicit props (`p`, `last`, `onPress`, `th
 
 | Size | Layout | Last checked |
 | --- | --- | --- |
+| phone5 360 × 640 (5-inch) | Search, then four list rows visible; the FAB floats over the fifth. P3 opens as a bottom sheet at 92 % height: name, quick-pick chips wrapping in 2 to 3 per line. | Prompt 65 |
 | xs 320 · sm 360 · phone 411 | header, search, phone rows in the hugging card, the FAB over the list above the floating nav; P3 as a bottom sheet | Prompt 44 (xs: rows, sheet and FAB fine; sm: nothing truncated), Prompt 47 (411: S5 top pixel-identical before / after the `Screen` scaffold), Prompt 49 (411: list, editor sheet, Restock, Back and closed, 0.000 % differing pixels before / after the restructure) |
 | phone landscape (914 × 411, lg) | [ phone rows \| editor pane ]: list pane (914 − 88) × 0.62 = 512 dp < 520; fits in 411 dp of height and scrolls | Prompt 44 |
 | md 601 (8-inch portrait) | one pane + rail: list pane 513 dp < 520, so phone rows at full width with complete names; "New product" in the header, no FAB; P3 as a centred dialog | Prompt 30 (table shown: NAME truncated, SIZE touching the ellipsis, "tight"; the sheet's Price \| Stock row fine), Prompt 31 (threshold 480), Prompt 32 (threshold 520 and NAME `paddingEnd`: phone rows, full names), Prompt 49 (phone rows full width) |

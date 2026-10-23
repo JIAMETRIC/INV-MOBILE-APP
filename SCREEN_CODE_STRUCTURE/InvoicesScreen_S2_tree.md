@@ -134,6 +134,7 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 
 | Size | Layout | Last checked |
 | --- | --- | --- |
+| phone5 360 × 640 (5-inch) | 640 dp is above S2.shortScreen (600), so the filters stay as rows above the card; with the date range open one invoice row is visible above the FAB. | Prompt 65 |
 | xs 320 · sm 360 · phone 411 | one pane: header, filters, list card, FAB above the floating nav. At 320 the search placeholder, the tabs and the From / To placeholders truncate, a row's date wraps to two lines and the FAB sits over the card's bottom padding: tight but readable, nothing hidden (the app's floor). 360 and 411 complete | Prompt 44 |
 | phone landscape 914 × 411 (lg, 2 panes) | height under `S2.shortScreen`: the filters are the list's `ListHeaderComponent` inside a card that fills the pane, so everything scrolls together; with the date range open the row sits below the fold and the card never collapses (before Prompt 45 it collapsed to nothing) | Prompt 44, fix Prompt 45 |
 | md 601 (8-inch portrait) | one pane + rail (`bp.panes === 1`): full-width list, tabs and placeholders complete; a tap opens S3 as an overlay with a back bar beside the rail (before Prompt 32: two panes, list about 235 dp, everything truncated) | Prompt 30, fix Prompt 32 |

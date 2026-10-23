@@ -225,3 +225,11 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Blocks are the regions of the tree files, nothing more: a kit component placed inline (`SegmentedControl`) is named as the component with `options = STATUSES` in its "what" | `STATUSES` is data, not a layout piece; the block that draws it is the segmented control (Prompt 62). | Listing constants as blocks. |
 | A skill `/screen-map` (project) and a section + template in the user-level `responsive-screens` skill; `/three-slot-screen` step 7 now ends with the map | "How do you remember this?": a skill is the procedure, the script is the template; both are needed for the next app. | A memory note only. |
 | The page uses the app's own kit (Flat Glass · Brand Blue, Inter, the glass cards, the segmented control) like the two method pages | Same look as the app it describes. | The chat widget styling. |
+
+## Prompts 65–66 — the 5-inch phone profile and the map (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| A new size-check profile `phone5`: 720 × 1280 px at 320 dpi = 360 × 640 dp (sm) | A 5-inch 16:9 phone is as wide as `sm` but 160 dp shorter than the `sm` profile (360 × 800); the height is what changes what fits above the footer, FAB and nav. Older 5-inch phones (480 × 854 at 240 dpi = 320 × 569 dp) are the existing `xs` profile. | Re-use `sm`. |
+| The map gets one line per screen under the phone column, `small`, with what the 5-inch check showed, not a third wireframe column | The blocks are the same at every phone size (the method's one-pane layout); what differs is how much fits above the fold, which is one sentence per screen. A third column would repeat the left one. | A separate "5-inch" tab per screen. |
+| The same line goes into section 8 of each tree file, with the Prompt number | Section 8 is where sizes live; the map and the tree file say the same thing. | Map only. |

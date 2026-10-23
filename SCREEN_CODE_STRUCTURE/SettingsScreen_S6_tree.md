@@ -176,6 +176,7 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 
 | Size | Layout | Last checked |
 | --- | --- | --- |
+| phone5 360 × 640 (5-inch) | The four-row section list and the version line with room to spare; Company: Business name, Subtitle, Address, City | Pincode above the nav, the rest by scrolling. | Prompt 65 |
 | xs 320 · sm 360 · phone 411 | one pane: header, the list card with chevrons and the version line, or a section under its label with a back button; bottom nav floating, no FAB | Prompt 44 (xs: the list and the drill-in fine; sm: complete, nothing truncated), Prompt 52 (411: list, Company, Drafts, Activity log and the list after Back pixel-identical before / after, 0.000 % differing; Backup & restore checked by eye: info card, Export \| Restore, four recent backups). xs and sm were run before the company rows became `Columns` (Prompt 52 re-ran 411, md and lg only) |
 | phone landscape (lg) | master-detail beside the rail: the 300-dp list and the section pane; fits in 411 dp of height and scrolls | Prompt 44 |
 | md 601 (8-inch portrait) | one pane + rail: the list with chevrons and the version line, then Company as a drill-in under its back bar; Back returns to the list | Prompt 32 (md became one pane), Prompt 52 |

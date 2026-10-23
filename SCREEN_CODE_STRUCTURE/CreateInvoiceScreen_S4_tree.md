@@ -197,6 +197,7 @@ Not memoised on purpose: `LineItemCard` (a handful of cards in a `ScrollView`, n
 
 | Size | Layout | Last checked |
 | --- | --- | --- |
+| phone5 360 × 640 (5-inch) | Stepper, then about four fields of Bill to above the TOTAL bar (Party name, Address, City | Pincode, Mobile | Email); Items step: title row, empty card, Add free line, the adjustments card below the fold. | Prompt 65 |
 | xs 320 · sm 360 · phone 411 | stepper, one step at a time, TOTAL bar in the footer. xs: `Columns` stacks City / Pincode, Mobile / Email and the dates (cells 118 dp < 128), rule 4 working as designed; stepper, cards and TOTAL bar fine. sm: complete, nothing truncated. 411: step 0, Items and Review pixel-identical before / after the restructure; the P2 sheet 0.066 % (a slide-in frame), identical to the eye | Prompt 44 (xs, sm), Prompt 37 (411) |
 | phone landscape (lg) | form \| preview 40 % beside the rail; fits in 411 dp of height and scrolls | Prompt 44 |
 | md 601 (8-inch portrait) | one pane + rail: the form (cap 720), the header's eye swaps in the preview; the P2 sheet as a centred dialog | Prompt 32, Prompt 37 (as before the restructure) |

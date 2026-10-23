@@ -466,3 +466,21 @@ Prompts 60–62 were answered in chat (the S2 rows-and-columns tree; the status 
 | Portable | `~/.claude/skills/responsive-screens/templates/scripts/screen-map.py` (the generator with S2 as the example entry) and a new §7 in that skill | generated from the repo script by slicing the S2 entry |
 
 Not done: no screenshots of the page at phone width (the browser pane here is small; the page uses the same responsive CSS as the two method pages, one column under 720 px).
+
+## Prompts 65–66 — 5-inch phone: size check and the map (2026-10-23, session 14)
+
+`python -I scripts/size-tour.py <out> phone5 720x1280 320` on the running phone AVD, then `reset` (confirmed back at 1080 × 2400). 11 screenshots. Seen:
+
+| Screen | At 360 × 640 dp | Verdict |
+| --- | --- | --- |
+| S1 | header, hero, three tiles (two-line labels), FAB above the nav, empty space below the tiles | ok |
+| S2 (+ date range) | filters as rows (640 > `S2.shortScreen` 600), one invoice row above the FAB | ok |
+| S3 | back bar, header row, bill-to, Share PDF \| Excel, items table; RATE / AMOUNT labels nearly touch | ok, tight (known since Prompt 44 at xs; now seen at 360 too) |
+| S4 Bill to / Items | stepper, four fields above the TOTAL bar; Items: title row, empty card, Add free line, adjustments below the fold | ok |
+| P2 | the tap on "Add from products" did not open the sheet in time: the shot shows the Items step again | not seen |
+| S5 / P3 | search, four rows, FAB over the fifth; sheet at 92 % with the chips wrapping | ok |
+| S6 / Company | section list + version with room; Company: four fields above the nav | ok |
+
+The map (`scripts/screen-map.py` → `screen-map.html`) now carries a `small` line per screen under the phone column with these observations; the page is republished at the same link. The profile is added to the size-check skill, the tour docstring, the portable skill and its tour template. Section 8 of each S1–S6 tree file has a `phone5` row.
+
+Open: the RATE / AMOUNT header gap on S3 at 360 dp and under (proposed fix unchanged: `adjustsFontSizeToFit` on the header labels, or a narrower item share).

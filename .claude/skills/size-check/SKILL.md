@@ -17,6 +17,7 @@ The layout code reads the window size in dp (`src/ui/useBreakpoint.ts`: xs < 360
 | --- | --- | --- | --- | --- | --- |
 | `xs` | 640x1136 | 320 | 320 × 568 | xs | the smallest phone the app supports |
 | `sm` | 720x1600 | 320 | 360 × 800 | sm | a common budget phone |
+| `phone5` | 720x1280 | 320 | 360 × 640 | sm | a 5-inch phone (short: 640 dp of height, above `S2.shortScreen`) |
 | `phone` | 1080x2400 | 420 | 411 × 914 | sm | the default emulator (the baseline) |
 | `phoneL` | 2400x1080 | 420 | 914 × 411 | **lg** | a phone in landscape: it gets the tablet two-pane layout at 411 dp of height |
 | `tab8P` | 800x1280 | 213 | 601 × 961 | md | 8-inch tablet, portrait (one pane + rail) |

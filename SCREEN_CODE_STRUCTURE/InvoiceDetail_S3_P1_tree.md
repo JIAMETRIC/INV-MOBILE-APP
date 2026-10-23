@@ -170,6 +170,7 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 
 | Size | Layout | Last checked |
 | --- | --- | --- |
+| phone5 360 × 640 (5-inch) | Back bar, header row, bill-to, Share PDF | Excel on one line, items table; the RATE and AMOUNT labels nearly touch (known, same as xs 320). Scrolls for totals and Edit / Void. | Prompt 65 |
 | xs 320 | overlay under the back bar; Share PDF and Excel wrap to a second row; the AMOUNT header label clips ("RATEAMOU…"): **tight** | Prompt 44 |
 | sm 360 · phone 411 | overlay under the back bar, every block on one column, header labels complete | Prompt 44 (phones), Prompt 54 (phone 411, pixel-identical before / after the restructure, opened from the list and scrolled to the bottom) |
 | phone landscape (lg) | in S2's 50 % pane, scrolls | Prompt 44 |

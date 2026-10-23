@@ -5,6 +5,7 @@ Usage: python -I scripts/size-tour.py <out_dir> <tag> <WxH px> <density>
 Profiles used by /size-check (dp = px / (density / 160)):
   xs      640x1136  320   320 x 568 dp   xs   smallest supported phone
   sm      720x1600  320   360 x 800 dp   sm   common budget phone
+  phone5  720x1280  320   360 x 640 dp   sm   5-inch phone (short)
   phone   1080x2400 420   411 x 914 dp   sm   the default emulator (baseline)
   phoneL  2400x1080 420   914 x 411 dp   lg   phone in landscape (tablet two-pane layout)
   tab8P   800x1280  213   601 x 961 dp   md   8-inch portrait
