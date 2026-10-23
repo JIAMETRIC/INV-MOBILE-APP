@@ -503,7 +503,7 @@ function DatesRow({ f, theme }: { f: Form; theme: Theme }) {
 }
 
 // S4.B — Items: title + "Add from products" (hidden at xl, where the catalog is a panel),
-// the line-item cards or the empty card, "Add free line", then Adjustments.
+// the line-item cards or the empty card, then "Add free line".
 function ItemsSection({ f, theme }: { f: Form; theme: Theme }) {
   const bp = useBreakpoint();
   const xl = bp.atLeast('xl');
@@ -520,7 +520,6 @@ function ItemsSection({ f, theme }: { f: Form; theme: Theme }) {
       {/* S4.B.4 */}
       <Button label="Add free line" icon="plus" variant="outline" theme={theme} onPress={f.addBlankLine}
         style={{ alignSelf: 'flex-start' }} />
-      <AdjustmentsCard f={f} theme={theme} />
     </View>
   );
 }
@@ -562,47 +561,6 @@ function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: n
         <MoneyText paiseText={`₹${formatPaise(line.line_paise)}`} theme={theme} />
       </View>
     </Card>
-  );
-}
-
-// S4.B.5 — Adjustments: Discount % | "Ship to address" chip · shipping fields (S4.B.6, when
-// the chip is on) · Notes (S4.B.7).
-function AdjustmentsCard({ f, theme }: { f: Form; theme: Theme }) {
-  const blur = () => void f.autosave();
-  return (
-    <Card theme={theme}>
-      <SectionTitle title="Adjustments" theme={theme} />
-      <View style={{ flexDirection: 'row', gap: layout.grid, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Discount %" value={String(f.form.discountPercent)}
-            onChange={v => f.patch({ discountPercent: Math.max(0, Math.min(100, Number(v) || 0)) })}
-            onBlur={blur} theme={theme} keyboardType="decimal-pad" tabular />
-        </View>
-        <View style={{ flex: 1, marginBottom: space[4] }}>
-          <Chip label="Ship to address" icon="truck" active={f.form.hasShipping}
-            onPress={() => f.patch({ hasShipping: !f.form.hasShipping })} theme={theme} />
-        </View>
-      </View>
-      {f.form.hasShipping ? <ShippingFields f={f} theme={theme} /> : null}
-      <View style={{ marginBottom: S4.inputPull }}>
-        <Input label="Notes" value={f.form.notes}
-          onChange={v => f.patch({ notes: v })} onBlur={blur}
-          theme={theme} multiline placeholder="Optional — printed on the invoice" />
-      </View>
-    </Card>
-  );
-}
-
-// S4.B.6 — Consignee · Ship-to address; all printed on the invoice (D1.2).
-function ShippingFields({ f, theme }: { f: Form; theme: Theme }) {
-  const ship = f.form.ship;
-  const set = (k: keyof typeof ship) => (v: string) => f.patch({ ship: { ...ship, [k]: v } });
-  const blur = () => void f.autosave();
-  return (
-    <>
-      <Input label="Consignee" value={ship.ship_name} onChange={set('ship_name')} onBlur={blur} theme={theme} />
-      <Input label="Ship-to address" value={ship.ship_address} onChange={set('ship_address')} onBlur={blur} theme={theme} />
-    </>
   );
 }
 
