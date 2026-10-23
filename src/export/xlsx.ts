@@ -57,24 +57,36 @@ export async function exportInvoicesXlsx(rows: Invoice[]): Promise<File> {
   return saveXlsx([sheet], `invoices_${Date.now()}.xlsx`);
 }
 
-export async function exportConsolidatedRegister(): Promise<File> {
-  const db = await getDb();
-  const register: (string | number | null)[][] = [];
-  const lineItems: (string | number | null)[][] = [];
+type CellRow = (string | number | null)[];
 
+// Rows for the two register sheets: one per invoice, one per line item.
+// Exported for the integration test; the export below wraps it.
+export async function collectRegisterRows(): Promise<{ register: CellRow[]; lineItems: CellRow[] }> {
+  const db = await getDb();
+  const register: CellRow[] = [];
+  const lineItems: CellRow[] = [];
+
+  // The join yields one row per line item, so an invoice with n items comes
+  // back n times (once with nulls when it has none). Rows of one invoice are
+  // contiguous (ordered by i.id), so a register row is pushed only when the
+  // invoice_no changes; the marker survives a batch boundary.
+  let lastInvoiceNo: string | null = null;
   let offset = 0;
   for (;;) {
     const batch = await db.getAllAsync<RegisterRow>(
       `SELECT i.invoice_no, i.invoice_date, i.party_name, i.total_paise, i.status,
               li.sno, li.description, li.qty, li.unit_paise, li.line_paise
        FROM invoices i LEFT JOIN invoice_items li ON li.invoice_id = i.id
-       ORDER BY i.id DESC LIMIT ? OFFSET ?`,
+       ORDER BY i.id DESC, li.sno LIMIT ? OFFSET ?`,
       BATCH, offset,
     );
     if (batch.length === 0) break;
     for (const r of batch) {
       if (register.length >= MAX_ROWS) break;
-      register.push([r.invoice_no, r.invoice_date, r.party_name, rupees(r.total_paise), r.status]);
+      if (r.invoice_no !== lastInvoiceNo) {
+        register.push([r.invoice_no, r.invoice_date, r.party_name, rupees(r.total_paise), r.status]);
+        lastInvoiceNo = r.invoice_no;
+      }
       if (r.sno != null) {
         lineItems.push([
           r.invoice_no, r.sno, r.description, r.qty,
@@ -85,7 +97,11 @@ export async function exportConsolidatedRegister(): Promise<File> {
     offset += BATCH;
     if (batch.length < BATCH || register.length >= MAX_ROWS) break;
   }
+  return { register, lineItems };
+}
 
+export async function exportConsolidatedRegister(): Promise<File> {
+  const { register, lineItems } = await collectRegisterRows();
   return saveXlsx([
     {
       name: 'Invoices_Register',

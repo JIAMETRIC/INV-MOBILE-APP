@@ -111,11 +111,19 @@ const cryptoMock = {
   getRandomBytesAsync: async n => new Uint8Array(crypto.randomBytes(n)),
 };
 
+// xlsx.ts only needs these to write a file; the register test reads rows, not files.
+const fileSystemMock = {
+  File: class { create() {} writeSync() {} },
+};
+const pdfMock = { isWeb: false, docsDir: () => ({}), webBlobDownload: () => '' };
+
 const origLoad = Module._load;
 Module._load = function (request, parent, isMain) {
   if (request === 'expo-sqlite') return sqliteMock;
   if (request === 'expo-secure-store') return secureStoreMock;
   if (request === 'expo-crypto') return cryptoMock;
+  if (request === 'expo-file-system') return fileSystemMock;
+  if (request === './pdf' && parent && /xlsx\.js$/.test(parent.filename)) return pdfMock;
   return origLoad.apply(this, arguments);
 };
 
@@ -125,17 +133,18 @@ execFileSync('npx', ['tsc', '--ignoreConfig',
   'src/data/db.ts', 'src/data/settingsRepo.ts',
   'src/data/productsRepo.ts', 'src/data/invoicesRepo.ts', 'src/data/paymentsRepo.ts',
   'src/data/draftsRepo.ts', 'src/data/dashboardRepo.ts', 'src/data/auditRepo.ts',
-  '--outDir', outDir, '--module', 'nodenext', '--moduleResolution', 'nodenext',
+  'src/export/xlsx.ts',
+  '--outDir', outDir, '--rootDir', 'src', '--module', 'nodenext', '--moduleResolution', 'nodenext',
   '--target', 'es2022', '--skipLibCheck', '--esModuleInterop'], { stdio: 'inherit', shell: true });
 
-const db = require(path.join(outDir, 'db.js'));
-const settingsRepo = require(path.join(outDir, 'settingsRepo.js'));
-const productsRepo = require(path.join(outDir, 'productsRepo.js'));
-const invoicesRepo = require(path.join(outDir, 'invoicesRepo.js'));
-const paymentsRepo = require(path.join(outDir, 'paymentsRepo.js'));
-const draftsRepo = require(path.join(outDir, 'draftsRepo.js'));
-const dashboardRepo = require(path.join(outDir, 'dashboardRepo.js'));
-const money = require(path.join(outDir, 'money.js'));
+const db = require(path.join(outDir, 'data', 'db.js'));
+const settingsRepo = require(path.join(outDir, 'data', 'settingsRepo.js'));
+const productsRepo = require(path.join(outDir, 'data', 'productsRepo.js'));
+const invoicesRepo = require(path.join(outDir, 'data', 'invoicesRepo.js'));
+const paymentsRepo = require(path.join(outDir, 'data', 'paymentsRepo.js'));
+const draftsRepo = require(path.join(outDir, 'data', 'draftsRepo.js'));
+const dashboardRepo = require(path.join(outDir, 'data', 'dashboardRepo.js'));
+const money = require(path.join(outDir, 'data', 'money.js'));
 
 // ---------- scenario ----------
 
@@ -410,7 +419,7 @@ await t('delete + syncNextSeq never moves the sequence backwards', async () => {
 });
 
 await t('audit trail records and reads back actions', async () => {
-  const auditRepo = require(path.join(outDir, 'auditRepo.js'));
+  const auditRepo = require(path.join(outDir, 'data', 'auditRepo.js'));
   await auditRepo.logAudit('invoice.issue', 'invoice', 'PRE-001');
   await auditRepo.logAudit('product.upsert', 'product', 1);
   await auditRepo.logAudit('payment.record', 'invoice', 'PRE-001');
@@ -421,6 +430,22 @@ await t('audit trail records and reads back actions', async () => {
   for (const a of ['invoice.issue', 'product.upsert', 'payment.record', 'invoice.void', 'invoice.delete']) {
     assert.ok(actions.has(a), `missing audit action ${a}`);
   }
+});
+
+await t('consolidated register: one row per invoice, one per line item', async () => {
+  const xlsx = require(path.join(outDir, 'export', 'xlsx.js'));
+  // A 3-line invoice: before the fix it was listed 3 times on the register.
+  const lines = [mkLine(1, 'a', 1, 100), mkLine(2, 'b', 2, 200), mkLine(3, 'c', 3, 300)];
+  const { invoiceNo } = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  const { register, lineItems } = await xlsx.collectRegisterRows();
+  const d = await db.getDb();
+  const inv = await d.getFirstAsync('SELECT COUNT(*) AS n FROM invoices');
+  const items = await d.getFirstAsync('SELECT COUNT(*) AS n FROM invoice_items');
+  assert.equal(register.length, inv.n, 'register rows = invoices');
+  assert.equal(new Set(register.map(r => r[0])).size, inv.n, 'no invoice listed twice');
+  assert.equal(lineItems.length, items.n, 'line-item rows = invoice_items');
+  assert.equal(register.filter(r => r[0] === invoiceNo).length, 1, 'multi-line invoice listed once');
+  assert.equal(lineItems.filter(r => r[0] === invoiceNo).length, 3);
 });
 
 rmSync(outDir, { recursive: true, force: true });
