@@ -105,3 +105,7 @@ navMetrics.ts          S0.4.4
 | what Android Back does | navigation.tsx:71-81 |
 | snackbar height above the nav | `bottomOffset`, App.tsx:95 |
 | colours, radii, fonts | `src/ui/tokens.ts` (never hex values in these files) |
+
+## md tablets (Prompt 32, 2026-10-23)
+
+`useBreakpoint`: md now has `panes: 1`. The tablet shell (`App.tsx`) keeps the rail at md and renders the `invoice-detail` overlay inside the content area (`TopAppBar "Invoice"` + `InvoiceDetail`) when `bp.panes === 1`, the same as the phone shell does full-screen. Screens that switch on `bp.panes === 1`: S2 (list only, tap → overlay), S6 (list + drill-in), S5 (`showTable` false at 513 dp → phone rows). `bp.isPhone` still means "floating bottom nav, FAB" (xs, sm only).

@@ -99,7 +99,8 @@ export function InvoicesScreen() {
   const bp = useBreakpoint();
   const list = useInvoiceList();
 
-  if (bp.isPhone) {
+  // One pane: phones, and md tablets (rail, no panes); a tap opens S3 as an overlay.
+  if (bp.panes === 1) {
     return (
       <View style={{ flex: 1 }}>
         <Header list={list} theme={theme} />
@@ -185,9 +186,10 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
   const bp = useBreakpoint();
   const { rows } = list;
   // Stable, so the memoised rows don't re-render on every keystroke in the search box.
+  const single = bp.panes === 1;
   const onPressRow = useCallback(
-    (id: number) => bp.isPhone ? nav.showInvoice(id, true) : nav.selectInvoice(id),
-    [bp.isPhone, nav],
+    (id: number) => single ? nav.showInvoice(id, true) : nav.selectInvoice(id),
+    [single, nav],
   );
   return (
     <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
@@ -204,7 +206,7 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
             item={item}
             alt={index % 2 === 1}
             last={index === rows.length - 1}
-            selected={!bp.isPhone && item.id === nav.selectedInvoiceId}
+            selected={!single && item.id === nav.selectedInvoiceId}
             onPress={onPressRow}
             theme={theme}
           />

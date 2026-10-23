@@ -46,6 +46,8 @@ def find(label=None, text=None, nth=0):
         if (label and dv == label) or (text and tv == text):
             x1, y1, x2, y2 = map(int, b.groups())
             hits.append(((x1 + x2) // 2, (y1 + y2) // 2))
+    if nth < 0:
+        return hits[nth] if len(hits) >= -nth else None
     return hits[nth] if len(hits) > nth else None
 
 def tap(label=None, text=None, nth=0, wait=2.5):
@@ -94,8 +96,9 @@ if tap(label="New invoice") or tap(text="New invoice"):
 shot("S5_products")
 if tap(text="Acid Wash T-Shirt"):
     shot("P3_editor")
-    if find(label="Close"):
-        tap(label="Close")
+    # The sheet has two "Close" nodes (the scrim and the ✕ button); the button is the last.
+    if find(label="Close", nth=-1):
+        tap(label="Close", nth=-1)
 tap(label="Settings") and shot("S6_settings")
 if tap(text="Company"):
     shot("S6_company")

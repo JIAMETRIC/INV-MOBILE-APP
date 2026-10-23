@@ -47,7 +47,7 @@ export function SettingsScreen() {
 
   // Phone drill-in: system Back returns to the section list before leaving Settings.
   useBackIntercept(() => {
-    if (bp.isPhone && openOnPhone !== null) { setOpenOnPhone(null); return true; }
+    if (bp.panes === 1 && openOnPhone !== null) { setOpenOnPhone(null); return true; }
     return false;
   });
 
@@ -190,7 +190,7 @@ export function SettingsScreen() {
 
   const draftsPane = (
     <View>
-      {bp.isPhone ? null : <SectionTitle title={`Drafts (${drafts.length})`} theme={theme} />}
+      {bp.panes === 1 ? null : <SectionTitle title={`Drafts (${drafts.length})`} theme={theme} />}
       <Card theme={theme} list>
         {drafts.length === 0
           ? <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />
@@ -253,7 +253,7 @@ export function SettingsScreen() {
 
   const activityPane = (
     <View>
-      {bp.isPhone ? null : <SectionTitle title="Recent activity" theme={theme} />}
+      {bp.panes === 1 ? null : <SectionTitle title="Recent activity" theme={theme} />}
       <Card theme={theme} list>
         {audit.length === 0 ? <EmptyState icon="clock" text="No activity yet." theme={theme} /> : null}
         {audit.map((a, i) => (
@@ -280,7 +280,7 @@ export function SettingsScreen() {
     </Card>
   );
 
-  if (bp.isPhone) {
+  if (bp.panes === 1) { // phones and md tablets: list, then drill-in
     const open = SECTIONS.find(x => x.key === openOnPhone);
     return (
       <View style={{ flex: 1 }}>

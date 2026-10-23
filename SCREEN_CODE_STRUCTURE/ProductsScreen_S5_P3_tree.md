@@ -130,7 +130,7 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 
 | Size | Seen | Verdict |
 | --- | --- | --- |
-| md 601 | table in one pane: NAME ≈ 140 dp truncated "Acid Wash T-S..", and the SIZE glyph touches the ellipsis (no gap between the columns) | **tight** |
+| md 601 | ~~table, NAME truncated, SIZE touching~~ → **since Prompt 32** the table needs ≥ 520 dp (`showTable`), so md (513 dp) uses the phone rows: full names, size circle, price, Avl | ok |
 | lg 800 | editor pane open: list card ≈ 300 dp, **NAME column gone, STOCK cut, SOLD / AVL off-screen** | **bug** |
 | xl 961 | list card ≈ 335 dp: NAME gone, AVL cut | **bug** |
 | xxl 1280 | list card ≈ 347 dp: NAME gone, AVL badges clipped | **bug** |

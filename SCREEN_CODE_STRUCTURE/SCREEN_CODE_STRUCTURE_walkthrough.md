@@ -198,3 +198,23 @@ The 8-inch tablet in portrait is **md (601 dp)**, not phone width: the rail and 
 Process note: killing the tour's `python.exe` does not stop the Bash `for` loop that launched it, so two leftover loops kept running and reset the emulator mid-run twice. Fixed by killing every process whose command line contains the script name and running the three profiles from one Python driver. The skill text should say: run the profiles from one process.
 
 Still open (tight, not bugs): S2 list pane at md / xl, S3 items header at md, S5 NAME + SIZE gap at md, S4.L3 product names at xl; and the md-as-single-pane decision.
+
+## Prompt 32 — md single-pane, re-checked (2026-10-23, session 14)
+
+| Change | File |
+| --- | --- |
+| md `panes: 1` | `src/ui/useBreakpoint.ts` |
+| tablet shell shows the `invoice-detail` overlay (back bar + S3) beside the rail at one pane | `src/shell/App.tsx` |
+| S2 one-pane branch and row tap on `bp.panes === 1` | `InvoicesScreen.tsx` |
+| S6 drill-in and section titles on `bp.panes === 1` | `SettingsScreen.tsx` |
+| S5 table threshold 520 dp; NAME `paddingEnd` | `ProductsScreen.tsx` |
+| tour: ✕ is the last "Close" node | `scripts/tablet-tour.py` |
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| Tour at md (800×1280 @ 213 = 601×961 dp) | S1 rail + dashboard · S2 full-width list, complete tabs and placeholders · S3 overlay under "Invoice" back bar with ITEM · QTY · RATE · AMOUNT complete · S4 single pane with the eye toggle · S5 phone rows, full names · P3 sheet · S6 list then Company drill-in, Back returns (separate check, since the tour's Close tap hit the sheet body) |
+| Other sizes | not re-run; the changes only affect `panes === 1` (xs, sm, md) and the S5 threshold (xl 541 ≥ 520 keeps the table, verified by arithmetic) |
+| Emulator | restored to 1080×2400 |
+
+Open after this: S2 list at xl (3 panes at 961 dp; show `ActivityPane` only at xxl), S4.L3 product names at xl. Both cosmetic.

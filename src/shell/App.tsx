@@ -154,7 +154,15 @@ function Shell() {
         <SafeAreaView style={{ flex: 1, minWidth: 0 }} edges={['bottom']}>
           {overlay?.k === 'create-invoice'
             ? <CreateInvoiceScreen draftId={overlay.draftId} invoiceId={overlay.invoiceId} />
-            : tabContent}
+            : overlay?.k === 'invoice-detail' && bp.panes === 1
+              // md: one pane beside the rail, so the invoice opens like on a phone.
+              ? (
+                <>
+                  <TopAppBar title="Invoice" theme={theme} onBack={nav.closeOverlay} />
+                  <InvoiceDetail invoiceId={overlay.id} />
+                </>
+              )
+              : tabContent}
         </SafeAreaView>
       </View>
     </SafeAreaView>

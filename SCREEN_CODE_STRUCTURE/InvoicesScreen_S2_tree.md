@@ -95,9 +95,9 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 
 | Size | Seen | Verdict |
 | --- | --- | --- |
-| md 601 | rail + 2 panes; the list pane gets ≈ 235 dp: search placeholder "Search inv…", tabs "Is… P… P… V…", From/To "YYYY-…", row "aSAs… / PRE-0 01 · 22…" all truncated | **too tight** |
+| md 601 | ~~rail + 2 panes, list ≈ 235 dp, everything truncated~~ → **since Prompt 32 one pane**: full-width list, tabs and placeholders complete, a tap opens S3 as an overlay with a back bar beside the rail | ok |
 | xl 961 | 3 panes (detail 42 % + activity 26 %): list ≈ 280 dp, tabs "Iss… Pa… Pa… Vo…", row date wraps | **too tight** |
 | lg 800 | 2 panes, list ≈ 340 dp: everything readable | ok |
 | xxl 1280 | 3 panes: everything readable | ok |
 
-Proposed fix (not applied): give the list pane a floor (`minWidth` ≈ 340) and let the detail pane take the rest; show `ActivityPane` only at xxl (`bp.width >= 1200`), not at every 3-pane width. One line each in `S2` / `InvoicesScreen()`.
+Applied for md (Prompt 32): `InvoicesScreen()` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`; `onPressRow` opens the overlay when single-pane. Still open at xl: the 3-pane list is ≈ 280 dp; showing `ActivityPane` only at xxl would fix it (one line in `InvoicesScreen()`).

@@ -47,12 +47,12 @@ App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
 | --- | --- | --- | --- | --- | --- | --- |
 | xs | 0–359 | 4 | 1 | 12 | 16 | small phone |
 | sm | 360–599 | 4 | 1 | 16 | 16 | phone (emulator is 411dp → **sm**) |
-| md | 600–767 | 8 | 2 | 16 | 24 | small tablet / foldable |
+| md | 600–767 | 8 | **1** | 16 | 24 | small tablet / foldable; an 8-inch tablet in portrait (601 dp). Rail, but one pane: S2 opens S3 as an overlay, S6 drills in, S5 uses the phone rows (since 2026-10-23) |
 | lg | 768–959 | 8 | 2 | 20 | 24 | tablet portrait |
 | xl | 960–1199 | 12 | 3 | 24 | 32 | tablet landscape |
 | xxl | ≥1200 | 12 | 3 | 24 | 32 | large tablet / desktop web |
 
-`isPhone` = xs or sm. Almost every layout branches on `bp.isPhone`, `bp.atLeast('lg')` or `bp.atLeast('xl')`.
+`isPhone` = xs or sm (floating bottom nav). `panes === 1` = xs, sm **and md** (one pane; md keeps the rail). Layouts branch on `bp.panes`, `bp.isPhone`, `bp.atLeast('lg')` or `bp.atLeast('xl')`.
 
 ---
 
@@ -80,7 +80,7 @@ Start-up work: `getDb()` → `syncNextSeq()` → ready → `ensureDailyBackup()`
 │ Home Invoices Products Set│  S0.4 BottomTabs, 80dp + gesture inset
 └───────────────────────────┘
 Overlay "create-invoice" → S4 full screen (no tabs)
-Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen
+Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen (also on md tablets, inside the content area beside the rail)
 ```
 
 ### S0.3 Tablet shell (App.tsx:128-145)
@@ -194,7 +194,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
                [+ New invoice]   S2.6 FAB
 ```
 
-### Tablet wireframe (md/lg = 2 panes, xl+ = 3 panes)
+### Tablet wireframe (lg = 2 panes, xl+ = 3 panes; md is one pane like the phone, plus the rail)
 
 ```
 ┌──────────────────────┬────────────────────────┬──────────────┐
@@ -513,7 +513,7 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 └──────────────────────────────┘
 ```
 
-### Tablet: master-detail
+### Tablet (lg+): master-detail — md uses the phone list + drill-in beside the rail
 
 ```
 ┌───────────────────────┬─────────────────────────────────┐

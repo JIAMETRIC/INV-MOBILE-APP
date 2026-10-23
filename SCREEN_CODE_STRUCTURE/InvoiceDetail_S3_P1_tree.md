@@ -112,7 +112,7 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 
 | Size | Seen | Verdict |
 | --- | --- | --- |
-| md 601 | in the 50 % pane (≈ 300 dp): items header "ITEM Q… RATE AMO…" truncated, "22 Oct 26 · due 05 Nov 26" wraps, Share PDF / Excel wrap to two rows | **tight** |
+| md 601 | ~~in a 300 dp pane, header truncated~~ → **since Prompt 32** S3 opens as a full-width overlay (≈ 513 dp) under a back bar: header ITEM · QTY · RATE · AMOUNT complete, one line each | ok |
 | xl 961 | pane ≈ 370 dp: readable, item names wrap to 2 lines | ok |
 | lg 800 | pane ≈ 370 dp: readable | ok |
 | xxl 1280 | pane ≈ 460 dp: everything on one line | ok |

@@ -43,7 +43,7 @@ const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, 
   return (
     <ListRow theme={theme} flush divider={!last} onPress={() => onPress(p)}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={[type.label, { color: theme.text, flex: 3 }]} numberOfLines={1}>{p.name}</Text>
+        <Text style={[type.label, { color: theme.text, flex: 3, paddingEnd: space[2] }]} numberOfLines={1}>{p.name}</Text>
         <Text style={[type.number, { color: theme.text, width: 52 }]}>{p.size || '—'}</Text>
         <Text style={[type.number, { color: theme.text, width: 84, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
         <Text style={[type.number, { color: theme.text, width: 60, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
@@ -290,11 +290,11 @@ export function ProductsScreen() {
   );
 
   const editorTitle = mode === 'restock' ? 'Restock' : editId ? 'Edit product' : 'New product';
-  // S5.2: the 6-column table needs about 480 dp (fixed columns 328 + a readable NAME).
+  // S5.2: the 6-column table needs about 520 dp (fixed columns 328 + a readable NAME).
   // At lg the editor pane takes 38 %, so the list pane (62 % minus the 88 rail) is
   // ≈ 410 dp on a 10-inch portrait tablet: use the phone rows there, the table from xl.
   const listPaneWidth = bp.atLeast('lg') ? (bp.width - 88) * 0.62 : bp.width - 88;
-  const showTable = bp.atLeast('md') && listPaneWidth >= 480;
+  const showTable = bp.atLeast('md') && listPaneWidth >= 520;
 
   return (
     <View style={{ flex: 1 }}>

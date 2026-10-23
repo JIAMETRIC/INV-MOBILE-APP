@@ -225,3 +225,9 @@ Yes. Add a wrap mode to Columns (4th column goes to the next line, inputs defaul
 ```
 Yes, fix the two tablet bugs: the Products editor ScrollView flex basis so the NAME column shows at lg/xl/xxl, and the S4 date inputs clipping at xl. Re-run /tablet-check on S4 and S5 afterwards.
 ```
+
+## Prompt 32
+
+```
+Yes. Make md (600-767 dp) single-pane like the phone layout but with the rail, so the S2 list, S3 items header and S5 table are no longer cramped on an 8-inch tablet in portrait. Re-check with /tablet-check at md.
+```

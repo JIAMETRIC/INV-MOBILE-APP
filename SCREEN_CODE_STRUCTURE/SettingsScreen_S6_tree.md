@@ -101,3 +101,14 @@ SettingsScreen()                                                    line 34
 | gap between cards / side padding | the ScrollView `contentContainerStyle`, line 295 (`layout.gap` 16, `layout.side` 20) |
 | colours, radii, fonts | `src/ui/tokens.ts` (never hex values in this file) |
 | the look of every Card / Input / ListItem / Button | `src/ui/components.tsx` (changes all screens) |
+
+## Tablet check (Prompt 32)
+
+Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 dp (8-inch portrait).
+
+| Size | Seen | Verdict |
+| --- | --- | --- |
+| md 601 | since Prompt 32 the phone list (S6.1 with chevrons, version label) beside the rail; Company opens as a drill-in with a back bar; Back returns to the list | ok |
+| lg / xl / xxl | master-detail (section list 300 + pane), seen at xl in Prompt 30 | ok |
+
+`SettingsScreen` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`.
