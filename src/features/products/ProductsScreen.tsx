@@ -1,5 +1,5 @@
 // S5 — Products. Read top to bottom:
-//   SIZES, QUICK_PICKS, S5   the text and the numbers you are most likely to edit
+//   QUICK_PICKS, S5          the text and the numbers you are most likely to edit
 //   blank, num, AvlBadge     small helpers
 //   useProducts()            all state, data and actions (no JSX)
 //   ProductsScreen()         the phone / tablet switch, built on <Screen>
@@ -24,15 +24,14 @@ import { useSnackbar } from '../../ui/Snackbar';
 import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise } from '../../data/money';
-import { PRODUCT_SIZES, PRODUCT_SEED_NAMES } from '../../data/schema';
+import { PRODUCT_SEED_NAMES } from '../../data/schema';
 import { countProducts, listProducts, upsertProduct, deleteProduct, restockProduct, listRestocks, type ProductInput } from '../../data/productsRepo';
 import { exportProductsXlsx } from '../../export/xlsx';
 import { shareFile } from '../../export/pdf';
 import { logAudit } from '../../data/auditRepo';
 import type { ProductRow, Restock } from '../../data/types';
 
-// S5.6.3 / S5.6.2 — the chip labels (the catalog's sizes and seed names live in schema.ts).
-const SIZES = PRODUCT_SIZES;
+// S5.6.2 — the chip labels (the catalog's seed names live in schema.ts).
 const QUICK_PICKS = PRODUCT_SEED_NAMES;
 
 // Every number that is specific to this screen. Shared spacing comes from
@@ -41,18 +40,18 @@ const S5 = {
   // S5.2: the table's columns, in order; NAME takes the rest (flex 3). Shared by the
   // header and the rows so they cannot drift apart.
   columns: [
-    { key: 'NAME', width: 0 }, { key: 'SIZE', width: 52 }, { key: 'PRICE', width: 84 },
+    { key: 'NAME', width: 0 }, { key: 'PRICE', width: 84 },
     { key: 'STOCK', width: 60 }, { key: 'SOLD', width: 56 }, { key: 'AVL', width: 76 },
   ],
   nameFlex: 3, // S5.2: NAME's share of the remaining width
-  tableMinWidth: 520, // S5.2: the list pane needs this much for the 6-column table (328 fixed + a readable NAME)
+  tableMinWidth: 520, // S5.2: the list pane needs this much for the table (276 fixed + a readable NAME)
   editorWidth: '38%', // S5.5: lg+ editor pane
   rail: 88, // S0.4.3: the tablet rail, taken off the window width when sizing the panes
   editorPadding: 20, // S5.5 / P3: the editor card's padding
   longList: 6, // S5.3: more rows than this on a phone -> keep the last one clear of the FAB
 } as const;
 
-const blank = (): ProductInput => ({ name: '', size: 'S', unit_paise: 0, stock_qty: 0 });
+const blank = (): ProductInput => ({ name: '', unit_paise: 0, stock_qty: 0 });
 
 const num = (v: string) => {
   const n = Math.round(Number(v) || 0);
@@ -111,7 +110,7 @@ function useProducts() {
   // Stable, so the memoised rows don't re-render when unrelated state changes.
   const startEdit = useCallback((p?: ProductRow) => {
     setEditId(p?.id);
-    setDraft(p ? { name: p.name, size: p.size, unit_paise: p.unit_paise, stock_qty: p.stock_qty } : blank());
+    setDraft(p ? { name: p.name, unit_paise: p.unit_paise, stock_qty: p.stock_qty } : blank());
     setDraftSold(p?.sold_qty ?? 0);
     setMode('edit');
     setNameError('');
@@ -127,12 +126,12 @@ function useProducts() {
     }
     try {
       const saved = await upsertProduct({ ...draft, name: draft.name.trim() }, editId);
-      await logAudit('product.upsert', 'product', saved.id, { name: saved.name, size: saved.size });
+      await logAudit('product.upsert', 'product', saved.id, { name: saved.name });
       setEditing(false);
       void load();
-      snack(`Saved ${saved.name}${saved.size ? ` · ${saved.size}` : ''}`);
+      snack(`Saved ${saved.name}`);
     } catch (e) {
-      setNameError(`"${draft.name.trim()} · ${draft.size || 'No size'}" already exists.`);
+      setNameError(`"${draft.name.trim()}" already exists.`);
     }
   };
 
@@ -172,7 +171,7 @@ function useProducts() {
       const after = await restockProduct(editId, qty, rPricePaise, rNote.trim());
       await logAudit('product.restock', 'product', editId, { qty, pricePaise: rPricePaise, note: rNote.trim() });
       if (after) {
-        setDraft({ name: after.name, size: after.size, unit_paise: after.unit_paise, stock_qty: after.stock_qty });
+        setDraft({ name: after.name, unit_paise: after.unit_paise, stock_qty: after.stock_qty });
         setDraftSold(after.sold_qty);
       }
       setMode('edit');
@@ -294,13 +293,13 @@ function ProductListCard({ products, search, showTable, onPress, navInset, theme
           : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
         renderItem={({ item, index }) => showTable
           ? <ProductTableRow p={item} last={index === products.length - 1} onPress={onPress} theme={theme} />
-          : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={onPress} theme={theme} />}
+          : <ProductListRow p={item} last={index === products.length - 1} onPress={onPress} theme={theme} />}
       />
     </Card>
   );
 }
 
-// S5.2 — the table's column labels, from S5.columns (SIZE left-aligned, the numbers right-aligned).
+// S5.2 — the table's column labels, from S5.columns (the numbers right-aligned).
 function TableHeader({ theme }: { theme: Theme }) {
   return (
     <View style={{
@@ -310,7 +309,7 @@ function TableHeader({ theme }: { theme: Theme }) {
       {S5.columns.map(c => (
         <Text key={c.key} style={[type.overline, {
           color: theme.textMuted,
-          ...(c.width ? { width: c.width, textAlign: c.key === 'SIZE' ? 'left' : 'right' } : { flex: S5.nameFlex }),
+          ...(c.width ? { width: c.width, textAlign: 'right' } : { flex: S5.nameFlex }),
         }]}>{c.key}</Text>
       ))}
     </View>
@@ -320,7 +319,7 @@ function TableHeader({ theme }: { theme: Theme }) {
 // Column widths by key, for the table rows.
 const COL = Object.fromEntries(S5.columns.map(c => [c.key, c.width])) as Record<string, number>;
 
-// S5.2.r — one table row: NAME flex 3 · SIZE · PRICE · STOCK · SOLD · AVL (widths from S5.columns).
+// S5.2.r — one table row: NAME flex 3 · PRICE · STOCK · SOLD · AVL (widths from S5.columns).
 // Memoised: typing in the search box re-renders the list, not every row.
 const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, theme }: {
   p: ProductRow; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
@@ -329,7 +328,6 @@ const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, 
     <ListRow theme={theme} flush divider={!last} onPress={() => onPress(p)}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={[type.label, { color: theme.text, flex: S5.nameFlex, paddingEnd: space[2] }]} numberOfLines={1}>{p.name}</Text>
-        <Text style={[type.number, { color: theme.text, width: COL.SIZE }]}>{p.size || '—'}</Text>
         <Text style={[type.number, { color: theme.text, width: COL.PRICE, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
         <Text style={[type.number, { color: theme.text, width: COL.STOCK, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
         <Text style={[type.number, { color: theme.textMuted, width: COL.SOLD, textAlign: 'right' }]}>{num(String(p.sold_qty))}</Text>
@@ -339,17 +337,15 @@ const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, 
   );
 });
 
-// S5.3 — one phone row: size circle · name · "Stock n · Sold n" · price over the Avl badge.
-const ProductListRow = React.memo(function ProductListRow({ p, alt, last, onPress, theme }: {
-  p: ProductRow; alt: boolean; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
+// S5.3 — one phone row: name · "Stock n · Sold n" · price over the Avl badge.
+const ProductListRow = React.memo(function ProductListRow({ p, last, onPress, theme }: {
+  p: ProductRow; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
 }) {
   return (
     <ListItem
       theme={theme}
       flush
       divider={!last}
-      leadingText={p.size || '—'}
-      leadingAlt={alt}
       title={p.name}
       subtitle={`Stock ${num(String(p.stock_qty))} · Sold ${num(String(p.sold_qty))}`}
       onPress={() => onPress(p)}
@@ -398,14 +394,13 @@ function EditorBody({ p, theme }: { p: Products; theme: Theme }) {
   return p.mode === 'restock' && p.editId ? <RestockForm p={p} theme={theme} /> : <ProductForm p={p} theme={theme} />;
 }
 
-// S5.6 — Product name · Quick pick chips · Size chips · Price | Stock · actions · stock history.
+// S5.6 — Product name · Quick pick chips · Price | Stock · actions · stock history.
 function ProductForm({ p, theme }: { p: Products; theme: Theme }) {
   return (
     <View>
       <Input label="Product name" value={p.draft.name} error={p.nameError || undefined} autoCapitalize="words"
         onChange={v => { p.setDraft({ ...p.draft, name: v }); p.setNameError(''); }} theme={theme} />
       <QuickPickChips p={p} theme={theme} />
-      <SizeChips p={p} theme={theme} />
       <PriceStockRow p={p} theme={theme} />
       <EditorActions p={p} theme={theme} />
       <StockHistory p={p} theme={theme} />
@@ -423,23 +418,6 @@ function QuickPickChips({ p, theme }: { p: Products; theme: Theme }) {
           <Chip key={n} label={n} active={p.draft.name === n}
             onPress={() => { p.setDraft({ ...p.draft, name: n }); p.setNameError(''); }} theme={theme} />
         ))}
-      </View>
-    </>
-  );
-}
-
-// S5.6.3 — "Size": the size chips plus "No size".
-function SizeChips({ p, theme }: { p: Products; theme: Theme }) {
-  return (
-    <>
-      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Size</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[3] }}>
-        {SIZES.map(s => (
-          <Chip key={s} label={s} active={p.draft.size === s}
-            onPress={() => p.setDraft({ ...p.draft, size: s })} theme={theme} />
-        ))}
-        <Chip label="No size" active={p.draft.size === ''}
-          onPress={() => p.setDraft({ ...p.draft, size: '' })} theme={theme} />
       </View>
     </>
   );
@@ -499,7 +477,7 @@ function RestockForm({ p, theme }: { p: Products; theme: Theme }) {
   return (
     <View>
       <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
-        {p.draft.name} · {p.draft.size || 'No size'} — current stock {num(String(p.draft.stock_qty))}
+        {p.draft.name} — current stock {num(String(p.draft.stock_qty))}
       </Text>
       {/* S5.7.2 — one row, two equal columns */}
       <Columns kind="input">

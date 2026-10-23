@@ -27,12 +27,11 @@ export async function listProducts(search = ''): Promise<ProductRow[]> {
   await ensureSeeded(db);
   if (search) {
     return db.getAllAsync<ProductRow>(
-      `${SELECT_ROW} WHERE name LIKE ? OR size LIKE ?
-       ORDER BY name COLLATE NOCASE, size, id`,
-      `%${search}%`, `%${search}%`,
+      `${SELECT_ROW} WHERE name LIKE ? ORDER BY name COLLATE NOCASE, id`,
+      `%${search}%`,
     );
   }
-  return db.getAllAsync<ProductRow>(`${SELECT_ROW} ORDER BY name COLLATE NOCASE, size, id`);
+  return db.getAllAsync<ProductRow>(`${SELECT_ROW} ORDER BY name COLLATE NOCASE, id`);
 }
 
 // Every product, ignoring the search box: the Products header count.
@@ -61,16 +60,17 @@ export async function getProduct(id: number): Promise<ProductRow | null> {
   return db.getFirstAsync<ProductRow>(`${SELECT_ROW} WHERE products.id = ?`, id);
 }
 
-export type ProductInput = Pick<Product, 'name' | 'size' | 'unit_paise' | 'stock_qty'>;
+export type ProductInput = Pick<Product, 'name' | 'unit_paise' | 'stock_qty'>;
 
+// Products are names only: the size column is kept empty (schema v5).
 export async function upsertProduct(input: ProductInput, id?: number): Promise<Product> {
   return withTx(async db => {
     if (id) {
       const before = await db.getFirstAsync<Product>('SELECT * FROM products WHERE id=?', id);
       await db.runAsync(
-        `UPDATE products SET name=?, size=?, unit_paise=?, stock_qty=?,
+        `UPDATE products SET name=?, unit_paise=?, stock_qty=?,
            updated_at=datetime('now') WHERE id=?`,
-        input.name, input.size, input.unit_paise, input.stock_qty, id,
+        input.name, input.unit_paise, input.stock_qty, id,
       );
       if (before && before.stock_qty !== input.stock_qty) {
         // Editor changes are absolute corrections; keep the ledger honest with
@@ -85,8 +85,8 @@ export async function upsertProduct(input: ProductInput, id?: number): Promise<P
     }
     const sl = (await db.getFirstAsync<{ n: number }>('SELECT COALESCE(MAX(sl_no),0)+1 n FROM products'))?.n ?? 1;
     const r = await db.runAsync(
-      `INSERT INTO products (sl_no, name, size, unit_paise, stock_qty) VALUES (?,?,?,?,?)`,
-      sl, input.name, input.size, input.unit_paise, input.stock_qty,
+      `INSERT INTO products (sl_no, name, size, unit_paise, stock_qty) VALUES (?,?,'',?,?)`,
+      sl, input.name, input.unit_paise, input.stock_qty,
     );
     if (input.stock_qty !== 0) {
       await db.runAsync(

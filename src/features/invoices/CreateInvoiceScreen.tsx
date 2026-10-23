@@ -220,7 +220,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
       lines: [...form.lines, {
         sno: form.lines.length + 1,
         product_id: p.id,
-        description: p.size ? `${p.name} - ${p.size}` : p.name,
+        description: p.name,
         qty: 1,
         unit_paise: p.unit_paise,
         line_paise: linePaise(1, p.unit_paise),
@@ -738,7 +738,7 @@ function PreviewPane({ f, theme }: { f: Form; theme: Theme }) {
 }
 
 // S4.L3 — xl: the products panel (25 %): search, then a list; tap a product to add a line.
-// Under 300 dp the name takes two lines and the size joins the price below it.
+// Under 300 dp the name takes two lines.
 function CatalogPanel({ f, theme }: { f: Form; theme: Theme }) {
   const { products, narrowCatalog } = f;
   return (
@@ -755,9 +755,9 @@ function CatalogPanel({ f, theme }: { f: Form; theme: Theme }) {
               theme={theme}
               flush
               divider={index < products.length - 1}
-              title={narrowCatalog ? p.name : `${p.name}${p.size ? ` · ${p.size}` : ''}`}
+              title={p.name}
               titleLines={narrowCatalog ? 2 : 1}
-              subtitle={narrowCatalog && p.size ? `${p.size} · ₹${formatPaise(p.unit_paise)}` : `₹${formatPaise(p.unit_paise)}`}
+              subtitle={`₹${formatPaise(p.unit_paise)}`}
               onPress={() => f.addLine(p)}
               trailing={<Badge label={`Avl ${p.avl_qty}`} tone={p.avl_qty < 0 ? 'error' : p.avl_qty === 0 ? 'neutral' : 'success'} theme={theme} />}
             />
@@ -814,7 +814,6 @@ function CatalogSheet({ open, onClose, theme, products, onSearch, searchValue, o
             theme={theme}
             flush
             divider={i < shown.length - 1}
-            leadingText={p.size || '—'}
             title={p.name}
             subtitle={`Stock ${p.stock_qty} · Sold ${p.sold_qty}`}
             onPress={() => onPick(p)}

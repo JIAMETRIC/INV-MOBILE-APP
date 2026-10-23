@@ -5,9 +5,11 @@
 // categories dropped; Sold derives from invoice lines, Avl = Stock − Sold.
 // v4: Restock ledger — `restocks` table records every stock delta (restock
 // receipts and editor corrections); products.stock_qty stays the balance.
+// v5: Products are names only — one row per name, no size. The v4 size rows
+// are merged into one row per name (dbCore.mergeSizeRows keeps the data).
 // Old v1/v2/v3 databases are wiped and rebuilt (see dbCore.migrate).
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS meta (
@@ -40,7 +42,7 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uq_products_name_size ON products(name COLLATE NOCASE, size COLLATE NOCASE);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_products_name ON products(name COLLATE NOCASE);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name COLLATE NOCASE);
 
 CREATE TABLE IF NOT EXISTS restocks (
@@ -147,8 +149,6 @@ CREATE TABLE IF NOT EXISTS backup_logs (
 );
 `;
 
-export const PRODUCT_SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;
-
 export const PRODUCT_SEED_NAMES = [
   'Round Neck T-Shirt - IMP',
   'Round Neck T-Shirt',
@@ -164,16 +164,9 @@ export const PRODUCT_SEED_NAMES = [
   'Full Hand T-Shirt',
 ];
 
-// Catalog skeleton seeded on every fresh schema build: name x size rows with
+// Catalog skeleton seeded on every fresh schema build: one row per name with
 // zero price/stock, so the Products table and invoice picker open pre-filled.
 export function productSeedSql(): string {
-  const rows: string[] = [];
-  let sl = 0;
-  for (const name of PRODUCT_SEED_NAMES) {
-    for (const size of PRODUCT_SIZES) {
-      sl += 1;
-      rows.push(`(${sl}, '${name}', '${size}', 0, 0)`);
-    }
-  }
-  return `INSERT OR IGNORE INTO products (sl_no, name, size, unit_paise, stock_qty) VALUES ${rows.join(',')};`;
+  const rows = PRODUCT_SEED_NAMES.map((name, i) => `(${i + 1}, '${name}', 0, 0)`);
+  return `INSERT OR IGNORE INTO products (sl_no, name, unit_paise, stock_qty) VALUES ${rows.join(',')};`;
 }

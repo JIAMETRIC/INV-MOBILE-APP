@@ -22,9 +22,48 @@ async function createSchema(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
 }
 
+// v4 -> v5: one product per name. Each name keeps its lowest id; the other size
+// rows' invoice lines and restock ledger move onto it, and their stock is added
+// to it. Sold stays right because it is summed from invoice lines by product_id.
+async function mergeSizeRows(db: SQLite.SQLiteDatabase): Promise<void> {
+  await db.execAsync('BEGIN');
+  try {
+    await db.execAsync(`
+      DROP INDEX IF EXISTS uq_products_name_size;
+      CREATE TEMP TABLE IF NOT EXISTS product_merge AS
+        SELECT p.id AS old_id,
+               (SELECT MIN(k.id) FROM products k WHERE lower(k.name) = lower(p.name)) AS keep_id
+        FROM products p;
+      UPDATE products SET stock_qty = (
+        SELECT SUM(s.stock_qty) FROM products s
+        WHERE lower(s.name) = lower(products.name)
+      ) WHERE id IN (SELECT keep_id FROM product_merge WHERE old_id = keep_id);
+      UPDATE invoice_items SET product_id = (
+        SELECT keep_id FROM product_merge WHERE old_id = invoice_items.product_id
+      ) WHERE product_id IN (SELECT old_id FROM product_merge WHERE old_id <> keep_id);
+      UPDATE restocks SET product_id = (
+        SELECT keep_id FROM product_merge WHERE old_id = restocks.product_id
+      ) WHERE product_id IN (SELECT old_id FROM product_merge WHERE old_id <> keep_id);
+      DELETE FROM products WHERE id IN (SELECT old_id FROM product_merge WHERE old_id <> keep_id);
+      UPDATE products SET size = '';
+      DROP TABLE product_merge;
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_products_name ON products(name COLLATE NOCASE);
+    `);
+    await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let version = row?.user_version ?? 0;
+  if (version === 4) {
+    await mergeSizeRows(db);
+    version = SCHEMA_VERSION;
+  }
   let forceDrop = false;
   if (version === SCHEMA_VERSION) {
     const probe = await db.getFirstAsync<{ c: number }>(
