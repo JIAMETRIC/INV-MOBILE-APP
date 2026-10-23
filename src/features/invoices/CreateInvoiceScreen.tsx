@@ -299,11 +299,14 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
     else nav.closeOverlay();
   };
 
-  // Android Back on the phone stepper walks back one step before leaving.
+  // Back (the app bar and Android) walks back one step on the phone stepper before leaving.
+  const back = () => {
+    if (bp.isPhone && step > 0) setStep(s => s - 1);
+    else leave();
+  };
   useBackIntercept(() => {
     if (catalogOpen) return false;
-    if (bp.isPhone && step > 0) { setStep(s => s - 1); return true; }
-    leave();
+    back();
     return true;
   });
 
@@ -315,7 +318,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
     tabPreview, togglePreview: () => setTabPreview(p => !p),
     pageSize, setPageSize, previewHtml,
     patch, autosave, openCatalog, searchCatalog, addLine, addBlankLine, updateLine, removeLine,
-    issue, saveAsDraft, leave,
+    issue, saveAsDraft, leave, back,
   };
 }
 type Form = ReturnType<typeof useInvoiceForm>;
@@ -387,7 +390,7 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
 function Header({ f, theme, eye }: { f: Form; theme: Theme; eye?: boolean }) {
   return (
     <TopAppBar
-      title={f.title} subtitle={f.previewNo} theme={theme} onBack={f.leave}
+      title={f.title} subtitle={f.previewNo} theme={theme} onBack={f.back}
       actions={eye
         ? [{ icon: f.tabPreview ? 'edit-2' : 'eye', label: f.tabPreview ? 'Show form' : 'Show preview', onPress: f.togglePreview }]
         : undefined}
@@ -595,12 +598,14 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
     <View style={{ gap: layout.gap }}>
       <Card theme={theme} style={{ gap: space[1] }}>
         <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
-        <Text style={[type.heading, { color: theme.text }]}>
-          {form.party.party_name || '(no customer)'}
-        </Text>
-        <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
-          {f.previewNo} · {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space[2] }}>
+          <Text style={[type.heading, { color: theme.text, flex: 1 }]} numberOfLines={2}>
+            {form.party.party_name || '(no customer)'}
+          </Text>
+          <Text style={[type.bodyMedium, { color: theme.textMuted, textAlign: 'right' }]}>
+            {f.previewNo} · {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
+          </Text>
+        </View>
       </Card>
       <Card theme={theme} list>
         <View style={{ paddingTop: space[2] }}>
