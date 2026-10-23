@@ -279,3 +279,9 @@ i WILL SHUTDOWN NOW..
 ```
 COMMIT
 ```
+
+## Prompt 40
+
+```
+push everythimg
+```
