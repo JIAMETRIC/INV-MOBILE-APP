@@ -394,3 +394,23 @@ Kept exactly: every repo and export call, the confirm dialog, the snackbar texts
 Docs: `DashboardScreen_S1_tree.md` and `InvoiceDetail_S3_P1_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S1, S3 and P1 tables name functions; rationale in TRACKING.
 
 All six screens (S1–S6) are now on the Three-Slot method.
+
+## Prompts 55–57 — the three risks re-verified; the portable skill (2026-10-23, session 14)
+
+**Prompt 55 (all fixed?).** Re-checked on master: `React.memo` rows in S2 (`InvoiceRow`), S3 (`LineRow`), S5 (`ProductTableRow`, `ProductListRow`), S6 (`DraftRow`); 8 `<Columns>` rows across S2, S4, S5, S6; no `useContentInset` / `52 + layout.gap` / `touch.button + layout.gap` outside `src/ui/Screen.tsx`; `npm run test:columns` 10/10. All three risks closed.
+
+**Prompts 56–57 (portable skill).** Created `C:\Users\admin\.claude\skills\responsive-screens\` (outside this repo, seen by every project on this machine):
+
+| File | What |
+| --- | --- |
+| `SKILL.md` | set-up steps for a new app, the breakpoints table, the Three-Slot method (file order, slots, hosted screens), the Columns rules, lists / performance, the eight size-check profiles and the review list, the done checklist |
+| `CLAUDE.md.snippet` | five bullets to paste into a new app's `CLAUDE.md` |
+| `templates/ui/` | `layoutTokens.ts` (space, layout, touch, maxReadWidth), `useBreakpoint.ts`, `navMetrics.ts`, `columnsMode.ts`, `Columns.tsx`, `Screen.tsx` (with a `background` prop instead of `useTheme`) |
+| `templates/scripts/` | `size-tour.py` (CONFIG block + `TOUR` step list, `&` escaped, non-Windows `adb` path), `run-columns-tests.mjs` (file path as argument) |
+
+| Check | Result |
+| --- | --- |
+| `tsc --strict --jsx react-native --moduleResolution bundler` on the six template files alone (copied into a temp folder, this repo's `node_modules` for the RN types) | clean |
+| `node run-columns-tests.mjs <template columnsMode.ts>` | 10/10 pass |
+| `size-tour.py` | parses; not run (its CONFIG points at a placeholder app) |
+| This repo | unchanged apart from the docs; the three project skills stay |

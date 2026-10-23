@@ -165,6 +165,7 @@ INV-MOBILE-APP/
 ├── design/                 DESIGN.md (Flat Glass spec) + screens/ (4 reference PNG + HTML)
 ├── .claude/skills/apply-design/  the kit's /apply-design skill
 ├── .claude/skills/three-slot-screen/  /three-slot-screen: restructure a screen as Header / Main / Footer with named regions
+│   (the portable version for a new app is the user-level skill `~/.claude/skills/responsive-screens/`: rules + the layout helpers + the size-tour script)
 ├── .claude/skills/size-check/  /size-check: screenshot every screen at phone and tablet sizes (scripts/size-tour.py)
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)

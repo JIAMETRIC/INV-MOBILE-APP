@@ -183,3 +183,15 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | `LineRow` is `React.memo`; the hook returns `closePayment` and `openEdit` as plain closures | Rule 5 for the only list; the rest are single buttons, so no `useCallback` needed. | Memoise nothing (lines are rarely more than ten). |
 | `Loaded = DetailState & { inv: Invoice }`, cast once after the spinner | Every region sees a non-null invoice; the early return is the one place that checks. Same pattern as S6. | `s.inv!` in every region. |
 | P1 not exercised on the device | PRE-001 totals ₹0, so `canPay` is false and the button is hidden; the sheet's code path (props, handlers) was checked by reading. | Create a priced invoice on the emulator first: out of scope for a no-behaviour-change restructure. |
+
+## Prompts 55–57 — the three risks re-verified; the portable `responsive-screens` skill (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| The portable bundle is a **user-level** skill at `C:\Users\admin\.claude\skills\responsive-screens\` (SKILL.md · `CLAUDE.md.snippet` · `templates/ui` · `templates/scripts`), not a fourth project skill | A project skill is only seen inside this repo; a user-level one is seen by every project on this machine, which is what "my next app" needs. The three project skills stay as they are for this app. | Copy `three-slot-screen` + `size-check` into each new app by hand (they name this app's data in six places). |
+| The skill ships the five layout files (`useBreakpoint`, `navMetrics`, `columnsMode`, `Columns`, `Screen`) plus a 15-line `layoutTokens.ts` | The rules are enforced by code, not prose: `Screen` is the only place that knows the nav / FAB clearance, `Columns` is the only way to split a row. The tokens file makes the templates compile with no other dependency (checked with `tsc --strict`). | Reference the files in this repo by path: a new app would not have them. |
+| `Screen` takes a `background` prop instead of importing this app's `useTheme` | The scaffold must not depend on a theme provider the next app may not have. Here `Screen.tsx` keeps `useTheme()`; the template is the only difference. | Keep the import and tell the user to adapt it. |
+| `size-tour.py` has a CONFIG block (package, deep link, launch wait) and a `TOUR` list of steps; `&` is escaped for uiautomator inside `find()` | The tour itself was the only app-specific part; as data it is edited without reading the driver. | Keep the app's tour as the example and let the user edit the code. |
+| `run-columns-tests.mjs` takes the file path as an argument | The same ten cases guard the template and any copy of it. | — |
+| SKILL.md repeats the method (file order, rows and columns, slots, verification) instead of linking to this repo | A skill must be self-contained to be portable. | Link to `LAYOUT_METHOD_header-main-footer_analysis.md` here. |
+| Not in the bundle: the kit components (`Card`, `TopAppBar`, `FAB`), the design tokens, this app's tree files | They belong to the design system (`/apply-design`), not to responsiveness. | A full starter template: a separate repository, not a skill. |

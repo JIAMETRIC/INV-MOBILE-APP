@@ -388,3 +388,27 @@ Yes. Run /three-slot-screen on S1 Dashboard and S3 Invoice detail: inspect both 
 ```
 OK, apply the S1 and S3 plans as proposed.
 ```
+
+## Prompt 55
+
+```
+all Fixed?;
+
+Touch targets 44	⚠️ columns	3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44
+
+Lists	⚠️ coupling	last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with onLayout
+
+Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn't yet; pre-existing)
+```
+
+## Prompt 56
+
+```
+How can i enforce all the Modifcations you did for Mobile Responisve tablet Screens to be followed in my next app: any Document or Skill?
+```
+
+## Prompt 57
+
+```
+can complete the above?
+```
