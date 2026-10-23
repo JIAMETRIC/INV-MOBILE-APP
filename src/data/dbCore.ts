@@ -78,6 +78,21 @@ async function addLineSize(db: SQLite.SQLiteDatabase): Promise<void> {
   try {
     await db.execAsync(`
       ALTER TABLE invoice_items ADD COLUMN size TEXT NOT NULL DEFAULT '';
+      PRAGMA user_version = 7;
+    `);
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
+// v7 -> v8: invoices get a payment mode (existing invoices are Cash).
+async function addPaymentMode(db: SQLite.SQLiteDatabase): Promise<void> {
+  await db.execAsync('BEGIN');
+  try {
+    await db.execAsync(`
+      ALTER TABLE invoices ADD COLUMN payment_mode TEXT NOT NULL DEFAULT 'Cash';
       PRAGMA user_version = ${SCHEMA_VERSION};
     `);
     await db.execAsync('COMMIT');
@@ -100,6 +115,10 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (version === 6) {
     await addLineSize(db);
+    version = 7;
+  }
+  if (version === 7) {
+    await addPaymentMode(db);
     version = SCHEMA_VERSION;
   }
   let forceDrop = false;

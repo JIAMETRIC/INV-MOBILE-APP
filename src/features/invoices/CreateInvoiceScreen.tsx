@@ -77,6 +77,7 @@ function blankForm(): InvoiceForm {
     discountPercent: 0,
     lines: [],
     notes: '',
+    paymentMode: 'Cash',
     hasShipping: false,
     ship: emptyShip(),
   };
@@ -126,6 +127,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
             discountPercent: inv.discount_percent,
             lines,
             notes: inv.notes,
+            paymentMode: inv.payment_mode || 'Cash',
             hasShipping: inv.has_shipping === 1,
             ship: {
               ship_name: inv.ship_name, ship_address: inv.ship_address, ship_city: inv.ship_city,
@@ -187,6 +189,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
       amount_in_words: numberToWordsIndian(totals.total),
       upi_id: settings.upi_id,
       notes: form.notes,
+      payment_mode: form.paymentMode ?? 'Cash',
       has_shipping: form.hasShipping ? 1 : 0,
       ship_name: form.ship.ship_name, ship_address: form.ship.ship_address,
       ship_city: form.ship.ship_city, ship_pincode: form.ship.ship_pincode,
@@ -529,7 +532,22 @@ function ItemsSection({ f, theme }: { f: Form; theme: Theme }) {
       {/* S4.B.4 */}
       <Button label="Add free line" icon="plus" variant="outline" theme={theme} onPress={f.addBlankLine}
         style={{ alignSelf: 'flex-start' }} />
+      <PaymentCard f={f} theme={theme} />
     </View>
+  );
+}
+
+// S4.B.5 — Payment: Cash or UPI. Saved with the invoice; it does not record money received
+// (Record payment on the invoice does that).
+function PaymentCard({ f, theme }: { f: Form; theme: Theme }) {
+  return (
+    <Card theme={theme}>
+      <SectionTitle title="Payment" theme={theme} />
+      <SegmentedControl label="Payment mode" theme={theme}
+        options={[{ value: 'Cash', label: 'Cash' }, { value: 'UPI', label: 'UPI' }]}
+        value={f.form.paymentMode ?? 'Cash'}
+        onChange={v => f.patch({ paymentMode: v })} />
+    </Card>
   );
 }
 

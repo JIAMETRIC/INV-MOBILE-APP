@@ -86,6 +86,7 @@ export interface Invoice extends PartySnapshot {
   upi_id: string;
   notes: string;
   has_shipping: number;
+  payment_mode: string;
   ship_name: string;
   ship_address: string;
   ship_city: string;
@@ -124,6 +125,7 @@ export interface InvoiceForm {
   discountPercent: number;
   lines: InvoiceLine[];
   notes: string;
+  paymentMode: string; // Cash or UPI
   hasShipping: boolean;
   ship: {
     ship_name: string;

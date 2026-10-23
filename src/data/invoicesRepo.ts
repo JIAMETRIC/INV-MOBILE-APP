@@ -77,7 +77,7 @@ export async function saveInvoice(
       amountInWords, form.notes,
       form.hasShipping ? 1 : 0,
       form.ship.ship_name, form.ship.ship_address, form.ship.ship_city,
-      form.ship.ship_pincode,
+      form.ship.ship_pincode, form.paymentMode || 'Cash',
     ];
 
     let invoiceId = opts.invoiceId ?? 0;
@@ -90,7 +90,7 @@ export async function saveInvoice(
            gross_paise=?, discount_percent=?, discount_paise=?,
            round_off_paise=?, total_paise=?, amount_in_words=?, notes=?,
            has_shipping=?, ship_name=?, ship_address=?, ship_city=?, ship_pincode=?,
-           updated_at=datetime('now')
+           payment_mode=?, updated_at=datetime('now')
          WHERE id=?`,
         ...values, opts.invoiceId,
       );
@@ -103,8 +103,8 @@ export async function saveInvoice(
            party_name, party_address, party_city, party_pincode, party_mobile, party_email,
            gross_paise, discount_percent, discount_paise,
            round_off_paise, total_paise, amount_in_words, notes,
-           has_shipping, ship_name, ship_address, ship_city, ship_pincode)
-         VALUES (${Array(22).fill('?').join(',')})`,
+           has_shipping, ship_name, ship_address, ship_city, ship_pincode, payment_mode)
+         VALUES (${Array(23).fill('?').join(',')})`,
         ...values,
       );
       invoiceId = r.lastInsertRowId;

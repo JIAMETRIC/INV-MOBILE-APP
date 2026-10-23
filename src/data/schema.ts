@@ -9,9 +9,10 @@
 // are merged into one row per name (dbCore.mergeSizeRows keeps the data).
 // v6: invoice prefix is INV- (was PRE-); existing settings rows are switched too.
 // v7: invoice lines carry a size (S, M, L, XL, XXL, XXXL) picked on the invoice.
+// v8: invoices carry a payment mode (Cash or UPI).
 // Old v1/v2/v3 databases are wiped and rebuilt (see dbCore.migrate).
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS meta (
@@ -85,6 +86,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   ship_address TEXT NOT NULL DEFAULT '',
   ship_city TEXT NOT NULL DEFAULT '',
   ship_pincode TEXT NOT NULL DEFAULT '',
+  payment_mode TEXT NOT NULL DEFAULT 'Cash',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
