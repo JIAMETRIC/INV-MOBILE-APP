@@ -86,3 +86,21 @@ Two commits on `master`, so the bug fix stays separate from the documentation:
 | --- | --- |
 | `a142bab` Fix duplicate rows in the consolidated Excel register | `src/export/xlsx.ts`, `scripts/run-integration-tests.mjs` |
 | (next) Add per-screen tree files (SCREEN_CODE_STRUCTURE) | the 10 tree files, this topic's 3 files, the layout-reference corrections, README cross-references, session logs in MOBILE_APP_CONVERSION and SCREEN_LAYOUT_REFERENCE |
+
+## Prompt 12 — InvoicesScreen restructure applied (2026-10-23, session 14)
+
+`src/features/invoices/InvoicesScreen.tsx` rewritten per the Prompt 1 plan (one file, state hook, named pieces). No other source file changed.
+
+| Before | After |
+| --- | --- |
+| 1 function, 159 lines; a 55-line `listPane` JSX constant; row renderer nested in `renderItem`; inline numbers (`gap: 10`, `'42%'` …) | `STATUSES` · `S2` numbers block · `useInvoiceList()` · `InvoicesScreen()` (24 lines) · `Header` · `ListPane` · `FilterRow` · `DateRangeRow` · `InvoiceListCard` · `InvoiceRow` · `DetailPane` · `ActivityPane`; 265 lines |
+
+Kept exactly: the kit components and their props, the FlatList settings (`flexGrow: 0`, FAB clearance rule `> 6 rows`), the tablet widths, the tap behaviour, the export flow. `fabClearance` is now `touch.button + layout.gap` (= 52 + 16, the same value as the old literal). `setStatusF` was renamed `setStatus` (local to the hook).
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| Emulator (phone, sm): relaunched the dev client for a fresh bundle (`Bundled 28ms (1 module)`), opened Invoices, toggled the date range | header, search + tinted calendar button, status tabs, From \| To row, list card with the PRE-001 row, FAB, nav: all as before the change (screenshots compared) |
+| Tablet panes (S2.7, S2.8) | read only; no tablet AVD in this session |
+
+Docs: `InvoicesScreen_S2_tree.md` rewritten for the new functions; `SCREEN_LAYOUT_REFERENCE.md` S2 tables now name functions instead of line numbers; rationale in `SCREEN_CODE_STRUCTURE_TRACKING.md`.

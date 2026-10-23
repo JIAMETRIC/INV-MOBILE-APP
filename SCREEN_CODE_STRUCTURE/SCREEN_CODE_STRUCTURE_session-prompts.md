@@ -75,3 +75,15 @@ How many tokens will take for Commit?
 ```
 commit
 ```
+
+## Prompt 12
+
+```
+OK, apply the InvoicesScreen restructure plan as proposed.
+```
+
+## Prompt 13
+
+```
+Commit the working tree changes with a sensible message.
+```

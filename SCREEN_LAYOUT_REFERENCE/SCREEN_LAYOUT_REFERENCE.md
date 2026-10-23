@@ -210,23 +210,25 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 
 | ID | Section | Spec | Lines |
 | --- | --- | --- | --- |
-| S2.0 | Header | `TopAppBar large`: caption "N invoice(s)", title "Invoices"; glass icon buttons `download` = Export list to Excel (current filtered rows), `book` = Export consolidated register | 118-130 |
-| S2.1 | Search | `SearchField` (50 tall, glass) "Search invoice no or party", flex 1 | 64-65 |
-| S2.2 | Status filter | `SegmentedControl` over `STATUSES` (All, Issued, Partial, Paid, Void) | 20-26, 70 |
-| S2.3 | Date-range button | glass `IconButton` `calendar`; tinted when open or when a date is set | 66-68 |
-| S2.3a | Date fields | 2 columns (gap 12): From, To, `YYYY-MM-DD`, numeric, max 10 | 71-82 |
-| S2.5 | List card | `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `ListItem flush` with avatar, party, `no · date`, amount + status. Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists get FAB clearance at the bottom | 83-112 |
-| S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | 88-90 |
-| S2.6 | FAB | phone only, "New invoice" | 114 |
-| S2.7 | Detail pane | tablet only; width 50% (2 panes) or 42% (3 panes); left divider; renders S3 | 138-142 |
-| S2.8 | Activity pane | xl+ with a row selected; width 26%; small glass card: overline "Activity", `no · status`, "Issued <date>" | 143-155 |
+| S2.0 | Header | `Header`: `TopAppBar large`, caption "N invoice(s)", title "Invoices"; glass icon buttons `download` = Export list to Excel (current filtered rows), `book` = Export consolidated register | `Header` |
+| S2.1 | Search | `FilterRow`: `SearchField` (50 tall, glass) "Search invoice no or party", flex 1 | `FilterRow` |
+| S2.2 | Status filter | `SegmentedControl` over `STATUSES` (All, Issued, Partial, Paid, Void), inside `ListPane` | `STATUSES`, `ListPane` |
+| S2.3 | Date-range button | `FilterRow`: glass `IconButton` `calendar`; tinted when open or when a date is set | `FilterRow` |
+| S2.3a | Date fields | `DateRangeRow`: 2 columns (gap 12): From, To, `YYYY-MM-DD`, numeric, max 10 | `DateRangeRow` |
+| S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + status). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
+| S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | `InvoiceListCard` |
+| S2.6 | FAB | phone only, "New invoice", inside `ListPane` | `ListPane` |
+| S2.7 | Detail pane | `DetailPane`: tablet only; width `S2.detailWidth` 50% (2 panes) or 42% (3 panes); left divider; renders S3 | `DetailPane` |
+| S2.8 | Activity pane | `ActivityPane`: xl+ with a row selected; width `S2.activityWidth` 26%; small glass card: overline "Activity", `no · status`, "Issued <date>" | `ActivityPane` |
+
+Since Prompt 12 (2026-10-23) the file is split into named functions, listed in the last column instead of line numbers: `useInvoiceList()` holds all state; `S2` (line ~40) holds every screen-specific number. See `SCREEN_CODE_STRUCTURE/InvoicesScreen_S2_tree.md`.
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `load()` | query with filters; reruns when any filter or `refreshKey` changes | 32-39 |
-| `runExport('list' \| 'register')` | builds XLSX (D2.1 / D2.2) → share sheet; busy spinner on that action | 41-47 |
+| `useInvoiceList()` | all state: rows, search, status, dateOpen, from, to, busy; `load()` queries with the filters and reruns when any filter or `refreshKey` changes; `runExport('list' \| 'register')` builds XLSX (D2.1 / D2.2) → share sheet, busy spinner on that action; derived `datesSet`, `filtered`, `selected` | 52-90 |
+| `InvoicesScreen()` | phone: `Header` + `ListPane`; tablet: `Header` + row [`ListPane` \| `DetailPane` \| `ActivityPane`] | 96-120 |
 
 ---
 

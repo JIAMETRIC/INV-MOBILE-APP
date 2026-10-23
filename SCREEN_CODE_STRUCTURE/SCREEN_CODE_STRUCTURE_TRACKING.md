@@ -9,9 +9,21 @@ Restructuring screen files so a non-expert can read a screen top-down and change
 | Own topic folder, separate from `SCREEN_LAYOUT_REFERENCE/` | That topic documents screens for prompting; this one changes how the screen code is organised. The reference file gets updated when the code moves, but the decisions live here. | Logging under SCREEN_LAYOUT_REFERENCE: rejected, it would mix a documentation topic with code restructuring. |
 | Framework conventions: React Native + TypeScript function components (PascalCase), `View` rows and columns, a hook for state | What the rest of `src/features/` already does (`StatTile`, `AvlBadge`, `Stepper`, `CatalogSheet` are local components in their screen files). | Class components or StyleSheet objects: not used anywhere in the project. |
 
-## Prompt 1 — Plan for InvoicesScreen (2026-10-23) — proposed, awaiting the owner's OK
+## Prompt 1 / 12 — InvoicesScreen restructure (planned 2026-10-23, applied the same day)
 
-See the plan in `SCREEN_CODE_STRUCTURE_walkthrough.md`. Specs will be recorded here once approved and applied.
+Approved as proposed. Behaviour, props on the kit components, and the rendered screen are unchanged (verified on the phone emulator); the file went from 159 lines in one function to 265 lines in 11 named pieces.
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Order inside the file: `STATUSES` and `S2` (text and numbers) → `useInvoiceList()` (state) → `InvoicesScreen()` (the switch) → one function per region, in on-screen order | A non-expert reads it top to bottom and meets the things they edit most first; the regions appear in the same order as on the phone. | Screen function first (React habit): hides the editable constants at the bottom. |
+| All screen-specific numbers in one `S2` constant, each with its ID in a comment (`filterGap`, `dateRowPull`, `longList`, `fabClearance`, `detailWidth`, `activityWidth`) | Changing a pane width or the FAB clearance is a one-line edit with no searching; shared spacing stays in `tokens.ts`. | Inline numbers (as before): the three `'50%' / '42%' / '26%'` were indistinguishable. Adding them to `tokens.ts`: they are not shared. |
+| One state hook `useInvoiceList()` returning a plain object; pieces take `list` + `theme` | The screen function shrinks to the phone / tablet switch, and each piece shows at its call site what it depends on. `ReturnType<typeof useInvoiceList>` keeps the prop type in step with the hook. | State at the top of `InvoicesScreen()` and prop drilling: simpler to trace, but the function stays ~60 lines. A context: overkill for one screen. |
+| `ListPane` keeps `SegmentedControl` and `FAB` as one-liners instead of wrapping them | Wrapping a one-line kit component in a function adds a name without adding clarity. | A `StatusTabs` function: rejected. |
+| `InvoiceRow` is its own function with explicit props (`item`, `alt`, `last`, `selected`, `onPress`) | The row was four levels deep inside `renderItem`; now "what a row shows" is one small function. | Keep it inline. |
+| One file, not a folder | 265 lines is still one screen to read; the layout reference and the tree file map by file. | `invoices/list/` with one file per piece: more files to open for a change that usually touches one region. |
+| Line-number column in `SCREEN_LAYOUT_REFERENCE.md` S2 replaced by function names | Names don't drift; the tree file carries today's line numbers. | Keep updating line numbers by hand. |
+
+Not done on purpose: no change to `components.tsx` or `tokens.ts`; no tablet verification on a device (phone AVD only).
 
 ## Prompts 5–8 — Tree files, one per screen / overlay / document / component (2026-10-23)
 

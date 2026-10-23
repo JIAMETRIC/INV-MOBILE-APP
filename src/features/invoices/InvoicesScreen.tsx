@@ -1,3 +1,9 @@
+// S2 — Invoices list. Read top to bottom:
+//   STATUSES, S2        the text and the numbers you are most likely to edit
+//   useInvoiceList()    all state and data (no JSX)
+//   InvoicesScreen()    the phone / tablet switch
+//   Header … ActivityPane   one function per region, in the order they appear on screen
+// IDs (S2.0 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { useTheme } from '../../shell/providers';
@@ -9,7 +15,8 @@ import {
   TopAppBar, initials,
 } from '../../ui/components';
 import { alert } from '../../ui/alert';
-import { layout, space, type } from '../../ui/tokens';
+import { layout, space, touch, type } from '../../ui/tokens';
+import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { listInvoices } from '../../data/invoicesRepo';
 import { exportInvoicesXlsx, exportConsolidatedRegister } from '../../export/xlsx';
@@ -17,7 +24,10 @@ import { shareFile } from '../../export/pdf';
 import { InvoiceDetail } from './InvoiceDetail';
 import type { Invoice, InvoiceStatus } from '../../data/types';
 
-const STATUSES: ReadonlyArray<{ value: InvoiceStatus | 'all'; label: string }> = [
+type StatusFilter = InvoiceStatus | 'all';
+
+// S2.2 — the status tabs, in order.
+const STATUSES: ReadonlyArray<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'issued', label: 'Issued' },
   { value: 'partial', label: 'Partial' },
@@ -25,14 +35,25 @@ const STATUSES: ReadonlyArray<{ value: InvoiceStatus | 'all'; label: string }> =
   { value: 'void', label: 'Void' },
 ];
 
-export function InvoicesScreen() {
-  const theme = useTheme();
+// Every number that is specific to this screen. Shared spacing comes from
+// tokens.ts (layout.side 20, layout.gap 16, layout.grid 12).
+const S2 = {
+  filterGap: 10, // S2.1: between the search field and the calendar button
+  dateRowPull: -space[4], // S2.3a: pulls the list card up under the date inputs' bottom gap
+  longList: 6, // S2.5: more rows than this on a phone -> keep the last one clear of the FAB
+  fabClearance: touch.button + layout.gap, // S2.5: that clearance (52 + 16)
+  detailWidth: { 2: '50%', 3: '42%' } as const, // S2.7: detail pane width by pane count
+  activityWidth: '26%', // S2.8: activity pane width (3 panes only)
+} as const;
+
+// ---------------------------------------------------------------------------
+// State and data: filters, the rows they produce, the two exports.
+// ---------------------------------------------------------------------------
+function useInvoiceList() {
   const nav = useNav();
-  const bp = useBreakpoint();
-  const navInset = useNavInset();
   const [rows, setRows] = useState<Invoice[]>([]);
   const [search, setSearch] = useState('');
-  const [status, setStatusF] = useState<InvoiceStatus | 'all'>('all');
+  const [status, setStatus] = useState<StatusFilter>('all');
   const [dateOpen, setDateOpen] = useState(false);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -55,105 +76,190 @@ export function InvoicesScreen() {
       .finally(() => setBusy(null));
   };
 
-  const selected = rows.find(r => r.id === nav.selectedInvoiceId) ?? null;
-  const filtered = status !== 'all' || !!search || !!from || !!to;
-  const datesSet = !!from || !!to;
+  return {
+    rows,
+    search, setSearch,
+    status, setStatus,
+    dateOpen, toggleDates: () => setDateOpen(o => !o),
+    from, setFrom, to, setTo,
+    datesSet: !!from || !!to,
+    filtered: status !== 'all' || !!search || !!from || !!to,
+    selected: rows.find(r => r.id === nav.selectedInvoiceId) ?? null,
+    busy, runExport,
+  };
+}
+type InvoiceList = ReturnType<typeof useInvoiceList>;
 
-  const listPane = (
-    <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
-      <View style={{ flexDirection: 'row', gap: 10, paddingTop: space[1] }}>
-        <SearchField value={search} onChange={setSearch} placeholder="Search invoice no or party" theme={theme} style={{ flex: 1 }} />
-        <IconButton glass icon="calendar" label={datesSet ? 'Date range (set)' : 'Date range'}
-          selected={dateOpen || datesSet} color={datesSet ? theme.accent : undefined}
-          onPress={() => setDateOpen(o => !o)} theme={theme} />
+// ---------------------------------------------------------------------------
+// The screen: phone = header + list; tablet = header + [list | detail | activity].
+// ---------------------------------------------------------------------------
+export function InvoicesScreen() {
+  const theme = useTheme();
+  const bp = useBreakpoint();
+  const list = useInvoiceList();
+
+  if (bp.isPhone) {
+    return (
+      <View style={{ flex: 1 }}>
+        <Header list={list} theme={theme} />
+        <ListPane list={list} theme={theme} />
       </View>
-      <SegmentedControl label="Status" options={STATUSES} value={status} onChange={setStatusF} theme={theme} />
-      {dateOpen ? (
-        <View style={{ flexDirection: 'row', gap: layout.grid, marginBottom: -space[4] }}>
-          <View style={{ flex: 1 }}>
-            <Input label="From" value={from} onChange={setFrom} placeholder="YYYY-MM-DD"
-              theme={theme} tabular keyboardType="numeric" maxLength={10} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Input label="To" value={to} onChange={setTo} placeholder="YYYY-MM-DD"
-              theme={theme} tabular keyboardType="numeric" maxLength={10} />
-          </View>
-        </View>
-      ) : null}
-      <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
-        <FlatList
-          data={rows}
-          keyExtractor={r => String(r.id)}
-          style={{ flexGrow: 0 }}
-          // Phones, long lists: keep the last row clear of the New invoice button.
-          contentContainerStyle={{ paddingBottom: bp.isPhone && rows.length > 6 ? 52 + layout.gap : 0 }}
-          ListEmptyComponent={filtered
-            ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
-            : <EmptyState icon="file-text" title="No invoices yet" text="Tap New invoice to create the first one." theme={theme} />}
-          renderItem={({ item, index }) => (
-            <ListItem
-              theme={theme}
-              flush
-              leadingText={initials(item.party_name)}
-              leadingAlt={index % 2 === 1}
-              divider={index < rows.length - 1}
-              selected={!bp.isPhone && item.id === nav.selectedInvoiceId}
-              title={item.party_name || '(no party)'}
-              subtitle={`${item.invoice_no} · ${formatDateDisplay(item.invoice_date)}`}
-              onPress={() => bp.isPhone ? nav.showInvoice(item.id, true) : nav.selectInvoice(item.id)}
-              trailing={(
-                <View style={{ alignItems: 'flex-end', gap: space[1] }}>
-                  <MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small />
-                  <StatusGlyph status={item.status} theme={theme} />
-                </View>
-              )}
-            />
-          )}
-        />
-      </Card>
-      {bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null}
-    </View>
-  );
-
-  const appBar = (
-    <TopAppBar
-      title="Invoices"
-      subtitle={`${rows.length} ${rows.length === 1 ? 'invoice' : 'invoices'}`}
-      theme={theme}
-      large
-      actions={[
-        { icon: 'download', label: 'Export list to Excel', onPress: () => runExport('list'), busy: busy === 'list' },
-        { icon: 'book', label: 'Export consolidated register', onPress: () => runExport('register'), busy: busy === 'register' },
-      ]}
-    />
-  );
-
-  if (bp.isPhone) return <View style={{ flex: 1 }}>{appBar}{listPane}</View>;
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
-      {appBar}
+      <Header list={list} theme={theme} />
       <View style={{ flex: 1, flexDirection: 'row' }}>
-        {listPane}
-        <View style={{ width: bp.panes === 3 ? '42%' : '50%', borderLeftWidth: 1, borderColor: theme.divider }}>
-          {selected
-            ? <InvoiceDetail key={selected.id} invoiceId={selected.id} />
-            : <EmptyState icon="file-text" title="No invoice selected" text="Pick an invoice from the list to see it here." theme={theme} />}
-        </View>
-        {bp.panes === 3 && selected ? (
-          <View style={{ width: '26%', borderLeftWidth: 1, borderColor: theme.divider, padding: layout.side }}>
-            <Card theme={theme} small style={{ gap: space[1] }}>
-              <Text style={[type.overline, { color: theme.textMuted, marginBottom: space[1] }]}>Activity</Text>
-              <Text style={[type.label, { color: theme.text }]}>
-                {selected.invoice_no} · {selected.status}
-              </Text>
-              <Text style={[type.caption, { color: theme.textMuted }]}>
-                Issued {formatDateDisplay(selected.invoice_date)}
-              </Text>
-            </Card>
-          </View>
-        ) : null}
+        <ListPane list={list} theme={theme} />
+        <DetailPane selected={list.selected} width={S2.detailWidth[bp.panes === 3 ? 3 : 2]} theme={theme} />
+        {bp.panes === 3 && list.selected ? <ActivityPane selected={list.selected} theme={theme} /> : null}
       </View>
+    </View>
+  );
+}
+
+// S2.0 — title, "N invoices", and the two Excel export buttons.
+function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
+  const n = list.rows.length;
+  return (
+    <TopAppBar
+      title="Invoices"
+      subtitle={`${n} ${n === 1 ? 'invoice' : 'invoices'}`}
+      theme={theme}
+      large
+      actions={[
+        { icon: 'download', label: 'Export list to Excel', onPress: () => list.runExport('list'), busy: list.busy === 'list' },
+        { icon: 'book', label: 'Export consolidated register', onPress: () => list.runExport('register'), busy: list.busy === 'register' },
+      ]}
+    />
+  );
+}
+
+// S2.1–S2.6 — the column under the header: filters, then the list card, then the FAB.
+function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
+  const nav = useNav();
+  const bp = useBreakpoint();
+  const navInset = useNavInset();
+  return (
+    <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
+      <FilterRow list={list} theme={theme} />
+      <SegmentedControl label="Status" options={STATUSES} value={list.status} onChange={list.setStatus} theme={theme} />
+      {list.dateOpen ? <DateRangeRow list={list} theme={theme} /> : null}
+      <InvoiceListCard list={list} theme={theme} navInset={navInset} />
+      {bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null}
+    </View>
+  );
+}
+
+// S2.1 + S2.3 — one row: search field (grows) | calendar button (44).
+function FilterRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: S2.filterGap, paddingTop: space[1] }}>
+      <SearchField value={list.search} onChange={list.setSearch} placeholder="Search invoice no or party" theme={theme} style={{ flex: 1 }} />
+      <IconButton glass icon="calendar" label={list.datesSet ? 'Date range (set)' : 'Date range'}
+        selected={list.dateOpen || list.datesSet} color={list.datesSet ? theme.accent : undefined}
+        onPress={list.toggleDates} theme={theme} />
+    </View>
+  );
+}
+
+// S2.3a — one row, two equal columns: From | To (YYYY-MM-DD). Shown while the calendar button is on.
+function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: layout.grid, marginBottom: S2.dateRowPull }}>
+      <View style={{ flex: 1 }}>
+        <Input label="From" value={list.from} onChange={list.setFrom} placeholder="YYYY-MM-DD"
+          theme={theme} tabular keyboardType="numeric" maxLength={10} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Input label="To" value={list.to} onChange={list.setTo} placeholder="YYYY-MM-DD"
+          theme={theme} tabular keyboardType="numeric" maxLength={10} />
+      </View>
+    </View>
+  );
+}
+
+// S2.5 — the glass card holding the scrolling list, or an empty state.
+// It hugs its rows (flexShrink on the card, flexGrow 0 on the list) and stops above the nav.
+function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: Theme; navInset: number }) {
+  const nav = useNav();
+  const bp = useBreakpoint();
+  const { rows } = list;
+  return (
+    <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
+      <FlatList
+        data={rows}
+        keyExtractor={r => String(r.id)}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingBottom: bp.isPhone && rows.length > S2.longList ? S2.fabClearance : 0 }}
+        ListEmptyComponent={list.filtered
+          ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
+          : <EmptyState icon="file-text" title="No invoices yet" text="Tap New invoice to create the first one." theme={theme} />}
+        renderItem={({ item, index }) => (
+          <InvoiceRow
+            item={item}
+            alt={index % 2 === 1}
+            last={index === rows.length - 1}
+            selected={!bp.isPhone && item.id === nav.selectedInvoiceId}
+            onPress={() => bp.isPhone ? nav.showInvoice(item.id, true) : nav.selectInvoice(item.id)}
+            theme={theme}
+          />
+        )}
+      />
+    </Card>
+  );
+}
+
+// S2.5 row — avatar (initials) · party name · "invoice no · date" · ₹ total over the status pill.
+function InvoiceRow({ item, alt, last, selected, onPress, theme }: {
+  item: Invoice; alt: boolean; last: boolean; selected: boolean; onPress: () => void; theme: Theme;
+}) {
+  return (
+    <ListItem
+      theme={theme}
+      flush
+      leadingText={initials(item.party_name)}
+      leadingAlt={alt}
+      divider={!last}
+      selected={selected}
+      title={item.party_name || '(no party)'}
+      subtitle={`${item.invoice_no} · ${formatDateDisplay(item.invoice_date)}`}
+      onPress={onPress}
+      trailing={(
+        <View style={{ alignItems: 'flex-end', gap: space[1] }}>
+          <MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small />
+          <StatusGlyph status={item.status} theme={theme} />
+        </View>
+      )}
+    />
+  );
+}
+
+// S2.7 — tablet only: the selected invoice (S3) or a placeholder, behind a left divider.
+function DetailPane({ selected, width, theme }: { selected: Invoice | null; width: string; theme: Theme }) {
+  return (
+    <View style={{ width, borderLeftWidth: 1, borderColor: theme.divider }}>
+      {selected
+        ? <InvoiceDetail key={selected.id} invoiceId={selected.id} />
+        : <EmptyState icon="file-text" title="No invoice selected" text="Pick an invoice from the list to see it here." theme={theme} />}
+    </View>
+  );
+}
+
+// S2.8 — 3-pane tablets only: a small card with the selected invoice's number, status and issue date.
+function ActivityPane({ selected, theme }: { selected: Invoice; theme: Theme }) {
+  return (
+    <View style={{ width: S2.activityWidth, borderLeftWidth: 1, borderColor: theme.divider, padding: layout.side }}>
+      <Card theme={theme} small style={{ gap: space[1] }}>
+        <Text style={[type.overline, { color: theme.textMuted, marginBottom: space[1] }]}>Activity</Text>
+        <Text style={[type.label, { color: theme.text }]}>
+          {selected.invoice_no} · {selected.status}
+        </Text>
+        <Text style={[type.caption, { color: theme.textMuted }]}>
+          Issued {formatDateDisplay(selected.invoice_date)}
+        </Text>
+      </Card>
     </View>
   );
 }
