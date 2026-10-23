@@ -9,7 +9,7 @@ The layout code reads the window size in dp (`src/ui/useBreakpoint.ts`: xs < 360
 
 ## 1. Start
 - Emulator: `emulator -avd Medium_Phone_API_37.0` (host GPU). Debug app installed; Metro: `npx expo start --dev-client --port 8081` and `adb reverse tcp:8081 tcp:8081`.
-- The tour needs these on screen: an invoice whose party is "aSAsda" (PRE-001) and the product "Acid Wash T-Shirt"; adjust the `text=` taps in the script if the data differs.
+- The tour needs these on screen: an invoice whose party is "aSAsda" (PRE-001) and the product "Acid Wash T-Shirt"; adjust the `text=` taps in the script if the data differs. uiautomator quirks the script already handles: `&` appears as `&amp;` ("Backup &amp; restore"), a sheet has two "Close" nodes (the scrim and the button; take the last, `nth=-1`), and on one-pane sizes S3 opens as an overlay, so the script presses Back when it sees the "Invoice" title.
 
 ## 2. Profiles (dp = px ÷ (density ÷ 160))
 
@@ -43,5 +43,7 @@ Open every PNG. For each, check against `SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_R
 - Per screen: a "Size check" section in its `SCREEN_CODE_STRUCTURE/<Screen>_<ID>_tree.md` with the sizes and what was seen.
 - Findings (what is wrong, at which breakpoint, the proposed fix) in `SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md`; decisions in `_TRACKING.md`; the prompt in `_session-prompts.md`.
 - Keep the screenshots out of the repo (scratchpad); name the sizes in the log instead.
+- For a restructure (behaviour unchanged), also compare the phone screenshots before and after pixel by pixel (PIL `ImageChops.difference`, status bar excluded) and record the percentage; the target is 0.000 %.
+- Findings so far and their fixes are listed in `SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md` §7.4 (md one pane, the S5 editor pane's flex, the S4 date inputs, the S2 activity pane at xxl, the S2 list card on phone landscape).
 
 Report: which profiles were checked, which taps were missing and why, and every finding with its breakpoint.

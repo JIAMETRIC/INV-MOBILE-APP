@@ -196,7 +196,7 @@
   <!-- Header: C1 TopAppBar, large -->
   <header class="top">
     <div class="titles">
-      <span class="caption">Invoice ERP · screen method</span>
+      <span class="caption">Invoice ERP · screen method · v2</span>
       <h1>Three-Slot Screen</h1>
     </div>
     <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle light and dark">
@@ -219,17 +219,17 @@
         <div class="srow"><span>row</span></div>
         <div class="srow"><span>col</span><span class="w2">col · flex 1.4</span></div>
       </div>
-      <div class="slot footer"><span class="micro">Footer</span>action bar · fixed · rises with the keyboard</div>
+      <div class="slot footer"><span class="micro">Footer</span>action bar · phones only · rises with the keyboard · (FAB: its own slot)</div>
       <div class="slot nav">bottom nav · owned by the app shell (S0)</div>
     </div>
-    <p class="lead">Every screen is a column of three slots. Inside Main, rows stack top to bottom and a row may split into columns. Each slot and each row is a named function in the screen file, so an edit means opening the region by name.</p>
+    <p class="lead">Every screen is a column of three slots on <code>&lt;Screen&gt;</code>. Inside Main, rows stack top to bottom and a row may split into columns with <code>&lt;Columns&gt;</code>. Each slot and each row is a named function in the screen file, so an edit means opening the region by name. All six screens of the app are on it; every screen was checked at eight phone and tablet sizes.</p>
   </div>
 
   <!-- Stat tiles (S1.2) -->
   <div class="grid-3">
     <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/></svg></span><span class="caption">Slots per screen</span><span class="kpi">3</span></div>
     <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg></span><span class="caption">Max columns on phones</span><span class="kpi">3</span></div>
-    <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><path d="M9 11a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span><span class="caption">Min touch size, dp</span><span class="kpi">44</span></div>
+    <div class="card tile"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><path d="M9 11a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span><span class="caption">Sizes checked per screen</span><span class="kpi">8</span></div>
   </div>
 
   <!-- Section nav: C8a segmented control -->
@@ -251,10 +251,10 @@
 
     <div class="card list">
       <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M3 12h18M3 18h12"/></svg></span><div class="t"><b>Header</b><small>Title, count, glass icon buttons. Pads the status-bar inset. Never scrolls.</small></div><span class="badge">C1</span></div>
-      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></span><div class="t"><b>Main</b><small>Exactly one scroller: a ScrollView for forms, a FlatList for lists. Side padding 20, gap 16.</small></div><span class="badge">flex 1</span></div>
-      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M3 4h18M3 9h10"/></svg></span><div class="t"><b>Footer</b><small>Action bar on phones only. Sits in the flex column, so it rises with the keyboard.</small></div><span class="badge">compact</span></div>
-      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M8 12v6M16 12v6"/></svg></span><div class="t"><b>Row</b><small>A View with <code>flexDirection: 'row'</code> and <code>gap: 12</code>.</small></div><span class="badge">≤ 3 cols</span></div>
-      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></span><div class="t"><b>Column</b><small>A child with <code>flex: 1</code> (equal) or <code>flex: 1.4</code> (wider). Tappable cells ≥ 44 wide.</small></div><span class="badge">flex</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></span><div class="t"><b>Main</b><small>Exactly one scroller: a ScrollView for forms, a FlatList for lists. Side padding 20, gap 16; ends with <code>useMainInset()</code>.</small></div><span class="badge">flex 1</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M3 4h18M3 9h10"/></svg></span><div class="t"><b>Footer</b><small>Action bar on phones only. Sits in the flex column, so it rises with the keyboard and takes its own space. A floating button goes in the <code>fab</code> slot instead.</small></div><span class="badge">compact</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M8 12v6M16 12v6"/></svg></span><div class="t"><b>Row</b><small><code>&lt;Columns kind="input" wrap&gt;</code> (C15): gap 12; the row wraps or stacks when a cell would be narrower than its usable minimum.</small></div><span class="badge">≤ 3 cols</span></div>
+      <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></span><div class="t"><b>Column</b><small>A child of <code>Columns</code>: equal, or <code>weights={[1, 1.4]}</code>. Minimum by content: touch 44 · input 128 · button 96.</small></div><span class="badge">kind</span></div>
       <div class="lrow"><span class="chip-icon"><svg class="i s" viewBox="0 0 24 24"><rect x="2" y="16" width="20" height="5" rx="2"/><path d="M7 18.5h.01M12 18.5h.01M17 18.5h.01"/></svg></span><div class="t"><b>Bottom nav</b><small>Belongs to the app shell (S0), never to a screen. Screens only reserve space above it.</small></div><span class="badge">S0.4</span></div>
     </div>
 
@@ -268,7 +268,7 @@
         <tr><td><span class="num">4</span></td><td><code>InvoicesScreen()</code></td><td>the phone / tablet switch, ~20 lines</td></tr>
         <tr><td><span class="num">5</span></td><td><code>Header</code> → <code>Main</code> rows → <code>Footer</code></td><td>one function per region, in on-screen order</td></tr>
       </table></div>
-      <p class="caption">The tree order is also the screen-reader order: Header, then rows left to right, then Footer.</p>
+      <p class="caption">The tree order is also the screen-reader order: Header, then rows left to right, then Footer. A hosted screen (S3 Invoice detail, shown under the shell's back bar or in S2's pane) is an <b>embeddable Main</b>: no <code>&lt;Screen&gt;</code>, no header or footer of its own.</p>
     </div>
   </section>
 
@@ -279,11 +279,11 @@
       <div class="tbl"><table>
         <tr><th>#</th><th>Rule</th><th>Detail</th></tr>
         <tr><td><span class="num">1</span></td><td>Header</td><td>fixed; pads the status inset; title has <code>accessibilityRole="header"</code>; glass icon buttons for actions</td></tr>
-        <tr><td><span class="num">2</span></td><td>Main</td><td>one scroller; sides 20, gap 16; bottom padding = nav inset + footer height (+ FAB when one floats)</td></tr>
-        <tr><td><span class="num">3</span></td><td>Footer</td><td>compact widths only; in the flex column; pads the gesture inset; hide while typing if taller than one row</td></tr>
-        <tr><td><span class="num">4</span></td><td>Rows / columns</td><td><code>gap: 12</code>; equal columns <code>flex: 1</code>; ≤ 3 columns on phones; cells ≥ 44 wide; every split row says when it stacks</td></tr>
-        <tr><td><span class="num">5</span></td><td>Lists</td><td>rows are their own <code>React.memo</code> component; the last row clears footer and nav</td></tr>
-        <tr><td><span class="num">6</span></td><td>Navigation</td><td>bottom nav and tablet rail live in the shell, never in a screen</td></tr>
+        <tr><td><span class="num">2</span></td><td>Main</td><td>one scroller; sides 20, gap 16; ends with <code>useMainInset()</code> (nav + FAB), a hugging list card adds <code>useFabClearance()</code>; no clearance arithmetic in a screen</td></tr>
+        <tr><td><span class="num">3</span></td><td>Footer</td><td>compact widths only; in the flex column; pads the gesture inset; hide while typing if taller than one row. Hosted screens have none (embeddable Main)</td></tr>
+        <tr><td><span class="num">4</span></td><td>Rows / columns</td><td><code>&lt;Columns kind wrap stackAt weights&gt;</code>; cells ≥ touch 44 / input 128 / button 96 or the row wraps / stacks; ≤ 3 columns on phones, ≤ 2 with label + value; a row that is not <code>Columns</code> says why</td></tr>
+        <tr><td><span class="num">5</span></td><td>Lists</td><td>rows are <code>React.memo</code> with <code>useCallback</code> handlers; the last row clears the FAB (<code>useFabClearance</code>); on short screens the filters go into the list's header so the card cannot collapse</td></tr>
+        <tr><td><span class="num">6</span></td><td>Navigation</td><td>bottom nav and tablet rail live in the shell, never in a screen; branch on the window (<code>bp.isPhone</code>, <code>bp.panes === 1</code>), md is one pane, phones in landscape are lg</td></tr>
       </table></div>
     </div>
 
@@ -295,13 +295,13 @@
         <tr><td>Material 3</td><td><span class="badge ok">fits</span></td><td>no collapsing titles; footer is compact-only, tablets put actions in their pane</td></tr>
         <tr><td>Apple HIG</td><td><span class="badge ok">fits</span></td><td>iOS would need KeyboardAvoidingView in the scaffold</td></tr>
         <tr><td>Safe areas, edge-to-edge</td><td><span class="badge ok">fits</span></td><td>insets are owned by the scaffold so a new screen can't forget</td></tr>
-        <tr><td>Touch targets 44</td><td><span class="badge warn">columns</span></td><td>3 columns at 360 dp ≈ 105 dp each: fine for buttons, tight for labels</td></tr>
-        <tr><td>Reflow</td><td><span class="badge ok">with care</span></td><td>each split row states when it stacks (xs by default)</td></tr>
-        <tr><td>Lists</td><td><span class="badge warn">coupling</span></td><td>last row must clear footer + nav; measure the footer with onLayout</td></tr>
+        <tr><td>Touch targets 44</td><td><span class="badge ok">closed</span></td><td><code>Columns</code> keeps every cell ≥ its usable minimum or wraps / stacks</td></tr>
+        <tr><td>Reflow</td><td><span class="badge ok">closed</span></td><td><code>Columns</code> decides from its own measured width; <code>wrap</code> brings a 4th cell back up on tablets; md is one pane</td></tr>
+        <tr><td>Lists</td><td><span class="badge ok">closed</span></td><td>only <code>Screen.tsx</code> knows the nav + FAB clearance (<code>useMainInset</code>, <code>useFabClearance</code>); a footer in the column needs no measuring</td></tr>
         <tr><td>Keyboard</td><td><span class="badge ok">Android</span></td><td><code>adjustResize</code> shrinks the window; the column reflows</td></tr>
         <tr><td>Accessibility</td><td><span class="badge ok">quiet win</span></td><td>tree order = reading order</td></tr>
         <tr><td>RTL</td><td><span class="badge ok">fits</span></td><td>flex rows mirror; keep start / end</td></tr>
-        <tr><td>Performance</td><td><span class="badge warn">one habit</span></td><td>memoise list rows</td></tr>
+        <tr><td>Performance</td><td><span class="badge ok">closed</span></td><td>every list row is <code>React.memo</code> (S2, S3, S5, S6)</td></tr>
         <tr><td>Flat Glass kit</td><td><span class="badge ok">exact</span></td><td>the four reference screens are header / body / footer</td></tr>
       </table></div>
     </div>
@@ -314,7 +314,28 @@
         <tr><td>No <code>flex: 1</code> on Main</td><td>footer sits under the last row; tall content pushes it off-screen</td><td>set once by the scaffold</td></tr>
         <tr><td>Footer vs keyboard</td><td>breaks under <code>adjustPan</code> or on iOS</td><td>footer in the column; window resizes on Android</td></tr>
         <tr><td>Per-screen bottom nav</td><td>rebuilt on every tab switch</td><td>nav stays in the shell; screens reserve the space</td></tr>
+        <tr><td>Clearance copied per screen</td><td><code>52 + 16</code> in three files drifts apart</td><td><code>useMainInset()</code> / <code>useFabClearance()</code> are the only source</td></tr>
+        <tr><td>Row decides from the window</td><td>wrong inside a tablet pane</td><td><code>Columns</code> measures itself with <code>onLayout</code></td></tr>
+        <tr><td>ScrollView pane with a % width</td><td>grows past its width (default <code>flexGrow: 1</code>)</td><td><code>flexGrow: 0, flexShrink: 0</code> on the pane</td></tr>
+        <tr><td>Filters above a FlatList on a short screen</td><td>the list card shrinks to 0 (phone landscape)</td><td>filters go into <code>ListHeaderComponent</code> under 600 dp of height</td></tr>
+        <tr><td>Two panes at 601 dp</td><td>list, items header and table cramped</td><td>md is one pane with the rail; two panes from lg</td></tr>
       </table></div>
+    </div>
+
+    <div class="card">
+      <span class="overline">Size check · the eight profiles</span>
+      <div class="tbl"><table>
+        <tr><th>Tag</th><th>dp</th><th>bp</th><th>Stands for</th></tr>
+        <tr><td>xs</td><td><span class="num">320 × 568</span></td><td>xs</td><td>the smallest supported phone</td></tr>
+        <tr><td>sm</td><td><span class="num">360 × 800</span></td><td>sm</td><td>a budget phone</td></tr>
+        <tr><td>phone</td><td><span class="num">411 × 914</span></td><td>sm</td><td>the default emulator (baseline)</td></tr>
+        <tr><td>phoneL</td><td><span class="num">914 × 411</span></td><td>lg</td><td>a phone in landscape: two panes at 411 dp of height</td></tr>
+        <tr><td>tab8P</td><td><span class="num">601 × 961</span></td><td>md</td><td>8-inch tablet, portrait: one pane + rail</td></tr>
+        <tr><td>tab8L</td><td><span class="num">961 × 601</span></td><td>xl</td><td>8-inch tablet, landscape</td></tr>
+        <tr><td>tab10P</td><td><span class="num">800 × 1280</span></td><td>lg</td><td>10-inch tablet, portrait</td></tr>
+        <tr><td>tab10L</td><td><span class="num">1280 × 800</span></td><td>xxl</td><td>10-inch tablet, landscape</td></tr>
+      </table></div>
+      <p class="caption">The phone AVD is resized with <code>wm size</code> / <code>wm density</code>: the layout code reads the window in dp, so it shows exactly what a tablet shows. Run the profiles from one process; a restructure is compared pixel by pixel at the phone size (target 0.000 %). Commands in the Code tab.</p>
     </div>
   </section>
 
@@ -322,137 +343,168 @@
   <section id="code" role="tabpanel" aria-labelledby="tab-code" hidden>
 
     <div class="card code">
-      <div class="bar"><div class="t"><h3>1 · The scaffold</h3><span class="caption">src/ui/Screen.tsx · three slots, insets, background, flex 1 written once</span></div>
+      <div class="bar"><div class="t"><h3>1 · The scaffold</h3><span class="caption">src/ui/Screen.tsx (C16) · slots, insets, background and the nav / FAB clearance written once</span></div>
         <button class="icon-btn copy" type="button" aria-label="Copy the scaffold" data-copy="c1"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
-<pre><code id="c1">// src/ui/Screen.tsx — Header and Footer keep their own height; Main fills the rest.
-import React from 'react';
+<pre><code id="c1">// src/ui/Screen.tsx (C16) — three slots, a fab slot, the insets; the ONE place that knows the clearances.
+import React, { createContext, useContext } from 'react';
 import { View } from 'react-native';
 import { useTheme } from '../shell/providers';
-import { useNavBottom } from './navMetrics';
+import { layout, space, touch } from './tokens';
+import { useNavBottom, useNavInset } from './navMetrics';
 
-export function Screen({ header, footer, children }: {
-  header?: React.ReactNode; footer?: React.ReactNode; children: React.ReactNode;
+const ScreenContext = createContext({ fab: false, overlay: false });
+
+export function Screen({ header, below, footer, fab, overlay = false, children }: {
+  header?: React.ReactNode;   // fixed; a TopAppBar pads the status inset itself
+  below?: React.ReactNode;    // optional fixed row under the header (a stepper)
+  footer?: React.ReactNode;   // phones only; in the flex column, rises with the keyboard
+  fab?: React.ReactNode;      // floats over Main
+  overlay?: boolean;          // a full-screen editor or detail: no bottom nav under it
+  children: React.ReactNode;  // Main: exactly one scroller, or a row of panes
 }) {
   const theme = useTheme();
   const navBottom = useNavBottom(); // max(gesture inset, 20)
   return (
-    &lt;View style={{ flex: 1, backgroundColor: theme.bg }}&gt;
-      {header}
-      &lt;View style={{ flex: 1, minHeight: 0 }}&gt;{children}&lt;/View&gt;
-      {footer ? &lt;View style={{ paddingBottom: navBottom }}&gt;{footer}&lt;/View&gt; : null}
-    &lt;/View&gt;
+    &lt;ScreenContext.Provider value={{ fab: !!fab, overlay }}&gt;
+      &lt;View style={{ flex: 1, backgroundColor: theme.bg }}&gt;
+        {header}
+        {below}
+        &lt;View style={{ flex: 1, minHeight: 0 }}&gt;{children}&lt;/View&gt;
+        {footer ? &lt;View style={{ paddingBottom: navBottom }}&gt;{footer}&lt;/View&gt; : null}
+        {fab}
+      &lt;/View&gt;
+    &lt;/ScreenContext.Provider&gt;
   );
-}</code></pre>
+}
+
+// The FAB's height (52) plus a block gap, only while a fab floats.
+export function useFabClearance(): number {
+  const { fab } = useContext(ScreenContext);
+  return fab ? touch.button + layout.gap : 0;
+}
+
+// Bottom padding for Main's scroller: the floating nav (+ the fab), or a gap in an overlay.
+export function useMainInset(): number {
+  const { overlay } = useContext(ScreenContext);
+  return (overlay ? space[6] : useNavInset()) + useFabClearance();
+}
+// A footer in the column takes its own space: nothing to measure.</code></pre>
     </div>
 
     <div class="card code">
-      <div class="bar"><div class="t"><h3>2 · A screen file, in reading order</h3><span class="caption">numbers block · state hook · the switch · Header · Main · Footer</span></div>
+      <div class="bar"><div class="t"><h3>2 · A screen file, in reading order</h3><span class="caption">numbers block · state hook · the switch (one pane / panes) · Header · Main · fab slot</span></div>
         <button class="icon-btn copy" type="button" aria-label="Copy the screen skeleton" data-copy="c2"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
 <pre><code id="c2">// Every number specific to this screen, one per line, labelled with its ID.
 const S5 = {
-  searchGap: 10,                      // S5.1: search field | export button
-  fabClearance: touch.button + layout.gap, // S5.3: last row clears the FAB
-  editorWidth: '38%',                 // S5.5: tablet editor pane
+  searchGap: 10,          // S5.1: search field | export button
+  tableMinWidth: 520,     // S5.3: narrower than this, the table becomes card rows
+  editorWidth: '38%',     // S5.5: tablet editor pane
+  longList: 6,            // S5.3: pad for the FAB only when the list is this long
 } as const;
 
-// All state and data. No JSX.
-function useProductList() {
+// All state and data. No JSX. Row handlers are useCallback so memo rows stay cheap.
+function useProducts() {
   const [rows, setRows] = useState&lt;ProductRow[]&gt;([]);
   const [search, setSearch] = useState('');
   useEffect(() => { void listProducts(search).then(setRows); }, [search]);
-  return { rows, search, setSearch };
+  const openRow = useCallback((id: number) => setEditing(id), []);
+  return { rows, search, setSearch, openRow };
 }
-type ProductList = ReturnType&lt;typeof useProductList&gt;;
+type Products = ReturnType&lt;typeof useProducts&gt;;
 
-// The switch: phone = Header + Main + Footer; tablet = Header + [Main | Editor].
+// The switch: phone = Header + Main + a floating FAB; lg+ = Header + [list | editor pane].
 export function ProductsScreen() {
   const theme = useTheme();
   const bp = useBreakpoint();
-  const list = useProductList();
+  const p = useProducts();
   return (
     &lt;Screen
-      header={&lt;Header list={list} theme={theme} /&gt;}
-      footer={bp.isPhone ? &lt;Footer theme={theme} /&gt; : null}
+      header={&lt;Header p={p} theme={theme} /&gt;}
+      fab={bp.isPhone ? &lt;FAB icon="plus" label="Add product" onPress={p.openNew} theme={theme} /&gt; : null}
     &gt;
-      &lt;Main list={list} theme={theme} /&gt;
+      {bp.panes === 1
+        ? &lt;ListPane p={p} theme={theme} /&gt;
+        : &lt;View style={{ flex: 1, flexDirection: 'row' }}&gt;
+            &lt;ListPane p={p} theme={theme} /&gt;
+            &lt;EditorPane p={p} theme={theme} /&gt;   {/* width S5.editorWidth, flexGrow 0, flexShrink 0 */}
+          &lt;/View&gt;}
     &lt;/Screen&gt;
   );
 }
 
 // S5.0 — title, "N items", export button.
-function Header({ list, theme }: { list: ProductList; theme: Theme }) {
-  return &lt;TopAppBar title="Products" subtitle={`${list.rows.length} items`} large theme={theme} /&gt;;
+function Header({ p, theme }: { p: Products; theme: Theme }) {
+  return &lt;TopAppBar title="Products" subtitle={`${p.rows.length} items`} large theme={theme} /&gt;;
 }
 
-// S5.1–S5.3 — the column under the header: search row, then the list card.
-function Main({ list, theme }: { list: ProductList; theme: Theme }) {
+// S5.1–S5.3 — the column under the header: search row, then the list card (the one scroller).
+function ListPane({ p, theme }: { p: Products; theme: Theme }) {
   return (
     &lt;View style={{ flex: 1, paddingHorizontal: layout.side, gap: layout.gap }}&gt;
-      &lt;SearchRow list={list} theme={theme} /&gt;
-      &lt;ProductListCard list={list} theme={theme} /&gt;
+      &lt;SearchRow p={p} theme={theme} /&gt;
+      &lt;ProductListCard p={p} theme={theme} /&gt;
     &lt;/View&gt;
   );
-}
-
-// S5.4 — phone only.
-function Footer({ theme }: { theme: Theme }) {
-  const nav = useNav();
-  return &lt;FAB icon="plus" label="Add product" onPress={() => nav.openProduct()} theme={theme} /&gt;;
 }</code></pre>
     </div>
 
     <div class="card code">
-      <div class="bar"><div class="t"><h3>3 · A row with two columns</h3><span class="caption">equal columns with flex 1 · stacks on the smallest phones</span></div>
+      <div class="bar"><div class="t"><h3>3 · A row with two columns</h3><span class="caption">C15 Columns · usable minimum per cell · measures its own width</span></div>
         <button class="icon-btn copy" type="button" aria-label="Copy the row example" data-copy="c3"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
-<pre><code id="c3">// S4.A row 3 — City | Pincode. One row, two equal columns; a column on xs (&lt; 360 dp).
+<pre><code id="c3">// S4.A row 3 — City | Pincode: one row, two equal columns. `kind="input"` keeps each cell
+// ≥ 128 dp; narrower than that the row stacks. The decision uses the row's own measured width,
+// so it is right inside a tablet pane too. No per-row breakpoint code.
 function CityPincodeRow({ form, patch, theme }: { form: InvoiceForm; patch: Patch; theme: Theme }) {
-  const bp = useBreakpoint();
   return (
-    &lt;View style={{ flexDirection: bp.bp === 'xs' ? 'column' : 'row', gap: layout.grid }}&gt;
-      &lt;View style={{ flex: 1 }}&gt;
-        &lt;Input label="City" value={form.party.party_city}
-          onChange={v => patch({ party: { ...form.party, party_city: v } })} theme={theme} /&gt;
-      &lt;/View&gt;
-      &lt;View style={{ flex: 1 }}&gt;
-        &lt;Input label="Pincode" value={form.party.party_pincode} keyboardType="numeric" maxLength={6}
-          onChange={v => patch({ party: { ...form.party, party_pincode: v } })} theme={theme} /&gt;
-      &lt;/View&gt;
-    &lt;/View&gt;
+    &lt;Columns kind="input"&gt;
+      &lt;Input label="City" value={form.party.party_city}
+        onChange={v => patch({ party: { ...form.party, party_city: v } })} theme={theme} /&gt;
+      &lt;Input label="Pincode" value={form.party.party_pincode} keyboardType="numeric" maxLength={6}
+        onChange={v => patch({ party: { ...form.party, party_pincode: v } })} theme={theme} /&gt;
+    &lt;/Columns&gt;
   );
 }
-// Wider right column: give it flex: 1.4. Fixed column: width: 120 instead of flex.</code></pre>
+// Unequal cells: weights={[1, 1.4]}. Force a stack on phones: stackAt="sm".
+// A 4th cell: add `wrap` and it goes to the next line on a phone (2 + 2) and
+// comes back up on a tablet. Icon buttons: kind="touch" (44). Buttons: kind="button" (96).</code></pre>
     </div>
 
     <div class="card code">
-      <div class="bar"><div class="t"><h3>4 · A list with a memoised row</h3><span class="caption">one FlatList in Main · the row is its own component · last row clears the footer</span></div>
+      <div class="bar"><div class="t"><h3>4 · A list with a memoised row</h3><span class="caption">one FlatList in Main · memo row with a useCallback handler · useFabClearance · filters in the list header on short screens</span></div>
         <button class="icon-btn copy" type="button" aria-label="Copy the list example" data-copy="c4"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
 <pre><code id="c4">// S2.5 — the card hugs its rows and scrolls when full. Never wrap it in a ScrollView.
+// It pads for the FAB with useFabClearance() (0 when no fab floats): no hand-written 52 + 16.
 function InvoiceListCard({ list, theme }: { list: InvoiceList; theme: Theme }) {
   const navInset = useNavInset();
-  const { rows } = list;
+  const fabClearance = useFabClearance();
+  const { rows, openRow } = list; // openRow is a useCallback in the hook
   return (
     &lt;Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}&gt;
       &lt;FlatList
         data={rows}
         keyExtractor={r => String(r.id)}
         style={{ flexGrow: 0 }}
-        contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? S2.fabClearance : 0 }}
+        ListHeaderComponent={shortScreen ? &lt;FilterRows list={list} theme={theme} /&gt; : null}
+        contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? fabClearance : 0 }}
         renderItem={({ item, index }) => (
-          &lt;InvoiceRow item={item} alt={index % 2 === 1} last={index === rows.length - 1} theme={theme} /&gt;
+          &lt;InvoiceRow item={item} alt={index % 2 === 1} last={index === rows.length - 1}
+            onPress={openRow} theme={theme} /&gt;
         )}
       /&gt;
     &lt;/Card&gt;
   );
 }
 
-// One row: avatar · party · "no · date" · ₹ total over the status pill.
-const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, theme }: {
-  item: Invoice; alt: boolean; last: boolean; theme: Theme;
+// One row: avatar · party · "no · date" · ₹ total over the status pill. Memoised: a keystroke
+// in the search box re-renders the list, not every row.
+const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, onPress, theme }: {
+  item: Invoice; alt: boolean; last: boolean; onPress: (id: number) => void; theme: Theme;
 }) {
   return (
     &lt;ListItem theme={theme} flush leadingText={initials(item.party_name)} leadingAlt={alt} divider={!last}
       title={item.party_name} subtitle={`${item.invoice_no} · ${formatDateDisplay(item.invoice_date)}`}
-      trailing={&lt;MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small /&gt;} /&gt;
+      trailing={&lt;MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small /&gt;}
+      onPress={() => onPress(item.id)} /&gt;
   );
 });</code></pre>
     </div>
@@ -480,6 +532,43 @@ function Footer({ total, step, onNext, actions, theme }: {
     &lt;/View&gt;
   );
 }</code></pre>
+    </div>
+
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>6 · Four inputs that wrap</h3><span class="caption">C15 · 2 + 2 on a phone, one row on a tablet, stacked when not even two fit</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the wrap example" data-copy="c6"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c6">// S4.A — four labelled fields in one row. On a 360 dp phone each cell would be 69 dp (&lt; 128),
+// so `wrap` lays them 2 + 2; on an 800 dp tablet all four fit on one line again.
+&lt;Columns kind="input" wrap&gt;
+  &lt;Input label="Invoice date" … /&gt;
+  &lt;Input label="Due date" … /&gt;
+  &lt;Input label="Mobile" … /&gt;
+  &lt;Input label="Email" … /&gt;
+&lt;/Columns&gt;
+
+// The decision is a pure function you can unit-test (npm run test:columns):
+columnsMode({ width: 360, side: 20, gap: 12, n: 4, minCell: 128, bp: 'sm', wrap: true }); // 'wrap'
+columnsMode({ width: 800, side: 20, gap: 12, n: 4, minCell: 128, bp: 'lg', wrap: true }); // 'row'
+columnsMode({ width: 280, side: 20, gap: 12, n: 3, minCell: 128, bp: 'xs', wrap: true }); // 'stack'</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>7 · The size check</h3><span class="caption">/size-check · the phone emulator resized to eight profiles, every screen screenshotted</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the size-check commands" data-copy="c7"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="c7"># dp = px / (dpi / 160). One process, one profile after another; `reset` restores the phone.
+python -I scripts/size-tour.py out xs      640x1136  320   # 320 x 568   xs   smallest phone
+python -I scripts/size-tour.py out sm      720x1600  320   # 360 x 800   sm   budget phone
+python -I scripts/size-tour.py out phone   1080x2400 420   # 411 x 914   sm   the default emulator
+python -I scripts/size-tour.py out phoneL  2400x1080 420   # 914 x 411   lg   phone in landscape
+python -I scripts/size-tour.py out tab8P   800x1280  213   # 601 x 961   md   8-inch portrait (one pane + rail)
+python -I scripts/size-tour.py out tab8L   1280x800  213   # 961 x 601   xl   8-inch landscape
+python -I scripts/size-tour.py out tab10P  1200x1920 240   # 800 x 1280  lg   10-inch portrait
+python -I scripts/size-tour.py out tab10L  1920x1200 240   # 1280 x 800  xxl  10-inch landscape
+python -I scripts/size-tour.py out reset
+
+# A restructure must not change the rendered screen: compare before / after at the phone size.
+python -I imgdiff.py out      # PIL ImageChops.difference, status bar excluded; target 0.000 %</code></pre>
     </div>
   </section>
 
@@ -524,13 +613,26 @@ Stack them on xs.</code></pre>
 on the left, Edit (glass) on the right. Phones only; tablets keep them in the pane.</code></pre>
     </div>
 
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Make a row responsive</h3><span class="caption">Columns with a kind and wrap</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the responsive-row prompt" data-copy="p6"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p6">In [S4] put Invoice date | Due date | Mobile | Email in one Columns row, kind="input", wrap,
+so phones get 2 + 2 and tablets one line. Then run /size-check sm and tab10P.</code></pre>
+    </div>
+
+    <div class="card code">
+      <div class="bar"><div class="t"><h3>Check the sizes</h3><span class="caption">after any layout change</span></div>
+        <button class="icon-btn copy" type="button" aria-label="Copy the size-check prompt" data-copy="p7"><span class="idle"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="done"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button></div>
+<pre><code id="p7">Run /size-check on [S5] at xs, phoneL and tab8P, and list every finding with its breakpoint.</code></pre>
+    </div>
+
     <div class="card list">
-      <div class="lrow"><span class="avatar">S1</span><div class="t"><b>Dashboard</b><small>Header · Main: hero card, tiles row · Footer: FAB</small></div></div>
-      <div class="lrow"><span class="avatar alt">S2</span><div class="t"><b>Invoices</b><small>Header · Main: filter rows, list card · Footer: FAB</small></div><span class="badge ok">done</span></div>
-      <div class="lrow"><span class="avatar">S3</span><div class="t"><b>Invoice detail</b><small>Header (shell) · Main: bill-to, actions, items, totals · Footer: Edit / Void</small></div></div>
-      <div class="lrow"><span class="avatar alt">S4</span><div class="t"><b>Create invoice</b><small>Header · stepper · Main: step body · Footer: TOTAL bar</small></div><span class="badge">next</span></div>
-      <div class="lrow"><span class="avatar">S5</span><div class="t"><b>Products</b><small>Header · Main: search, list · Footer: FAB</small></div></div>
-      <div class="lrow"><span class="avatar alt">S6</span><div class="t"><b>Settings</b><small>Header · Main: list or section · Footer: version</small></div></div>
+      <div class="lrow"><span class="avatar">S1</span><div class="t"><b>Dashboard</b><small>Header · Main: hero card, tiles row · fab slot: New invoice</small></div><span class="badge ok">done</span></div>
+      <div class="lrow"><span class="avatar alt">S2</span><div class="t"><b>Invoices</b><small>Header · Main: filter rows, list card (filters inside the list on short screens) · fab slot · lg+: list | detail (| activity at xxl)</small></div><span class="badge ok">done</span></div>
+      <div class="lrow"><span class="avatar">S3</span><div class="t"><b>Invoice detail</b><small>embeddable Main: header row, bill-to, actions, items, totals, Edit / Void · P1 sheet · hosted by the shell (one pane) or S2's pane (lg+)</small></div><span class="badge ok">done</span></div>
+      <div class="lrow"><span class="avatar alt">S4</span><div class="t"><b>Create invoice</b><small>Header · below: stepper · Main: step body · Footer: TOTAL bar (phones) · xl: catalog | form | preview</small></div><span class="badge ok">done</span></div>
+      <div class="lrow"><span class="avatar">S5</span><div class="t"><b>Products</b><small>Header · Main: search row, table (≥ 520 dp) or card rows · fab slot · lg+: list | editor 38 %</small></div><span class="badge ok">done</span></div>
+      <div class="lrow"><span class="avatar alt">S6</span><div class="t"><b>Settings</b><small>Header · Main: section list, or a section (one pane) · lg+: list 300 | section</small></div><span class="badge ok">done</span></div>
     </div>
   </section>
 
@@ -538,7 +640,7 @@ on the left, Edit (glass) on the right. Phones only; tablets keep them in the pa
   <div class="devbar">
     <svg class="i" viewBox="0 0 24 24" style="color:var(--primary)"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
     <span class="t">Flat Glass · Brand Blue · Inter 300–600 · Bebas Neue numbers</span>
-    <span class="badge">v1 · <span class="num">2026-10-23</span></span>
+    <span class="badge">v2 · <span class="num">2026-10-23</span></span>
   </div>
 </div>
 

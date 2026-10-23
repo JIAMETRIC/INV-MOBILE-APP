@@ -206,7 +206,7 @@
     </button>
   </header>
 
-  <p class="caption">The full analysis is in <code>SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md</code>. Here is the substance.</p>
+  <p class="caption">The full analysis is in <code>SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md</code>. Here is the substance, with the status after the method was applied to all six screens (the <a href="#solutions">Solutions</a> card).</p>
 
   <!-- Verdict -->
   <div class="card pad-20" id="verdict">
@@ -216,9 +216,9 @@
     </div>
     <p class="lead">Your method is sound. It's the structure that React Native's flexbox, Material Design 3, Apple's HIG and this project's own design kit all already assume, so it adds no new mechanism and breaks no rule. Its real costs are <b>three couplings</b> it creates, each with a known fix the scaffold can own once:</p>
     <div class="phone" style="max-width:none;gap:6px" role="list" aria-label="The three couplings">
-      <div class="slot header" role="listitem"><span class="micro">1</span>footer height ↔ Main's bottom padding</div>
-      <div class="slot header" role="listitem"><span class="micro">2</span>keyboard ↔ footer</div>
-      <div class="slot header" role="listitem"><span class="micro">3</span>number of columns ↔ screen width</div>
+      <div class="slot header" role="listitem" style="flex-direction:row;align-items:center;justify-content:space-between"><span><span class="micro">1 · </span>footer height ↔ Main's bottom padding</span><span class="badge ok">closed · Screen</span></div>
+      <div class="slot header" role="listitem" style="flex-direction:row;align-items:center;justify-content:space-between"><span><span class="micro">2 · </span>keyboard ↔ footer</span><span class="badge ok">Android adjustResize</span></div>
+      <div class="slot header" role="listitem" style="flex-direction:row;align-items:center;justify-content:space-between"><span><span class="micro">3 · </span>number of columns ↔ screen width</span><span class="badge ok">closed · Columns</span></div>
     </div>
     <p>The one place it bends: on wide screens "footer" stops being a global bar and becomes a per-pane action row. Material says the same, so that's a rule to write down, not a flaw.</p>
   </div>
@@ -232,13 +232,13 @@
       <tr><td>Material 3</td><td><span class="badge ok">fits</span></td><td>Fixed header gives up M3's collapsing titles (fine here); bottom action bar is for compact width only, so on tablets actions move into their pane (S4.F already does)</td></tr>
       <tr><td>Apple HIG</td><td><span class="badge ok">structure</span></td><td>iOS would need <code>KeyboardAvoidingView</code> in the scaffold (Android's <code>adjustResize</code> does it free)</td></tr>
       <tr><td>Safe areas / edge-to-edge</td><td><span class="badge ok">fits</span></td><td><code>edgeToEdgeEnabled=true</code> in this app makes inset padding mandatory; the scaffold should own top and bottom insets so a new screen can't forget</td></tr>
-      <tr><td>Touch targets 44</td><td><span class="badge warn">columns</span></td><td>3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44</td></tr>
-      <tr><td>Responsive reflow</td><td><span class="badge ok">with care</span></td><td>every split row states when it stacks (xs by default)</td></tr>
-      <tr><td>Lists</td><td><span class="badge warn">coupling</span></td><td>last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with <code>onLayout</code></td></tr>
+      <tr><td>Touch targets 44</td><td><span class="badge ok">closed</span></td><td>was: 3 columns on a 360 dp phone ≈ 105 dp each, tight for labels. Now <code>&lt;Columns kind="input"&gt;</code> keeps every cell ≥ its usable minimum (touch 44 · input 128 · button 96) or wraps / stacks</td></tr>
+      <tr><td>Responsive reflow</td><td><span class="badge ok">closed</span></td><td><code>Columns</code> decides from its own measured width (right inside a tablet pane); a 4th input goes down on a phone and comes back up on a tablet (<code>wrap</code>); md is one pane</td></tr>
+      <tr><td>Lists</td><td><span class="badge ok">closed</span></td><td>was: each screen hard-coded the nav + FAB clearance. Now only <code>Screen.tsx</code> knows it: <code>useMainInset()</code> for the scroller, <code>useFabClearance()</code> for a hugging list card. The footer is not measured: in the flex column it takes its own space</td></tr>
       <tr><td>Keyboard</td><td><span class="badge ok">Android</span></td><td>S4 keeps ≈ 300 dp of form with the keyboard open; hide tall footers while typing if that's ever too little</td></tr>
       <tr><td>Accessibility</td><td><span class="badge ok">quiet win</span></td><td>tree order = reading order: Header → rows left-to-right → Footer</td></tr>
       <tr><td>RTL</td><td><span class="badge ok">fits</span></td><td>flex rows mirror; keep <code>start</code> / <code>end</code></td></tr>
-      <tr><td>Performance</td><td><span class="badge warn">one habit</span></td><td>list rows should be <code>React.memo</code> (S2's <code>InvoiceRow</code> isn't yet; pre-existing)</td></tr>
+      <tr><td>Performance</td><td><span class="badge ok">closed</span></td><td>every list row is <code>React.memo</code> with handlers from <code>useCallback</code>: S2 <code>InvoiceRow</code>, S3 <code>LineRow</code>, S5 <code>ProductTableRow</code> / <code>ProductListRow</code>, S6 <code>DraftRow</code></td></tr>
       <tr><td>The design kit</td><td><span class="badge ok">exact</span></td><td>the four reference screens are literally header / body / footer</td></tr>
       <tr><td>Sheets P1–P3</td><td><span class="badge ok">fits</span></td><td><code>Sheet.tsx</code> already has the three slots</td></tr>
     </table></div>
@@ -256,10 +256,10 @@
     <div class="tbl"><table>
       <tr><th>You gain</th><th>You pay</th></tr>
       <tr><td style="white-space:normal">One reading order for every screen, same as the screen-reader order</td><td>More lines per screen (S2: 159 → 265)</td></tr>
-      <tr><td style="white-space:normal">Insets, background, padding, keyboard handling written once</td><td>One shared component to maintain (~40 lines)</td></tr>
-      <tr><td style="white-space:normal">Edits become "open the named region"</td><td>Pieces sharing one state object re-render together (memoise list rows)</td></tr>
-      <tr><td style="white-space:normal">1-to-1 with flexbox, Material and the kit</td><td>Columns need a stacking rule; ≤ 3 on phones</td></tr>
-      <tr><td style="white-space:normal">A real footer slot</td><td>Footer height couples to Main padding until measured</td></tr>
+      <tr><td style="white-space:normal">Insets, background, padding, keyboard handling written once</td><td>Two shared components to maintain: <code>Screen.tsx</code> (60 lines) and <code>Columns.tsx</code> + <code>columnsMode.ts</code> (90 lines, 10 tests)</td></tr>
+      <tr><td style="white-space:normal">Edits become "open the named region"</td><td>Pieces sharing one state object re-render together (list rows are memoised, so it costs nothing visible)</td></tr>
+      <tr><td style="white-space:normal">1-to-1 with flexbox, Material and the kit</td><td>Rows go through <code>Columns</code> (kind, wrap, stackAt); ≤ 3 on phones; a row that is not <code>Columns</code> says why</td></tr>
+      <tr><td style="white-space:normal">A real footer slot (and a FAB slot)</td><td>The scroller must end with <code>useMainInset()</code>; a screen that forgets it hides its last row under the nav</td></tr>
       <tr><td style="white-space:normal">Tablets = Main becomes a row of panes</td><td>"Footer" has two forms by width</td></tr>
     </table></div>
   </div>
@@ -267,21 +267,45 @@
   <!-- Six conventions -->
   <div class="card list" id="conventions">
     <div style="padding:8px 0 4px"><h2>The six conventions</h2></div>
-    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">1</span></span><div class="t"><b>Header</b><small>fixed, pads the status inset, title marked as a heading.</small></div></div>
-    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">2</span></span><div class="t"><b>Main</b><small>one scroller; sides 20, gap 16; bottom padding = nav + footer (+ FAB).</small></div></div>
-    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">3</span></span><div class="t"><b>Footer</b><small>compact widths only; in the flex column; pads the gesture inset.</small></div></div>
-    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">4</span></span><div class="t"><b>Rows / columns</b><small><code>gap: 12</code>, equal columns <code>flex: 1</code>, ≤ 3 on phones, cells ≥ 44, each split row says when it stacks.</small></div></div>
-    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">5</span></span><div class="t"><b>Lists</b><small>memoised rows; the last row clears footer and nav.</small></div></div>
-    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">6</span></span><div class="t"><b>Navigation</b><small>nav and rail belong to the shell, never to a screen.</small></div></div>
+    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">1</span></span><div class="t"><b>Header</b><small>fixed, pads the status inset, title marked as a heading; the <code>header</code> slot of <code>&lt;Screen&gt;</code>.</small></div></div>
+    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">2</span></span><div class="t"><b>Main</b><small>one scroller; sides 20, gap 16; ends with <code>useMainInset()</code> (nav + FAB), never a hand-written clearance.</small></div></div>
+    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">3</span></span><div class="t"><b>Footer</b><small>compact widths only; in the flex column; pads the gesture inset. A hosted screen (S3) has no header or footer: it is an embeddable Main.</small></div></div>
+    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">4</span></span><div class="t"><b>Rows / columns</b><small><code>&lt;Columns kind wrap stackAt weights&gt;</code>: cells ≥ touch 44 / input 128 / button 96 or the row wraps / stacks; ≤ 3 on phones; a row that is not <code>Columns</code> says why.</small></div></div>
+    <div class="lrow"><span class="avatar"><span class="num" style="font-size:18px">5</span></span><div class="t"><b>Lists</b><small><code>React.memo</code> rows with <code>useCallback</code> handlers; a hugging card adds <code>useFabClearance()</code>; on short screens the filters go into the list's header so the card cannot collapse.</small></div></div>
+    <div class="lrow"><span class="avatar alt"><span class="num" style="font-size:18px">6</span></span><div class="t"><b>Navigation</b><small>nav and rail belong to the shell, never to a screen. Branch on the window: <code>bp.isPhone</code> (nav + FAB vs rail), <code>bp.panes === 1</code> (one pane vs master-detail; md is one pane).</small></div></div>
+  </div>
+
+  <!-- Solutions: what was built afterwards -->
+  <div class="card" id="solutions">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <h2>What was built: the three warnings closed</h2>
+      <span class="badge ok">3 / 3</span>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>Was</th><th>Now</th><th>Where</th></tr>
+      <tr><td style="white-space:normal">Columns: 3 cells at 360 dp tight for labels; stacking rules written per row, or missing; rows in a tablet pane decided from the window width</td><td style="white-space:normal"><code>&lt;Columns kind="input" wrap&gt;</code>: usable minimum per cell (touch 44 · input 128 · button 96), <code>wrap</code> flows a 4th cell to the next line, <code>stackAt</code> forces a stack, <code>weights</code> for unequal cells; decides from its own <code>onLayout</code> width; 10 unit tests</td><td>C15 <code>Columns.tsx</code>, <code>columnsMode.ts</code></td></tr>
+      <tr><td style="white-space:normal">Lists: the nav + FAB clearance hard-coded in every screen (<code>52 + 16</code> in three files)</td><td style="white-space:normal"><code>&lt;Screen header below footer fab overlay&gt;</code>; <code>useMainInset()</code> ends the scroller, <code>useFabClearance()</code> pads a hugging list card; no clearance arithmetic outside <code>Screen.tsx</code>. The footer is not measured: in the column it takes its own space</td><td>C16 <code>Screen.tsx</code></td></tr>
+      <tr><td style="white-space:normal">Performance: every visible row re-rendered per keystroke</td><td style="white-space:normal">every list row is <code>React.memo</code>; its handlers come from <code>useCallback</code> in the screen hook</td><td>S2, S3, S5, S6</td></tr>
+    </table></div>
+    <span class="overline" style="margin-top:4px">Also decided on the way</span>
+    <div class="tbl"><table>
+      <tr><th>Topic</th><th>Decision</th></tr>
+      <tr><td>md 600–767 dp</td><td style="white-space:normal">one pane with the rail (an 8-inch tablet in portrait is 601 dp; two panes were cramped). <code>bp.isPhone</code> = nav + FAB; <code>bp.panes === 1</code> = one pane</td></tr>
+      <tr><td>Hosted screens</td><td style="white-space:normal">S3 is an embeddable Main: no <code>&lt;Screen&gt;</code>, no header or footer; the shell's back bar hosts it on one pane, S2's detail pane on lg+</td></tr>
+      <tr><td>Short screens</td><td style="white-space:normal">phone landscape (914 × 411 dp) collapsed S2's list card to 0; under 600 dp of height the filters move into the list's <code>ListHeaderComponent</code></td></tr>
+      <tr><td>Panes</td><td style="white-space:normal">percentage widths; a <code>ScrollView</code> pane needs <code>flexGrow: 0, flexShrink: 0</code>; S5's table needs ≥ 520 dp, else card rows; S2's activity pane only at xxl</td></tr>
+      <tr><td>Verification</td><td style="white-space:normal"><code>/size-check</code>: the phone AVD resized (<code>wm size</code> / <code>wm density</code>) to xs 320 · sm 360 · phone 411 · phone landscape · 8-inch portrait and landscape · 10-inch portrait and landscape, from one process; restructures compared pixel by pixel (0.000 %)</td></tr>
+      <tr><td>Next app</td><td style="white-space:normal">user-level skill <code>~/.claude/skills/responsive-screens/</code>: the rules, the five helper files, the tour script, a CLAUDE.md snippet</td></tr>
+    </table></div>
   </div>
 
   <!-- Recommendation -->
   <div class="card pad-20" id="recommendation">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
       <span class="overline">Recommendation</span>
-      <span class="badge">adopt</span>
+      <span class="badge ok">adopted · 6 / 6 screens</span>
     </div>
-    <p class="lead">Adopt it, build <code>src/ui/Screen.tsx</code>, apply to S4 first and confirm each screen in the emulator before the next. The analysis and logs are written but not committed.</p>
+    <p class="lead">Adopted. <code>src/ui/Screen.tsx</code> and <code>src/ui/Columns.tsx</code> are built, all six screens (S1–S6) are on the method with pixel-identical phone screenshots, and every screen was checked at eight phone and tablet sizes. The portable version for the next app is the user-level skill <code>responsive-screens</code>.</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <a class="btn" href="https://claude.ai/artifact/MBKMrWnRkEjQyqpgqG6WHE">Open the method page</a>
     </div>
@@ -290,7 +314,7 @@
   <div class="devbar">
     <svg class="i" viewBox="0 0 24 24" style="color:var(--primary)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
     <span class="t">Source: SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md</span>
-    <span class="badge"><span class="num">2026-10-23</span></span>
+    <span class="badge">v2 · <span class="num">2026-10-23</span></span>
   </div>
 </div>
 

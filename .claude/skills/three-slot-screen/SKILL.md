@@ -14,7 +14,7 @@ FOOTER   action bar             phones only, in the flex column, rises with the 
 bottom nav                      owned by the app shell (S0), never by a screen
 ```
 
-Reference: `SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md` (rules and trade-offs), `SCREEN_CODE_STRUCTURE/three-slot-screen.html` (snippets), `SCREEN_CODE_STRUCTURE/InvoicesScreen_S2_tree.md` (a finished example: S2).
+Reference: `SCREEN_CODE_STRUCTURE/LAYOUT_METHOD_header-main-footer_analysis.md` (rules, trade-offs, and §7–§8: the solutions and the best-practice list), `SCREEN_CODE_STRUCTURE/three-slot-screen.html` (snippets), `SCREEN_CODE_STRUCTURE/InvoicesScreen_S2_tree.md` and `CreateInvoiceScreen_S4_tree.md` (finished examples). All six screens are on the method. The portable version for another app is the user-level skill `responsive-screens`.
 
 ## 1. Inspect before touching anything
 - Open the screen file and every file it imports from `src/ui`, `src/shell`, `src/data`, `src/export`.
@@ -27,23 +27,24 @@ Write the file so it reads top to bottom:
 1. **Labels**: constants for text that appears on screen (`STATUSES`, step names).
 2. **`S<n>` block**: every number specific to this screen, one per line, each with its ID in a trailing comment (`detailWidth: { 2: '50%', 3: '42%' }, // S2.7`). Shared spacing stays in `src/ui/tokens.ts` (`layout.side` 20, `layout.gap` 16, `layout.grid` 12).
 3. **`use<Screen>()` hook**: all state, effects, data loading and actions. No JSX. Return a plain object; type it with `ReturnType<typeof use<Screen>>`.
-4. **`<Screen>Screen()`**: the phone / tablet switch only, ~20 lines. Phone = `Header` + `Main` (+ `Footer`); tablet = `Header` + a row of panes.
+4. **`<Screen>Screen()`**: the phone / tablet switch only, ~20 lines. One pane (`bp.panes === 1`: xs, sm, md) = `Header` + `Main` (+ `Footer`); lg+ = `Header` + a row of panes. `bp.isPhone` (xs, sm) decides the FAB and bottom nav; md keeps the rail. A **hosted** screen (S3, shown under the shell's back bar or inside another screen's pane) is an embeddable Main: no `<Screen>`, no header or footer of its own.
 5. **One function per region**, in on-screen order: `Header`, then the rows of Main (`FilterRow`, `DateRangeRow`, `InvoiceListCard`, `InvoiceRow` …), then `Footer`, then tablet-only panes (`DetailPane`, `ActivityPane`).
 
-Each region function starts with a one-line comment: its ID and what it draws (`// S2.3a — one row, two equal columns: From | To`). Pieces take `theme` plus only what they use; the state object may be passed whole for brevity, but list rows get explicit props and `React.memo`.
+Each region function starts with a one-line comment: its ID and what it draws (`// S2.3a — one row, two equal columns: From | To`). Pieces take `theme` plus only what they use; the state object may be passed whole for brevity, but list rows get explicit props and `React.memo`, with their handlers from `useCallback` in the hook. A screen with an early spinner casts once (`type Loaded = State & { inv: Invoice }`) so no region handles `null`. A number two regions share (table column flexes) lives once in the `S<n>` block.
 
 ## 3. Rows and columns
-- A row is `<View style={{ flexDirection: 'row', gap: layout.grid }}>`; equal columns are children with `flex: 1`; a wider one gets `flex: 1.4`; a fixed one gets `width`.
+- A row is `<Columns>` (`src/ui/Columns.tsx`, C15) with the cells as children: `kind="input"` (128), `"button"` (96) or `"touch"` (44, default) sets the usable minimum per cell; `weights={[1, 1.4]}` for unequal cells; `wrap` lets a 4th cell go to the next line on a phone and come back up on a tablet; `stackAt="sm"` forces a stack. It decides from its own measured width, so it is right inside a tablet pane. `npm run test:columns` guards the decision.
 - ≤ 3 columns on phones; ≤ 2 when a cell carries a label and a value. A tappable cell is ≥ 44 wide.
-- Every split row states when it stacks (`bp.bp === 'xs' ? 'column' : 'row'` by default, or "never" in its comment).
+- A row that is deliberately not `Columns` (S1's three tiles, S3's items table) says why in its comment.
+- Pane widths are percentages (`'38%'`); a `ScrollView` pane needs `flexGrow: 0, flexShrink: 0`. A table with many columns has a minimum width (`S5.tableMinWidth` 520) and a card-row fallback.
 - Keep `marginStart` / `End`, never `left` / `right`.
 
 ## 4. Slots
 - **Header**: `TopAppBar` (C1). It pads the status inset itself. Never scrolls.
-- **Main**: exactly one scroller: `ScrollView` for forms, `FlatList` for lists. Never nest one in the other. Side padding `layout.side`, gap `layout.gap`. Bottom padding clears the nav plus the footer or FAB (`useContentInset(withFab)`, `useNavInset()`, or the screen's `S<n>.fabClearance`).
+- **Main**: exactly one scroller: `ScrollView` for forms, `FlatList` for lists. Never nest one in the other. Side padding `layout.side`, gap `layout.gap`. Its end padding is `useMainInset()` (the nav inset, or 32 in an overlay, plus the FAB clearance when the `fab` slot is set); a list card that hugs its rows adds `useFabClearance()` to its content. Never write the clearance by hand (`52 + 16`, `NAV_HEIGHT`): `Screen.tsx` is the only place that knows it. On short screens (under `S2.shortScreen` 600 dp of height) anything above a list goes into its `ListHeaderComponent`, so the card cannot collapse.
 - **Footer**: phones only (`bp.isPhone`). It lives in the flex column so Android's `adjustResize` lets it rise with the keyboard; it pads the gesture inset (`useNavBottom()`). On tablets, actions stay in the pane that owns them.
 - **Bottom nav / rail**: stays in `src/shell/App.tsx` and `src/ui/Nav.tsx`. A screen only reserves space above it.
-- When `src/ui/Screen.tsx` exists, use `<Screen header={…} footer={…}>{main}</Screen>`; otherwise the screen function builds the same column by hand (`flex: 1` on Main).
+- Use `<Screen header below footer fab overlay>` (`src/ui/Screen.tsx`, C16): `below` for a fixed row under the header (the S4 stepper), `fab` for the floating button (phones), `overlay` for a full-screen editor or detail with no nav under it. The footer is not measured: in the flex column it takes its own space.
 
 ## 5. What must not change
 - Behaviour, data calls, navigation calls, the kit components and their props, the rendered screen.
@@ -55,6 +56,8 @@ Each region function starts with a one-line comment: its ID and what it draws (`
 - [ ] Reload the dev client (`adb shell am force-stop` + the `invoiceerp://expo-development-client/?url=…` deep link, so Metro sends a fresh bundle), open the screen, exercise each region (toggle filters, open sheets), and compare a screenshot with one taken before the change: identical
 - [ ] When the change touches a breakpoint branch (`bp.isPhone`, `bp.panes`, `bp.atLeast`) or a `Columns` row, run `/size-check` (resizes the phone emulator to the phone and tablet profiles and screenshots every screen); otherwise say which sizes were read only
 - [ ] Only one scroller inside Main; `flex: 1` on Main; no `FlatList` inside a `ScrollView`
+- [ ] For a restructure: phone screenshots before and after compared pixel by pixel (PIL, status bar excluded), 0.000 % differing
+- [ ] `grep` finds no `useContentInset`, `52 + layout.gap` or `touch.button + layout.gap` outside `src/ui/Screen.tsx`; every list row is `React.memo`; every split row is `Columns` or says why not
 
 ## 7. Document
 - Rewrite the screen's tree file (`SCREEN_CODE_STRUCTURE/<Screen>_<ID>_tree.md`) for the new functions and today's line numbers.

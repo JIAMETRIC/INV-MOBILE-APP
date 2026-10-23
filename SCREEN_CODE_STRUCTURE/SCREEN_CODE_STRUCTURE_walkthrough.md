@@ -414,3 +414,16 @@ All six screens (S1–S6) are now on the Three-Slot method.
 | `node run-columns-tests.mjs <template columnsMode.ts>` | 10/10 pass |
 | `size-tour.py` | parses; not run (its CONFIG points at a placeholder app) |
 | This repo | unchanged apart from the docs; the three project skills stay |
+
+## Prompt 58 — solutions and best practices written into the method documents and the skills (2026-10-23, session 14)
+
+| File | Change | Check |
+| --- | --- | --- |
+| `LAYOUT_METHOD_header-main-footer_analysis.md` | §7 "What was built afterwards" (7.1 Columns, 7.2 Screen and the list coupling, 7.3 memo rows, 7.4 decisions on the way) and §8 "Best practices: the final list" (12 items); the three ⚠️ cells of §2 marked closed with a pointer | read back |
+| `three-slot-analysis.html` | status badges on the three couplings; the three warn rows and the trade-offs rewritten; the six conventions rewritten; the "What was built" card (`#solutions`); recommendation "adopted · 6 / 6"; v2 | rendered in the browser pane (verdict card with the three badges); tag balance checked; republished as https://claude.ai/artifact/QRZcV3LEKKUb35ofzk3GbE v3 |
+| `three-slot-screen.html` | slot list, conventions, fit table, pitfalls (+5), size-check profiles card; snippets 1–4 replaced with the current code, 6 and 7 added; all six screens "done"; prompts 6 and 7; v2 | one stray `</section>` from the insertion removed; sections 4 / 4, 14 copy ids; republished as https://claude.ai/artifact/MBKMrWnRkEjQyqpgqG6WHE v2 |
+| `.claude/skills/three-slot-screen/SKILL.md` | steps 2, 3, 4, 6 and the reference line updated | read back |
+| `.claude/skills/size-check/SKILL.md` | uiautomator quirks, pixel compare, pointer to §7.4 | read back |
+| `~/.claude/skills/responsive-screens/SKILL.md` | §6 "Pitfalls seen in practice, and the fix" (8 rows); checklist is §7 | read back (outside the repo) |
+
+No source file changed; nothing to typecheck or screenshot.
