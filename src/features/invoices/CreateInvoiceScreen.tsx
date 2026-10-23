@@ -473,7 +473,7 @@ function FormPane({ f, theme, width, maxWidth }: { f: Form; theme: Theme; width?
   );
 }
 
-// S4.A — Bill to: Party name · Address · City | Pincode · Mobile | Email · Invoice date | Due date.
+// S4.A — Bill to: Customer name · Mobile · Invoice date.
 // Every field autosaves the draft on blur.
 function BillToCard({ f, theme }: { f: Form; theme: Theme }) {
   const party = f.form.party;
@@ -482,13 +482,10 @@ function BillToCard({ f, theme }: { f: Form; theme: Theme }) {
   return (
     <Card theme={theme}>
       <SectionTitle title="Bill to" theme={theme} />
-      <Input label="Party name *" value={party.party_name} autoCapitalize="words"
+      <Input label="Customer name *" value={party.party_name} autoCapitalize="words"
         onChange={set('party_name')} onBlur={blur} theme={theme} />
-      <Input label="Address" value={party.party_address}
-        onChange={set('party_address')} onBlur={blur} theme={theme} />
-      <CityPincodeRow city={party.party_city} pincode={party.party_pincode}
-        onCity={set('party_city')} onPincode={set('party_pincode')} onBlur={blur} theme={theme} />
-      <MobileEmailRow f={f} theme={theme} />
+      <Input label="Mobile" value={party.party_mobile}
+        onChange={set('party_mobile')} onBlur={blur} theme={theme} keyboardType="phone-pad" />
       <DatesRow f={f} theme={theme} />
     </Card>
   );
@@ -509,33 +506,14 @@ function CityPincodeRow({ city, pincode, onCity, onPincode, onBlur, theme }: {
   );
 }
 
-// S4.A row 4 — one row, two equal columns: Mobile | Email.
-function MobileEmailRow({ f, theme }: { f: Form; theme: Theme }) {
-  const party = f.form.party;
-  return (
-    <Columns kind="input">
-      <Input label="Mobile" value={party.party_mobile}
-        onChange={v => f.patch({ party: { ...party, party_mobile: v } })}
-        onBlur={() => void f.autosave()} theme={theme} keyboardType="phone-pad" />
-      <Input label="Email" value={party.party_email}
-        onChange={v => f.patch({ party: { ...party, party_email: v } })}
-        onBlur={() => void f.autosave()} theme={theme} keyboardType="email-address" autoCapitalize="none" />
-    </Columns>
-  );
-}
-
-// S4.A row 5 — one row, two equal columns: Invoice date | Due date (YYYY-MM-DD).
-// Stacks inside the narrow xl form instead of clipping.
+// S4.A — Invoice date (YYYY-MM-DD). The last input in the card, so it pulls the card's bottom padding up.
 function DatesRow({ f, theme }: { f: Form; theme: Theme }) {
   return (
-    <Columns kind="input" style={{ marginBottom: S4.inputPull }}>
+    <View style={{ marginBottom: S4.inputPull }}>
       <Input label="Invoice date" value={f.form.invoiceDate}
         onChange={v => f.patch({ invoiceDate: v })} onBlur={() => void f.autosave()}
         theme={theme} tabular placeholder="YYYY-MM-DD" />
-      <Input label="Due date" value={f.form.dueDate}
-        onChange={v => f.patch({ dueDate: v })} onBlur={() => void f.autosave()}
-        theme={theme} tabular placeholder="YYYY-MM-DD" />
-    </Columns>
+    </View>
   );
 }
 
