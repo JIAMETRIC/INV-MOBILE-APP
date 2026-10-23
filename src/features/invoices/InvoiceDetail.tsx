@@ -321,7 +321,7 @@ function TotalsCard({ s, theme }: { s: Loaded; theme: Theme }) {
 function EditDeleteRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: layout.grid }}>
-      <Button label="Edit" icon="edit-2" variant="outline" theme={theme} onPress={s.openEdit} />
+      <Button label="Edit" icon="edit-2" theme={theme} onPress={s.openEdit} />
       <Button label="Delete" icon="trash-2" theme={theme} onPress={s.deleteThisInvoice}
         style={{ backgroundColor: theme.destructive }} />
     </View>
