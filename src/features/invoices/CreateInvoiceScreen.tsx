@@ -25,7 +25,7 @@ import { Columns } from '../../ui/Columns';
 import { Dropdown } from '../../ui/Dropdown';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { font, layout, radius, shadow, space, touch, type, maxReadWidth } from '../../ui/tokens';
+import { font, layout, radius, shadow, space, touch, type, maxReadWidth, white } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import {
   computeTotals, formatInvoiceNo, formatPaise, linePaise, numberToWordsIndian, todayIso,
@@ -550,7 +550,7 @@ function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: n
           Item {index + 1} · {line.product_id ? 'From products' : 'Free line'}
         </Text>
         <IconButton icon="trash-2" label={`Remove item ${index + 1}`} onPress={() => f.removeLine(index)} theme={theme}
-          color={theme.destructive} />
+          color={white} fill={theme.destructive} />
       </View>
       <Input label="Description" value={line.description}
         onChange={v => f.updateLine(index, { description: v })} onBlur={blur} theme={theme} />

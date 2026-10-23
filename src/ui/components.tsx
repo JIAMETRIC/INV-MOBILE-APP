@@ -90,9 +90,9 @@ export function Button({
 // Kit icon button: 44×44, radius 14, glass "Icon button" recipe, 20px icon.
 // `glass` = the kit's glass icon button; default = the kit's ghost button
 // (transparent, #666 icon), for row actions and sheet close buttons.
-export function IconButton({ icon, label, onPress, theme, color, busy, size = 20, selected, glass }: {
+export function IconButton({ icon, label, onPress, theme, color, fill, busy, size = 20, selected, glass }: {
   icon: IconName; label: string; onPress: () => void; theme: Theme;
-  color?: string; busy?: boolean; size?: number; selected?: boolean; glass?: boolean;
+  color?: string; fill?: string; busy?: boolean; size?: number; selected?: boolean; glass?: boolean;
 }) {
   const c = color ?? (glass ? theme.text : theme.textMuted);
   return (
@@ -105,9 +105,9 @@ export function IconButton({ icon, label, onPress, theme, color, busy, size = 20
       android_ripple={ripple(theme, !glass)}
       style={({ pressed }) => [{
         width: touch.min, height: touch.min,
-        borderRadius: glass ? radius.control : radius.chip,
+        borderRadius: glass || fill ? radius.control : radius.chip,
         alignItems: 'center', justifyContent: 'center',
-        backgroundColor: selected ? theme.primaryTint : glass ? theme.glassStrong : 'transparent',
+        backgroundColor: fill ?? (selected ? theme.primaryTint : glass ? theme.glassStrong : 'transparent'),
       },
       glass && { borderWidth: 1, borderColor: theme.glassBorderStrong, boxShadow: theme.tileShadow },
       pressScale(pressed, motion.pressScaleSmall), pressedDim(pressed)]}
