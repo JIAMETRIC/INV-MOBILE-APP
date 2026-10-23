@@ -231,3 +231,9 @@ Yes, fix the two tablet bugs: the Products editor ScrollView flex basis so the N
 ```
 Yes. Make md (600-767 dp) single-pane like the phone layout but with the rail, so the S2 list, S3 items header and S5 table are no longer cramped on an 8-inch tablet in portrait. Re-check with /tablet-check at md.
 ```
+
+## Prompt 33
+
+```
+Yes: show the S2 ActivityPane only at xxl, and let the S4.L3 products panel show name and size on two lines when narrow. Re-check at xl.
+```

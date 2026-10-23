@@ -167,6 +167,8 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
 
   // The xl layout shows the catalog as a permanent panel, so it needs the list up front.
   const showsCatalogPanel = bp.atLeast('xl');
+  // S4.L3 products panel is 25 % of the width after the 88 rail; under 300 dp names need two lines.
+  const narrowCatalog = (bp.width - 88) * 0.25 < 300;
   useEffect(() => {
     if (showsCatalogPanel) void listProducts(catalogSearch).then(setProducts);
     // Only on entering the xl layout; typing in the search reloads by itself.
@@ -547,13 +549,16 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
                 data={products}
                 keyExtractor={p => String(p.id)}
                 ListEmptyComponent={<EmptyState text="No products. Add them under Products." theme={theme} />}
+                // Narrow panel (xl: 25 % ≈ 220 dp): the name wraps onto two lines and the
+                // size joins the price below it; wider: "name · size" on one line.
                 renderItem={({ item: p, index }) => (
                   <ListItem
                     theme={theme}
                     flush
                     divider={index < products.length - 1}
-                    title={`${p.name}${p.size ? ` · ${p.size}` : ''}`}
-                    subtitle={`₹${formatPaise(p.unit_paise)}`}
+                    title={narrowCatalog ? p.name : `${p.name}${p.size ? ` · ${p.size}` : ''}`}
+                    titleLines={narrowCatalog ? 2 : 1}
+                    subtitle={narrowCatalog && p.size ? `${p.size} · ₹${formatPaise(p.unit_paise)}` : `₹${formatPaise(p.unit_paise)}`}
                     onPress={() => addLine(p)}
                     trailing={<Badge label={`Avl ${p.avl_qty}`} tone={p.avl_qty < 0 ? 'error' : p.avl_qty === 0 ? 'neutral' : 'success'} theme={theme} />}
                   />

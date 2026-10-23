@@ -104,3 +104,11 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | The tablet shell renders the `invoice-detail` overlay beside the rail when `panes === 1` | S2 at one pane opens S3 as an overlay (`showInvoice(id, true)`); the phone shell already did this full-screen, the tablet shell only knew `create-invoice`. | Routing md through the phone shell: loses the rail. |
 | S5 `showTable` threshold 480 → 520 and `paddingEnd` on NAME | At md the list pane is 513 dp: a 6-column table there truncates NAME and SIZE touches it (finding 5). 520 sends md to the phone rows while xl (541) and xxl keep the table; the padding keeps NAME off SIZE at xl. | Hiding SOLD at md: still a crowded table at 513 dp. |
 | Tour script: the sheet's ✕ is the **last** "Close" node (`nth=-1`); the scrim is the first | The tour missed Settings on md and lg because tapping the first "Close" hit the sheet body. | — |
+
+## Prompt 33 — The two cosmetic xl items (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| S2.8 activity pane from xxl only (`S2.activityFrom`), detail 42 % only with it, else 50 % | At xl (961 dp) three panes left the list ≈ 280 dp; the activity card carries three lines of text and is worth 26 % only when the list still gets ≈ 450 dp. One named constant, read by `showActivity`. | Shrinking the activity pane: 26 % of 873 dp is already a narrow card. Dropping it everywhere: it is useful at xxl. |
+| `ListItem` gains `titleLines` (default 1) | The S4.L3 product names need two lines in a 218 dp panel; a prop keeps every other list on one line. Presentation only; no visual change where unused. | A second component for wrapping titles. `numberOfLines={2}` for all lists: taller rows everywhere. |
+| S4.L3 rows switch on `narrowCatalog` (panel < 300 dp): name on two lines, "size · price" below | Computed from the window (25 % of width minus the rail), so the first frame is right; at xxl (298 dp) it is still narrow, at wider screens the one-line form returns. | Measuring the panel with `onLayout`: a layout pass for a value that follows from the window width. |

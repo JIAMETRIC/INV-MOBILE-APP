@@ -442,10 +442,12 @@ export function initials(name: string): string {
 // `flush` drops the horizontal padding when the row sits in a list Card.
 export function ListItem({
   title, subtitle, leadingIcon, leadingText, leadingAlt, trailing, onPress, chevron, theme, divider = true, selected, flush,
+  titleLines = 1,
 }: {
   title: string; subtitle?: string; leadingIcon?: IconName; leadingText?: string; leadingAlt?: boolean;
   trailing?: React.ReactNode; onPress?: () => void; chevron?: boolean; theme: Theme;
   divider?: boolean; selected?: boolean; flush?: boolean;
+  titleLines?: number; // let a long title wrap in a narrow pane (default: one line, ellipsis)
 }) {
   return (
     <Pressable
@@ -476,7 +478,7 @@ export function ListItem({
         </View>
       ) : null}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text style={[type.label, { color: theme.text }]} numberOfLines={1}>{title}</Text>
+        <Text style={[type.label, { color: theme.text }]} numberOfLines={titleLines}>{title}</Text>
         {subtitle ? (
           <Text style={[type.caption, { color: theme.textMuted }]} numberOfLines={2}>{subtitle}</Text>
         ) : null}

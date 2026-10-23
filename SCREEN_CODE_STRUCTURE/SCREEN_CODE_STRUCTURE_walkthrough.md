@@ -218,3 +218,19 @@ Still open (tight, not bugs): S2 list pane at md / xl, S3 items header at md, S5
 | Emulator | restored to 1080×2400 |
 
 Open after this: S2 list at xl (3 panes at 961 dp; show `ActivityPane` only at xxl), S4.L3 product names at xl. Both cosmetic.
+
+## Prompt 33 — xl cosmetics fixed and re-checked (2026-10-23, session 14)
+
+| Change | File |
+| --- | --- |
+| `S2.activityFrom = 'xxl'`; `showActivity`; detail width 42 % only with the activity pane | `InvoicesScreen.tsx` |
+| `ListItem` `titleLines` prop (default 1) | `src/ui/components.tsx` (C7) |
+| `narrowCatalog` (panel < 300 dp): name on two lines, "size · ₹price" subtitle | `CreateInvoiceScreen.tsx` S4.L3 |
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean (first run caught `Invoice \| null` reaching `ActivityPane`; guarded with `&& list.selected`) |
+| Tour at xl (1280×800 @ 213 = 961×601 dp) | S2: two panes, list ≈ 450 dp, tabs All · Issued · Partial · Paid · Void complete, row "PRE-001 · 22 Oct 26" on one line; S3 in the 50 % pane; S4.L3: "Acid Wash / T-Shirt" on two lines, "L · ₹500.00" below, Avl badge beside |
+| Emulator | restored to 1080×2400 |
+
+Every tablet finding from Prompt 30 is now closed: 1 and 2 in Prompt 31, 3, 4 and 5 in Prompt 32, 3 (xl) and 6 here.

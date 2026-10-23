@@ -218,8 +218,8 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + status). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
 | S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | `InvoiceListCard` |
 | S2.6 | FAB | phone only, "New invoice", inside `ListPane` | `ListPane` |
-| S2.7 | Detail pane | `DetailPane`: tablet only; width `S2.detailWidth` 50% (2 panes) or 42% (3 panes); left divider; renders S3 | `DetailPane` |
-| S2.8 | Activity pane | `ActivityPane`: xl+ with a row selected; width `S2.activityWidth` 26%; small glass card: overline "Activity", `no · status`, "Issued <date>" | `ActivityPane` |
+| S2.7 | Detail pane | `DetailPane`: lg+; width `S2.detailWidth` 50%, or 42% when the activity pane shows (xxl); left divider; renders S3 | `DetailPane` |
+| S2.8 | Activity pane | `ActivityPane`: **xxl** (`S2.activityFrom`) with a row selected; width `S2.activityWidth` 26%; small glass card: overline "Activity", `no · status`, "Issued <date>". At xl the screen is 2 panes (detail 50 %) | `ActivityPane` |
 
 Since Prompt 12 (2026-10-23) the file is split into named functions, listed in the last column instead of line numbers: `useInvoiceList()` holds all state; `S2` (line ~40) holds every screen-specific number. See `SCREEN_CODE_STRUCTURE/InvoicesScreen_S2_tree.md`.
 
@@ -380,7 +380,7 @@ md:  one pane only; the app-bar eye / pencil action toggles Form ⇄ Preview (`t
 │ tap = add line│ S4.F                     │                    │
 └───────────────┴──────────────────────────┴────────────────────┘
 ```
-Product rows (534-542): title `name · size`, subtitle price, trailing Avl badge (red < 0, grey = 0, green > 0).
+Product rows: title `name · size`, subtitle price, trailing Avl badge (red < 0, grey = 0, green > 0). When the panel is under 300 dp (`narrowCatalog`, true at xl) the name may take two lines (`titleLines={2}`) and the size moves to the subtitle: `size · price`.
 The panel loads the full product list as soon as the layout opens (`showsCatalogPanel` effect); typing in its search box narrows it.
 
 ### Functions
@@ -611,7 +611,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C5 | `SearchField` | 50 tall, radius 12, glass icon-button recipe, search glyph, clear button | S2, S4, S5 | components.tsx:218 |
 | C6 | `Card` | kit glass card: 55% white, 1px white border, radius 16, padding 16, `theme.cardShadow`. `small` = tile shadow; `list` = 8 × 16 padding for `flush` rows | all screens | components.tsx:375 |
 | C6a | `IconChip` | 36×36, radius 10, blue tint, blue 18px icon | stat tiles, list rows | components.tsx:396 |
-| C7 | `ListItem` / `ListRow` | kit list row: gap 12, padding 12 vertical, divider `#ebeaea`; leading 36 avatar (`leadingText`; `leadingAlt` = grey) or icon chip; title 14/500, caption 12 `#666`; `flush` drops side padding inside list cards; `selected` = blue tint | lists | components.tsx:443 / 408 |
+| C7 | `ListItem` / `ListRow` | kit list row: gap 12, padding 12 vertical, divider `#ebeaea`; leading 36 avatar (`leadingText`; `leadingAlt` = grey) or icon chip; title 14/500 (one line unless `titleLines`), caption 12 `#666` (2 lines); `flush` drops side padding inside list cards; `selected` = blue tint | lists | components.tsx:443 / 408 |
 | C7a | `initials(name)` | two-letter avatar initials | list rows | components.tsx:432 |
 | C8 | `Chip` | pill, 36 tall; off = glass fill + input border, 14/500 `#666`; on = blue fill, white 14/600, `shadow.primary` | sizes, quick pick, ship-to | components.tsx:504 |
 | C8a | `SegmentedControl` | kit Day/Week/Month: glass pill, 4px padding, `shadow.primary`; tabs 36, active blue + white 14/600 | S2 status, P1 modes, S4 page size | components.tsx:543 |

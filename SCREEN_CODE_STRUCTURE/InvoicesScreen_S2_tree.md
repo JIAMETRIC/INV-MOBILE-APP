@@ -96,8 +96,8 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 | Size | Seen | Verdict |
 | --- | --- | --- |
 | md 601 | ~~rail + 2 panes, list ≈ 235 dp, everything truncated~~ → **since Prompt 32 one pane**: full-width list, tabs and placeholders complete, a tap opens S3 as an overlay with a back bar beside the rail | ok |
-| xl 961 | 3 panes (detail 42 % + activity 26 %): list ≈ 280 dp, tabs "Iss… Pa… Pa… Vo…", row date wraps | **too tight** |
+| xl 961 | ~~3 panes, list ≈ 280 dp, tabs truncated~~ → **since Prompt 33** the activity pane needs xxl (`S2.activityFrom`), so xl is 2 panes: list ≈ 450 dp with complete tabs and row text, detail 50 % | ok |
 | lg 800 | 2 panes, list ≈ 340 dp: everything readable | ok |
 | xxl 1280 | 3 panes: everything readable | ok |
 
-Applied for md (Prompt 32): `InvoicesScreen()` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`; `onPressRow` opens the overlay when single-pane. Still open at xl: the 3-pane list is ≈ 280 dp; showing `ActivityPane` only at xxl would fix it (one line in `InvoicesScreen()`).
+Applied for md (Prompt 32): `InvoicesScreen()` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`; `onPressRow` opens the overlay when single-pane. Applied for xl (Prompt 33): `showActivity = bp.atLeast(S2.activityFrom) && selected`, with `S2.activityFrom = 'xxl'`; the detail pane is 42 % only when the activity pane shows, else 50 %.

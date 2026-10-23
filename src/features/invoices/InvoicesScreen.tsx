@@ -44,7 +44,8 @@ const S2 = {
   longList: 6, // S2.5: more rows than this on a phone -> keep the last one clear of the FAB
   fabClearance: touch.button + layout.gap, // S2.5: that clearance (52 + 16)
   detailWidth: { 2: '50%', 3: '42%' } as const, // S2.7: detail pane width by pane count
-  activityWidth: '26%', // S2.8: activity pane width (3 panes only)
+  activityWidth: '26%', // S2.8: activity pane width
+  activityFrom: 'xxl' as const, // S2.8: shown from this breakpoint; at xl (961 dp) three panes squeezed the list
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -99,6 +100,9 @@ export function InvoicesScreen() {
   const bp = useBreakpoint();
   const list = useInvoiceList();
 
+  // S2.8 needs the width of xxl; with it the list at xl was ≈ 280 dp.
+  const showActivity = bp.atLeast(S2.activityFrom) && list.selected !== null;
+
   // One pane: phones, and md tablets (rail, no panes); a tap opens S3 as an overlay.
   if (bp.panes === 1) {
     return (
@@ -114,8 +118,8 @@ export function InvoicesScreen() {
       <Header list={list} theme={theme} />
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <ListPane list={list} theme={theme} />
-        <DetailPane selected={list.selected} width={S2.detailWidth[bp.panes === 3 ? 3 : 2]} theme={theme} />
-        {bp.panes === 3 && list.selected ? <ActivityPane selected={list.selected} theme={theme} /> : null}
+        <DetailPane selected={list.selected} width={S2.detailWidth[showActivity ? 3 : 2]} theme={theme} />
+        {showActivity && list.selected ? <ActivityPane selected={list.selected} theme={theme} /> : null}
       </View>
     </View>
   );
