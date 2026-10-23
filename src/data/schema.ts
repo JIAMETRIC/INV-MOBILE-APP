@@ -8,9 +8,10 @@
 // v5: Products are names only — one row per name, no size. The v4 size rows
 // are merged into one row per name (dbCore.mergeSizeRows keeps the data).
 // v6: invoice prefix is INV- (was PRE-); existing settings rows are switched too.
+// v7: invoice lines carry a size (S, M, L, XL, XXL, XXXL) picked on the invoice.
 // Old v1/v2/v3 databases are wiped and rebuilt (see dbCore.migrate).
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS meta (
@@ -98,6 +99,7 @@ CREATE TABLE IF NOT EXISTS invoice_items (
   sno INTEGER NOT NULL,
   product_id INTEGER REFERENCES products(id),
   description TEXT NOT NULL DEFAULT '',
+  size TEXT NOT NULL DEFAULT '',
   qty REAL NOT NULL DEFAULT 0,
   unit_paise INTEGER NOT NULL DEFAULT 0,
   line_paise INTEGER NOT NULL DEFAULT 0

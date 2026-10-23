@@ -442,7 +442,7 @@ function PriceStockRow({ p, theme }: { p: Products; theme: Theme }) {
 function EditorActions({ p, theme }: { p: Products; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[2], marginTop: space[1] }}>
-      {p.editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger theme={theme} onPress={p.remove} /> : null}
+      {p.editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger destructive theme={theme} onPress={p.remove} /> : null}
       {p.editId ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={p.openRestock} /> : null}
       <Button label="Save" theme={theme} onPress={() => void p.save()} />
     </View>

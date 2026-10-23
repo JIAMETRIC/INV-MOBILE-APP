@@ -30,6 +30,7 @@ type ButtonProps = {
   variant?: 'solid' | 'tonal' | 'outline' | 'ghost';
   icon?: IconName;
   danger?: boolean;
+  destructive?: boolean; // a delete action: red text and icon (theme.destructive)
   disabled?: boolean;
   busy?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -37,14 +38,14 @@ type ButtonProps = {
 };
 
 export function Button({
-  label, onPress, theme, variant = 'solid', icon, danger, disabled, busy, style, labelStyle,
+  label, onPress, theme, variant = 'solid', icon, danger, destructive, disabled, busy, style, labelStyle,
 }: ButtonProps) {
   const off = disabled || busy;
   const solid = variant === 'solid';
   const glassBtn = variant === 'tonal' || variant === 'outline';
   const color = solid
     ? (danger ? theme.onError : theme.onFillStrong)
-    : danger ? theme.error : glassBtn ? theme.text : theme.link;
+    : destructive ? theme.destructive : danger ? theme.error : glassBtn ? theme.text : theme.link;
   return (
     <Pressable
       onPress={onPress}

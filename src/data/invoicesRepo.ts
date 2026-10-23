@@ -45,7 +45,7 @@ export async function getInvoiceByNo(no: string): Promise<Invoice | null> {
 export async function getLines(invoiceId: number): Promise<InvoiceLine[]> {
   const db = await getDb();
   return db.getAllAsync<InvoiceLine>(
-    'SELECT sno, product_id, description, qty, unit_paise, line_paise, id FROM invoice_items WHERE invoice_id = ? ORDER BY sno',
+    'SELECT sno, product_id, description, size, qty, unit_paise, line_paise, id FROM invoice_items WHERE invoice_id = ? ORDER BY sno',
     invoiceId,
   );
 }
@@ -114,9 +114,9 @@ export async function saveInvoice(
     for (const l of form.lines) {
       sno += 1;
       await db.runAsync(
-        `INSERT INTO invoice_items (invoice_id, sno, product_id, description, qty, unit_paise, line_paise)
-         VALUES (?,?,?,?,?,?,?)`,
-        invoiceId, sno, l.product_id, l.description, l.qty, l.unit_paise, l.line_paise,
+        `INSERT INTO invoice_items (invoice_id, sno, product_id, description, size, qty, unit_paise, line_paise)
+         VALUES (?,?,?,?,?,?,?,?)`,
+        invoiceId, sno, l.product_id, l.description, l.size ?? '', l.qty, l.unit_paise, l.line_paise,
       );
     }
     return { invoiceId, invoiceNo };

@@ -63,6 +63,21 @@ async function renamePrefix(db: SQLite.SQLiteDatabase): Promise<void> {
   try {
     await db.execAsync(`
       UPDATE meta SET invoice_prefix = 'INV-' WHERE invoice_prefix = 'PRE-';
+      PRAGMA user_version = 6;
+    `);
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
+// v6 -> v7: invoice lines get a size column (existing lines have none, so it is '').
+async function addLineSize(db: SQLite.SQLiteDatabase): Promise<void> {
+  await db.execAsync('BEGIN');
+  try {
+    await db.execAsync(`
+      ALTER TABLE invoice_items ADD COLUMN size TEXT NOT NULL DEFAULT '';
       PRAGMA user_version = ${SCHEMA_VERSION};
     `);
     await db.execAsync('COMMIT');
@@ -81,6 +96,10 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (version === 5) {
     await renamePrefix(db);
+    version = 6;
+  }
+  if (version === 6) {
+    await addLineSize(db);
     version = SCHEMA_VERSION;
   }
   let forceDrop = false;

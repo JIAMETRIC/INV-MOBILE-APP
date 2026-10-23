@@ -40,6 +40,7 @@ export const shadow = {
 const status = {
   green: '#2e7d32', greenDark: '#66bb6a',
   red: '#c62828', redDark: '#ef5350',
+  delete: '#FF2C2C', // the Delete action (products editor)
 } as const;
 
 type Tone = { bg: string; fg: string; icon: string };
@@ -54,6 +55,7 @@ export type Theme = {
   primaryContainer: string; onPrimaryContainer: string;
   secondaryContainer: string; onSecondaryContainer: string;
   error: string; onError: string; errorContainer: string; onErrorContainer: string;
+  destructive: string; // Button destructive: text and icon of a delete action
   // Snackbar: dark container on the light theme and vice versa.
   inverseSurface: string; inverseOnSurface: string; inversePrimary: string;
   // Printed invoice paper: always white, in both themes.
@@ -94,6 +96,7 @@ export const light: Theme = {
   primaryContainer: brand.primary, onPrimaryContainer: brand.light,
   secondaryContainer: primaryTint, onSecondaryContainer: brand.dark,
   error: status.red, onError: brand.light, errorContainer: alpha(status.red, 0.14), onErrorContainer: brand.dark,
+  destructive: status.delete,
   inverseSurface: brand.dark, inverseOnSurface: brand.light, inversePrimary: brand.primary,
   paper: brand.light,
   glass, glassStrong, glassNav, glassBorder, glassBorderStrong,
@@ -122,6 +125,7 @@ export const dark: Theme = {
   primaryContainer: brand.primary, onPrimaryContainer: brand.light,
   secondaryContainer: alpha(brand.primary, 0.24), onSecondaryContainer: brand.light,
   error: status.redDark, onError: brand.dark, errorContainer: alpha(status.redDark, 0.2), onErrorContainer: brand.light,
+  destructive: status.delete,
   inverseSurface: brand.light, inverseOnSurface: brand.dark, inversePrimary: brand.link,
   paper: brand.light,
   glass: glassDark, glassStrong: glassDark, glassNav: alpha(brand.dark, 0.88),

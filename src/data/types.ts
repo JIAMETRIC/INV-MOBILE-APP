@@ -56,6 +56,7 @@ export interface InvoiceLine {
   sno: number;
   product_id: number | null;
   description: string;
+  size: string;
   qty: number;
   unit_paise: number;
   line_paise: number;

@@ -22,6 +22,7 @@ import {
   SegmentedControl, TopAppBar, TotalRow, EmptyState,
 } from '../../ui/components';
 import { Columns } from '../../ui/Columns';
+import { Dropdown } from '../../ui/Dropdown';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
 import { font, layout, radius, shadow, space, touch, type, maxReadWidth } from '../../ui/tokens';
@@ -52,7 +53,9 @@ const S4 = {
   catalogNarrowBelow: 300, // S4.L3: under this panel width, product names take two lines
   pageSizeControl: 180, // S4.E: width of the A4 / Letter control
   previewMinHeight: 400, // S4.E: the printed page frame
-  qtyRateWeights: [1, 1.4], // S4.B.3: Qty | Rate column weights
+  lineSizes: ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'], // S4.B.3: the Size dropdown
+  lineWeights: [1, 1, 1.4], // S4.B.3: Size | Qty | Rate column weights
+  lineMinCell: 96, // S4.B.3: a Size | Qty | Rate cell narrower than this stacks the row
   inputPull: -space[4], // last input in a card: pulls the card's bottom padding up under the field
 } as const;
 
@@ -221,6 +224,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
         sno: form.lines.length + 1,
         product_id: p.id,
         description: p.name,
+        size: '',
         qty: 1,
         unit_paise: p.unit_paise,
         line_paise: linePaise(1, p.unit_paise),
@@ -232,7 +236,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
   const addBlankLine = () => {
     patch({
       lines: [...form.lines, {
-        sno: form.lines.length + 1, product_id: null, description: '',
+        sno: form.lines.length + 1, product_id: null, description: '', size: '',
         qty: 1, unit_paise: 0, line_paise: 0,
       }],
     });
@@ -540,7 +544,7 @@ function EmptyItemsCard({ xl, theme }: { xl: boolean; theme: Theme }) {
 function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: number; theme: Theme }) {
   const blur = () => void f.autosave();
   return (
-    <Card theme={theme}>
+    <Card theme={theme} style={{ backgroundColor: theme.sheet }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: space[2], marginTop: -space[2] }}>
         <Text style={[type.overline, { color: theme.textMuted, flex: 1 }]}>
           Item {index + 1} · {line.product_id ? 'From products' : 'Free line'}
@@ -549,7 +553,9 @@ function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: n
       </View>
       <Input label="Description" value={line.description}
         onChange={v => f.updateLine(index, { description: v })} onBlur={blur} theme={theme} />
-      <Columns kind="input" weights={[...S4.qtyRateWeights]}>
+      <Columns kind="input" minCell={S4.lineMinCell} weights={[...S4.lineWeights]}>
+        <Dropdown label="Size" value={line.size} options={[...S4.lineSizes]} theme={theme}
+          onChange={v => f.updateLine(index, { size: v })} />
         <Input label="Qty" value={String(line.qty)}
           onChange={v => f.updateLine(index, { qty: Math.max(0, Number(v.replace(/[^0-9.]/g, '')) || 0) })}
           onBlur={blur} theme={theme} keyboardType="decimal-pad" tabular />
