@@ -25,6 +25,7 @@ import { listDrafts } from '../../data/draftsRepo';
 import { exportInvoicesXlsx, exportConsolidatedRegister } from '../../export/xlsx';
 import { shareFile } from '../../export/pdf';
 import { InvoiceDetail } from './InvoiceDetail';
+import { DraftSheet } from './DraftSheet';
 import type { Draft, Invoice } from '../../data/types';
 
 type StatusFilter = 'all' | 'draft';
@@ -54,6 +55,7 @@ function useInvoiceList() {
   const nav = useNav();
   const [rows, setRows] = useState<Invoice[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [openDraft, setOpenDraft] = useState<Draft | null>(null);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [dateOpen, setDateOpen] = useState(false);
@@ -89,7 +91,7 @@ function useInvoiceList() {
   };
 
   return {
-    rows, drafts: shownDrafts, isDraft,
+    rows, drafts: shownDrafts, isDraft, openDraft, setOpenDraft, reload: load,
     count: isDraft ? shownDrafts.length : rows.length,
     search, setSearch,
     status, setStatus,
@@ -226,7 +228,6 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
     (id: number) => single ? nav.showInvoice(id, true) : nav.selectInvoice(id),
     [single, nav],
   );
-  const onOpenDraft = useCallback((d: Draft) => nav.openCreate({ draftId: d.id }), [nav]);
   return (
     <Card theme={theme} list style={fill
       ? { flex: 1, marginTop: space[1], marginBottom: navInset, overflow: 'hidden' }
@@ -243,7 +244,7 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
             ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
             : <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />}
           renderItem={({ item, index }) => (
-            <DraftRow d={item} alt={index % 2 === 1} last={index === list.drafts.length - 1} onOpen={onOpenDraft} theme={theme} />
+            <DraftRow d={item} alt={index % 2 === 1} last={index === list.drafts.length - 1} onOpen={list.setOpenDraft} theme={theme} />
           )}
         />
       ) : (
@@ -269,6 +270,7 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
           )}
         />
       )}
+      <DraftSheet draft={list.openDraft} onClose={() => list.setOpenDraft(null)} onChanged={() => void list.reload()} theme={theme} />
     </Card>
   );
 }
