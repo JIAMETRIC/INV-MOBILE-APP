@@ -318,3 +318,25 @@ Pushed to origin/master.
 | Phone S5 scrolled | 6 % differing, the fling landed half a row apart; the rows and layout are the same (pair compared) |
 
 `grep useContentInset\|52 + layout.gap\|touch.button + layout.gap src` outside `Screen.tsx`: nothing. The third risk of the analysis is now closed in every screen.
+
+## Prompt 48 — S5 inspected; plan for the restructure (2026-10-23, session 14)
+
+**Current structure of `ProductsScreen.tsx` (372 lines):** helpers `blank`, `num`, `AvlBadge` → the two memoised rows (`ProductTableRow`, `ProductListRow`, Prompt 28) → one 265-line component: 5 hooks + 14 `useState` → `load`, `loadHistory`, `startEdit`, `save`, `remove`, `openRestock`, `applyRestock`, `exportXlsx` → four JSX constants (`restockFields` S5.7, `historyBlock` S5.6.6, `editorFields` S5.6, `headerRow` S5.2) → `editorTitle`, `showTable` → one `return` on `<Screen>` (Prompt 47) with the search, `ProductListCard`, the lg+ editor pane and the P3 sheet → `ProductListCard` (Prompt 47) at the bottom. Inline numbers: the six column widths `52 · 84 · 60 · 56 · 76`, `520` (table threshold), `'38%'`, `88` (rail), `0.62`, `padding: 20`, `> 6` (FAB clearance rule), `slice`-free. The editor is rendered in two places (pane or sheet) from the same constants.
+
+The proposed tree is in the chat (Prompt 48); it is copied here once approved.
+
+## Prompt 49 — S5 Products restructured, re-checked (2026-10-23, session 14)
+
+`ProductsScreen.tsx` 372 → 518 lines: one 265-line component → `SIZES` · `QUICK_PICKS` · `S5` (columns, table minimum, editor width, rail, padding, long-list rule) · `blank` · `num` · `AvlBadge` · `useProducts()` (14 state values and the eight actions) · `ProductsScreen()` (18 lines on `<Screen header fab>`) · `Header` · `ListPane` · `SearchRow` · `ProductListCard` · `TableHeader` · `ProductTableRow` · `ProductListRow` · `EditorPane` · `EditorSheet` · `EditorBody` · `ProductForm` · `QuickPickChips` · `SizeChips` · `PriceStockRow` · `EditorActions` · `StockHistory` · `RestockForm`.
+
+Kept exactly: every repo and audit call, the kit components and their props, the memoised rows and their stable `startEdit`, the 520-dp table rule, the pinned 38 % editor pane. Two structural improvements with no visual effect: the editor body is defined once and placed in the pane or the sheet; the table's column widths are one list (`S5.columns`) read by the header and the rows.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean first time |
+| Phone before vs after (`imgdiff.py`): list, editor sheet, Restock view, Back, closed | **0.000 % differing pixels** on all five |
+| `/size-check` md, lg, xl, xxl (S5 and P3) | md: phone rows full width · lg: rows beside the editor pane, editor open on the right · xl and xxl: six-column table, names readable, editor pane empty state; all as in Prompts 31–32 |
+| `MISSING Date range (set)` / `MISSING Items` in the tour log | expected (no dates set; no stepper at md+) |
+| Emulator | restored to 1080×2400 |
+
+Docs: `ProductsScreen_S5_P3_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S5 tables name functions; rationale in TRACKING. Pushed to origin/master.

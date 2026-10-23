@@ -442,43 +442,44 @@ md: table, but the editor opens as P3 (dialog)
 
 | ID | Section | Spec | Lines |
 | --- | --- | --- | --- |
-| S5.0 | App bar | "Products", subtitle "N items"; actions: `add` New product (tablet only) · `download-outline` Export products to Excel (D2.3) | 270-278 |
-| S5.1 | Search | `SearchField` "Search products" | 281-283 |
-| S5.2 | Table header | shown when `showTable`: md+ **and** the list pane ≥ 480 dp (so md full-width and xl / xxl beside the editor; at lg the editor pane leaves ≈ 410 dp and the phone rows S5.3 are used). Columns **NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76** (dp; SIZE left-aligned, the rest right-aligned) | `headerRow`, `showTable` |
-| S5.2.r | Table row | `ListRow` with the same 6 columns; AVL = `AvlBadge` | 253-264 |
-| S5.3 | Phone row | ListItem: leading circle = size · title name · subtitle "Stock n · Sold n" · trailing price + Avl badge | 294-307 |
-| S5.3.e | Empty states | searching → "No matches"; otherwise "No products" | 289-291 |
-| S5.4 | FAB | phone only, "Add product" | 310 |
-| S5.5 | Editor pane | lg+: scroll pane, width 38%, padding 24, title "Product editor" / "Edit product" / "New product" / "Restock"; empty state until something is selected | 312-320 |
-| P3 | Editor sheet | below lg: the same content in a `Sheet wide` | 321-325 |
+| S5.0 | App bar | `Header`: "Products", subtitle "N items"; actions: `plus` New product (tablet only) · `download` Export products to Excel (D2.3) | `Header` |
+| S5.1 | Search | `SearchRow`: `SearchField` "Search products" | `SearchRow` |
+| S5.2 | Table header | `TableHeader`, shown when `showTable`: md+ **and** the list pane ≥ `S5.tableMinWidth` 520 dp (so md full-width and xl / xxl beside the editor; at lg the editor pane leaves ≈ 410 dp and the phone rows S5.3 are used). Columns from `S5.columns`: **NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76** (dp; SIZE left-aligned, the rest right-aligned) | `TableHeader`, `S5.columns` |
+| S5.2.r | Table row | `ProductTableRow` (memo): `ListRow` with the same 6 columns from `S5.columns`; AVL = `AvlBadge` | `ProductTableRow` |
+| S5.3 | Phone row | `ProductListRow` (memo): ListItem: leading circle = size · title name · subtitle "Stock n · Sold n" · trailing price + Avl badge | `ProductListRow` |
+| S5.3.e | Empty states | searching → "No matches"; otherwise "No products" | `ProductListCard` |
+| S5.4 | FAB | phone only, "Add product"; the `fab` slot of `<Screen>` in `ProductsScreen()` | `ProductsScreen` |
+| S5.5 | Editor pane | `EditorPane`, lg+: pinned scroll pane, width `S5.editorWidth` 38%, card padding `S5.editorPadding` 20, title "Product editor" / "Edit product" / "New product" / "Restock"; empty state until something is selected; content = `EditorBody` | `EditorPane` |
+| P3 | Editor sheet | `EditorSheet`, below lg: the same `EditorBody` in a `Sheet wide` | `EditorSheet` |
 
 ### Editor content (S5.6) and Restock content (S5.7)
 
 | ID | Rows | Lines |
 | --- | --- | --- |
-| S5.6.1 | Product name (error: empty or duplicate) | 201-202 |
-| S5.6.2 | "Quick pick" chips = `PRODUCT_SEED_NAMES` (src/data/schema.ts) | 203-209 |
-| S5.6.3 | "Size" chips = `PRODUCT_SIZES` + "No size" | 210-218 |
-| S5.6.4 | Price (₹) \| Stock (1:1); Stock helper = "Sold n · Avl n" | 219-230 |
-| S5.6.5 | Buttons right-aligned: Delete (ghost red, edit only) · Restock (tonal, edit only) · Save | 231-235 |
-| S5.6.6 | Stock history list: icon (restock / edit) · "Restock +n → stock m" · date · note | 180-197 |
-| S5.7.1 | Info line: "name · size — current stock n" | 158-160 |
-| S5.7.2 | Qty to add \| New price (₹) (1:1; a blank price keeps the current one) | 161-170 |
-| S5.7.3 | Note (lot / supplier) | 171-172 |
-| S5.7.4 | Back (ghost) · Add to stock | 173-176 |
+| S5.6.1 | Product name (error: empty or duplicate) | `ProductForm` |
+| S5.6.2 | "Quick pick" chips = `QUICK_PICKS` (`PRODUCT_SEED_NAMES`, src/data/schema.ts) | `QuickPickChips` |
+| S5.6.3 | "Size" chips = `SIZES` (`PRODUCT_SIZES`) + "No size" | `SizeChips` |
+| S5.6.4 | Price (₹) \| Stock (`Columns kind="input"`); Stock helper = "Sold n · Avl n" | `PriceStockRow` |
+| S5.6.5 | Buttons right-aligned: Delete (ghost red, edit only) · Restock (tonal, edit only) · Save | `EditorActions` |
+| S5.6.6 | Stock history list: icon (restock / edit) · "Restock +n → stock m" · date · note | `StockHistory` |
+| S5.7.1 | Info line: "name · size — current stock n" | `RestockForm` |
+| S5.7.2 | Qty to add \| New price (₹) (`Columns kind="input"`; a blank price keeps the current one) | `RestockForm` |
+| S5.7.3 | Note (lot / supplier) | `RestockForm` |
+| S5.7.4 | Back (ghost) · Add to stock | `RestockForm` |
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `AvlBadge` | Avl < 0 red, = 0 grey, > 0 green | 30-34 |
-| `num(v)` | non-negative whole number as a string | 25-28 |
-| `load()` / `loadHistory(id)` | products list / restock history | 56-72 |
-| `startEdit(p?)` | open the editor for a product or a blank one | 74-83 |
-| `save()` | validate the name → `upsertProduct` → audit → snackbar (duplicate → inline error) | 85-99 |
-| `remove()` | confirm → `deleteProduct` → audit | 101-119 |
-| `openRestock()` / `applyRestock()` | switch to S5.7 / `restockProduct(qty, price, note)` → back to the editor | 121-147 |
-| `exportXlsx()` | D2.3 → share | 149-154 |
+| `AvlBadge` | Avl < 0 red, = 0 grey, > 0 green | 63 |
+| `num(v)` | non-negative whole number as a string | 57 |
+| `useProducts()` | all state and actions below; `showTable`; `editorTitle` | 72-208 |
+| `load()` / `loadHistory(id)` | products list / restock history | in `useProducts` |
+| `startEdit(p?)` | open the editor for a product or a blank one (stable `useCallback`) | in `useProducts` |
+| `save()` | validate the name → `upsertProduct` → audit → snackbar (duplicate → inline error) | in `useProducts` |
+| `remove()` | confirm → `deleteProduct` → audit | in `useProducts` |
+| `openRestock()` / `applyRestock()` | switch to S5.7 / `restockProduct(qty, price, note)` → back to the editor | in `useProducts` |
+| `exportXlsx()` | D2.3 → share | in `useProducts` |
 
 ---
 

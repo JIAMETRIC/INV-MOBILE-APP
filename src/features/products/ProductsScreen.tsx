@@ -1,3 +1,11 @@
+// S5 — Products. Read top to bottom:
+//   SIZES, QUICK_PICKS, S5   the text and the numbers you are most likely to edit
+//   blank, num, AvlBadge     small helpers
+//   useProducts()            all state, data and actions (no JSX)
+//   ProductsScreen()         the phone / tablet switch, built on <Screen>
+//   Header … StockHistory    one function per region, in the order they appear on screen
+//   EditorSheet              P3
+// IDs (S5.0, S5.6.4 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, ScrollView, View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -23,6 +31,27 @@ import { shareFile } from '../../export/pdf';
 import { logAudit } from '../../data/auditRepo';
 import type { ProductRow, Restock } from '../../data/types';
 
+// S5.6.3 / S5.6.2 — the chip labels (the catalog's sizes and seed names live in schema.ts).
+const SIZES = PRODUCT_SIZES;
+const QUICK_PICKS = PRODUCT_SEED_NAMES;
+
+// Every number that is specific to this screen. Shared spacing comes from
+// tokens.ts (layout.side 20, layout.gap 16, layout.grid 12).
+const S5 = {
+  // S5.2: the table's columns, in order; NAME takes the rest (flex 3). Shared by the
+  // header and the rows so they cannot drift apart.
+  columns: [
+    { key: 'NAME', width: 0 }, { key: 'SIZE', width: 52 }, { key: 'PRICE', width: 84 },
+    { key: 'STOCK', width: 60 }, { key: 'SOLD', width: 56 }, { key: 'AVL', width: 76 },
+  ],
+  nameFlex: 3, // S5.2: NAME's share of the remaining width
+  tableMinWidth: 520, // S5.2: the list pane needs this much for the 6-column table (328 fixed + a readable NAME)
+  editorWidth: '38%', // S5.5: lg+ editor pane
+  rail: 88, // S0.4.3: the tablet rail, taken off the window width when sizing the panes
+  editorPadding: 20, // S5.5 / P3: the editor card's padding
+  longList: 6, // S5.3: more rows than this on a phone -> keep the last one clear of the FAB
+} as const;
+
 const blank = (): ProductInput => ({ name: '', size: 'S', unit_paise: 0, stock_qty: 0 });
 
 const num = (v: string) => {
@@ -36,55 +65,14 @@ function AvlBadge({ avl, theme }: { avl: number; theme: Theme }) {
   return <Badge label={`Avl ${n}`} tone={n < 0 ? 'error' : n === 0 ? 'neutral' : 'success'} theme={theme} />;
 }
 
-// S5.2.r — one table row (md+): NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76.
-// Memoised: typing in the search box re-renders the list, not every row.
-const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, theme }: {
-  p: ProductRow; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
-}) {
-  return (
-    <ListRow theme={theme} flush divider={!last} onPress={() => onPress(p)}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={[type.label, { color: theme.text, flex: 3, paddingEnd: space[2] }]} numberOfLines={1}>{p.name}</Text>
-        <Text style={[type.number, { color: theme.text, width: 52 }]}>{p.size || '—'}</Text>
-        <Text style={[type.number, { color: theme.text, width: 84, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
-        <Text style={[type.number, { color: theme.text, width: 60, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
-        <Text style={[type.number, { color: theme.textMuted, width: 56, textAlign: 'right' }]}>{num(String(p.sold_qty))}</Text>
-        <View style={{ width: 76 }}><AvlBadge avl={p.avl_qty} theme={theme} /></View>
-      </View>
-    </ListRow>
-  );
-});
-
-// S5.3 — one phone row: size circle · name · "Stock n · Sold n" · price over the Avl badge.
-const ProductListRow = React.memo(function ProductListRow({ p, alt, last, onPress, theme }: {
-  p: ProductRow; alt: boolean; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
-}) {
-  return (
-    <ListItem
-      theme={theme}
-      flush
-      divider={!last}
-      leadingText={p.size || '—'}
-      leadingAlt={alt}
-      title={p.name}
-      subtitle={`Stock ${num(String(p.stock_qty))} · Sold ${num(String(p.sold_qty))}`}
-      onPress={() => onPress(p)}
-      trailing={(
-        <View style={{ alignItems: 'flex-end', gap: space[1] }}>
-          <Text style={[type.number, { color: theme.text }]}>₹{formatPaise(p.unit_paise)}</Text>
-          <AvlBadge avl={p.avl_qty} theme={theme} />
-        </View>
-      )}
-    />
-  );
-});
-
-export function ProductsScreen() {
-  const theme = useTheme();
+// ---------------------------------------------------------------------------
+// State and data: the list and its search, the editor (draft, mode, errors,
+// history, restock fields) and every action (save, delete, restock, export).
+// ---------------------------------------------------------------------------
+function useProducts() {
   const nav = useNav();
   const bp = useBreakpoint();
   const snack = useSnackbar();
-  const navInset = useNavInset();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(false);
@@ -201,30 +189,293 @@ export function ProductsScreen() {
       .finally(() => setBusy(false));
   };
 
-  const restockFields = (
-    <View>
-      <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
-        {draft.name} · {draft.size || 'No size'} — current stock {num(String(draft.stock_qty))}
-      </Text>
-      <Columns kind="input">
-        <Input label="Qty to add" value={rQty} error={qtyError || undefined}
-          onChange={v => { setRQty(num(v)); setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
-        <MoneyInput label="New price (₹)" valuePaise={rPricePaise} onChangePaise={setRPricePaise}
-          theme={theme} placeholder="Keep current" helper="Blank keeps price" />
-      </Columns>
-      <Input label="Note (lot / supplier)" value={rNote}
-        onChange={setRNote} theme={theme} placeholder="Optional" />
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space[2] }}>
-        <Button label="Back" variant="ghost" theme={theme} onPress={() => setMode('edit')} />
-        <Button label="Add to stock" icon="plus" theme={theme} onPress={() => void applyRestock()} />
+  // S5.2: the 6-column table needs S5.tableMinWidth. At lg the editor pane takes 38 %, so the
+  // list pane (62 % minus the rail) is ≈ 410 dp on a 10-inch portrait tablet: phone rows there,
+  // the table from xl (and at md, where the list has the full width).
+  const listPaneWidth = bp.atLeast('lg') ? (bp.width - S5.rail) * 0.62 : bp.width - S5.rail;
+  const showTable = bp.atLeast('md') && listPaneWidth >= S5.tableMinWidth;
+
+  return {
+    products, search, setSearch,
+    editing, closeEditor: () => setEditing(false), editId, draft, setDraft, draftSold,
+    mode, setMode, rQty, setRQty, rPricePaise, setRPricePaise, rNote, setRNote,
+    nameError, setNameError, qtyError, setQtyError, history, busy,
+    editorTitle: mode === 'restock' ? 'Restock' : editId ? 'Edit product' : 'New product',
+    showTable,
+    startEdit, save, remove, openRestock, applyRestock, exportXlsx,
+  };
+}
+type Products = ReturnType<typeof useProducts>;
+
+// ---------------------------------------------------------------------------
+// The screen: phones and md = header + list, the editor as a sheet (P3);
+// lg+ = header + [ list | editor pane 38 % ].
+// ---------------------------------------------------------------------------
+export function ProductsScreen() {
+  const theme = useTheme();
+  const bp = useBreakpoint();
+  const p = useProducts();
+  const sidePane = bp.atLeast('lg');
+  // S5.4 — the FAB floats over Main on phones; the list card clears it through useFabClearance().
+  const fab = bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => p.startEdit()} theme={theme} /> : null;
+  return (
+    <Screen header={<Header p={p} theme={theme} />} fab={fab}>
+      <View style={{ flex: 1, flexDirection: 'row' }}>
+        <ListPane p={p} theme={theme} />
+        {sidePane ? <EditorPane p={p} theme={theme} /> : <EditorSheet p={p} theme={theme} />}
       </View>
+    </Screen>
+  );
+}
+
+// S5.0 — "N items" · "Products"; glass buttons: New product (tablets, where there is no FAB)
+// and Export products to Excel (busy spinner while it runs).
+function Header({ p, theme }: { p: Products; theme: Theme }) {
+  const bp = useBreakpoint();
+  return (
+    <TopAppBar
+      title="Products"
+      subtitle={`${p.products.length} items`}
+      theme={theme}
+      large
+      actions={[
+        ...(bp.isPhone ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => p.startEdit() }]),
+        { icon: 'download', label: 'Export products to Excel', onPress: p.exportXlsx, busy: p.busy },
+      ]}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+// S5.1–S5.3 — the column under the header: the search row, then the list card.
+function ListPane({ p, theme }: { p: Products; theme: Theme }) {
+  const navInset = useNavInset();
+  return (
+    <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
+      <SearchRow p={p} theme={theme} />
+      <ProductListCard products={p.products} search={p.search} showTable={p.showTable}
+        onPress={p.startEdit} navInset={navInset} theme={theme} />
     </View>
   );
+}
 
-  const historyBlock = editId && history.length > 0 ? (
+// S5.1 — the search field.
+function SearchRow({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <View style={{ paddingTop: space[1] }}>
+      <SearchField value={p.search} onChange={p.setSearch} placeholder="Search products" theme={theme} />
+    </View>
+  );
+}
+
+// S5.2 / S5.3 — the glass card that hugs the product rows (table rows when the pane is wide
+// enough, phone rows otherwise) and scrolls when full; long lists on phones keep the last row
+// clear of the FAB.
+function ProductListCard({ products, search, showTable, onPress, navInset, theme }: {
+  products: ProductRow[]; search: string; showTable: boolean;
+  onPress: (p: ProductRow) => void; navInset: number; theme: Theme;
+}) {
+  const fabClearance = useFabClearance(); // 0 when no FAB floats (tablets)
+  return (
+    <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
+      {showTable ? <TableHeader theme={theme} /> : null}
+      <FlatList
+        data={products}
+        keyExtractor={p => String(p.id)}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingBottom: products.length > S5.longList ? fabClearance : 0 }}
+        ListEmptyComponent={search
+          ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
+          : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
+        renderItem={({ item, index }) => showTable
+          ? <ProductTableRow p={item} last={index === products.length - 1} onPress={onPress} theme={theme} />
+          : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={onPress} theme={theme} />}
+      />
+    </Card>
+  );
+}
+
+// S5.2 — the table's column labels, from S5.columns (SIZE left-aligned, the numbers right-aligned).
+function TableHeader({ theme }: { theme: Theme }) {
+  return (
+    <View style={{
+      flexDirection: 'row', paddingVertical: space[3],
+      borderBottomWidth: 1, borderColor: theme.divider,
+    }}>
+      {S5.columns.map(c => (
+        <Text key={c.key} style={[type.overline, {
+          color: theme.textMuted,
+          ...(c.width ? { width: c.width, textAlign: c.key === 'SIZE' ? 'left' : 'right' } : { flex: S5.nameFlex }),
+        }]}>{c.key}</Text>
+      ))}
+    </View>
+  );
+}
+
+// Column widths by key, for the table rows.
+const COL = Object.fromEntries(S5.columns.map(c => [c.key, c.width])) as Record<string, number>;
+
+// S5.2.r — one table row: NAME flex 3 · SIZE · PRICE · STOCK · SOLD · AVL (widths from S5.columns).
+// Memoised: typing in the search box re-renders the list, not every row.
+const ProductTableRow = React.memo(function ProductTableRow({ p, last, onPress, theme }: {
+  p: ProductRow; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
+}) {
+  return (
+    <ListRow theme={theme} flush divider={!last} onPress={() => onPress(p)}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={[type.label, { color: theme.text, flex: S5.nameFlex, paddingEnd: space[2] }]} numberOfLines={1}>{p.name}</Text>
+        <Text style={[type.number, { color: theme.text, width: COL.SIZE }]}>{p.size || '—'}</Text>
+        <Text style={[type.number, { color: theme.text, width: COL.PRICE, textAlign: 'right' }]}>₹{formatPaise(p.unit_paise)}</Text>
+        <Text style={[type.number, { color: theme.text, width: COL.STOCK, textAlign: 'right' }]}>{num(String(p.stock_qty))}</Text>
+        <Text style={[type.number, { color: theme.textMuted, width: COL.SOLD, textAlign: 'right' }]}>{num(String(p.sold_qty))}</Text>
+        <View style={{ width: COL.AVL }}><AvlBadge avl={p.avl_qty} theme={theme} /></View>
+      </View>
+    </ListRow>
+  );
+});
+
+// S5.3 — one phone row: size circle · name · "Stock n · Sold n" · price over the Avl badge.
+const ProductListRow = React.memo(function ProductListRow({ p, alt, last, onPress, theme }: {
+  p: ProductRow; alt: boolean; last: boolean; onPress: (p: ProductRow) => void; theme: Theme;
+}) {
+  return (
+    <ListItem
+      theme={theme}
+      flush
+      divider={!last}
+      leadingText={p.size || '—'}
+      leadingAlt={alt}
+      title={p.name}
+      subtitle={`Stock ${num(String(p.stock_qty))} · Sold ${num(String(p.sold_qty))}`}
+      onPress={() => onPress(p)}
+      trailing={(
+        <View style={{ alignItems: 'flex-end', gap: space[1] }}>
+          <Text style={[type.number, { color: theme.text }]}>₹{formatPaise(p.unit_paise)}</Text>
+          <AvlBadge avl={p.avl_qty} theme={theme} />
+        </View>
+      )}
+    />
+  );
+});
+
+// ---------------------------------------------------------------------------
+// The editor: a side pane on lg+, a sheet (P3) below; the same body in both.
+// ---------------------------------------------------------------------------
+
+// S5.5 — lg+: the editor pane (38 %, pinned: a ScrollView grows by default), a glass card
+// with the editor or an empty state until something is selected.
+function EditorPane({ p, theme }: { p: Products; theme: Theme }) {
+  const navInset = useNavInset();
+  return (
+    <ScrollView style={{ width: S5.editorWidth, flexGrow: 0, flexShrink: 0 }}
+      contentContainerStyle={{ paddingEnd: layout.side, paddingBottom: navInset }} keyboardShouldPersistTaps="handled">
+      <Card theme={theme} style={{ padding: S5.editorPadding }}>
+        <SectionTitle title={p.editing ? p.editorTitle : 'Product editor'} theme={theme} />
+        {p.editing
+          ? <EditorBody p={p} theme={theme} />
+          : <EmptyState icon="tag" text="Select a product to edit, or add a new one." theme={theme} />}
+      </Card>
+    </ScrollView>
+  );
+}
+
+// P3 — below lg: the same editor in a wide bottom sheet.
+function EditorSheet({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <Sheet visible={p.editing} onClose={p.closeEditor} title={p.editorTitle} theme={theme} wide>
+      <EditorBody p={p} theme={theme} />
+    </Sheet>
+  );
+}
+
+// Restock (S5.7) when that mode is on for an existing product, else the product form (S5.6).
+function EditorBody({ p, theme }: { p: Products; theme: Theme }) {
+  return p.mode === 'restock' && p.editId ? <RestockForm p={p} theme={theme} /> : <ProductForm p={p} theme={theme} />;
+}
+
+// S5.6 — Product name · Quick pick chips · Size chips · Price | Stock · actions · stock history.
+function ProductForm({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <View>
+      <Input label="Product name" value={p.draft.name} error={p.nameError || undefined} autoCapitalize="words"
+        onChange={v => { p.setDraft({ ...p.draft, name: v }); p.setNameError(''); }} theme={theme} />
+      <QuickPickChips p={p} theme={theme} />
+      <SizeChips p={p} theme={theme} />
+      <PriceStockRow p={p} theme={theme} />
+      <EditorActions p={p} theme={theme} />
+      <StockHistory p={p} theme={theme} />
+    </View>
+  );
+}
+
+// S5.6.2 — "Quick pick": one chip per seed name, wrapping; the active one matches the draft's name.
+function QuickPickChips({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Quick pick</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[2] }}>
+        {QUICK_PICKS.map(n => (
+          <Chip key={n} label={n} active={p.draft.name === n}
+            onPress={() => { p.setDraft({ ...p.draft, name: n }); p.setNameError(''); }} theme={theme} />
+        ))}
+      </View>
+    </>
+  );
+}
+
+// S5.6.3 — "Size": the size chips plus "No size".
+function SizeChips({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Size</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[3] }}>
+        {SIZES.map(s => (
+          <Chip key={s} label={s} active={p.draft.size === s}
+            onPress={() => p.setDraft({ ...p.draft, size: s })} theme={theme} />
+        ))}
+        <Chip label="No size" active={p.draft.size === ''}
+          onPress={() => p.setDraft({ ...p.draft, size: '' })} theme={theme} />
+      </View>
+    </>
+  );
+}
+
+// S5.6.4 — one row, two equal columns: Price (₹) | Stock (helper: "Sold n · Avl n").
+function PriceStockRow({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <Columns kind="input">
+      <MoneyInput label="Price (₹)" valuePaise={p.draft.unit_paise}
+        onChangePaise={v => p.setDraft(d => ({ ...d, unit_paise: v }))} theme={theme} />
+      <Input label="Stock" value={String(p.draft.stock_qty)}
+        onChange={v => p.setDraft({ ...p.draft, stock_qty: Number(num(v)) })}
+        theme={theme} keyboardType="numeric" tabular
+        helper={p.editId ? `Sold ${p.draftSold} · Avl ${p.draft.stock_qty - p.draftSold}` : 'Sold counts once invoiced'} />
+    </Columns>
+  );
+}
+
+// S5.6.5 — right-aligned, wrapping: Delete (ghost, red) · Restock (glass) · Save (blue);
+// Delete and Restock only for an existing product.
+function EditorActions({ p, theme }: { p: Products; theme: Theme }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[2], marginTop: space[1] }}>
+      {p.editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger theme={theme} onPress={p.remove} /> : null}
+      {p.editId ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={p.openRestock} /> : null}
+      <Button label="Save" theme={theme} onPress={() => void p.save()} />
+    </View>
+  );
+}
+
+// S5.6.6 — "Stock history": one row per restock / edit: icon · "Restock +n → stock m" · date · note.
+function StockHistory({ p, theme }: { p: Products; theme: Theme }) {
+  if (!p.editId || p.history.length === 0) return null;
+  return (
     <View style={{ marginTop: space[4] }}>
       <SectionTitle title="Stock history" theme={theme} />
-      {history.map(h => (
+      {p.history.map(h => (
         <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], borderBottomWidth: 1, borderColor: theme.divider }}>
           <Feather name={h.kind === 'restock' ? 'arrow-down-circle' : 'edit-2'} size={20} color={theme.accent} />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -238,135 +489,30 @@ export function ProductsScreen() {
         </View>
       ))}
     </View>
-  ) : null;
-
-  const editorFields = (
-    <View>
-      <Input label="Product name" value={draft.name} error={nameError || undefined} autoCapitalize="words"
-        onChange={v => { setDraft({ ...draft, name: v }); setNameError(''); }} theme={theme} />
-      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Quick pick</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[2] }}>
-        {PRODUCT_SEED_NAMES.map(n => (
-          <Chip key={n} label={n} active={draft.name === n}
-            onPress={() => { setDraft({ ...draft, name: n }); setNameError(''); }} theme={theme} />
-        ))}
-      </View>
-      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[1] }]}>Size</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space[3] }}>
-        {PRODUCT_SIZES.map(s => (
-          <Chip key={s} label={s} active={draft.size === s}
-            onPress={() => setDraft({ ...draft, size: s })} theme={theme} />
-        ))}
-        <Chip label="No size" active={draft.size === ''}
-          onPress={() => setDraft({ ...draft, size: '' })} theme={theme} />
-      </View>
-      <Columns kind="input">
-        <MoneyInput label="Price (₹)" valuePaise={draft.unit_paise}
-          onChangePaise={p => setDraft(d => ({ ...d, unit_paise: p }))} theme={theme} />
-        <Input label="Stock" value={String(draft.stock_qty)}
-          onChange={v => setDraft({ ...draft, stock_qty: Number(num(v)) })}
-          theme={theme} keyboardType="numeric" tabular
-          helper={editId ? `Sold ${draftSold} · Avl ${draft.stock_qty - draftSold}` : 'Sold counts once invoiced'} />
-      </Columns>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[2], marginTop: space[1] }}>
-        {editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger theme={theme} onPress={remove} /> : null}
-        {editId ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={openRestock} /> : null}
-        <Button label="Save" theme={theme} onPress={() => void save()} />
-      </View>
-      {historyBlock}
-    </View>
-  );
-
-  const headerRow = (
-    <View style={{
-      flexDirection: 'row', paddingVertical: space[3],
-      borderBottomWidth: 1, borderColor: theme.divider,
-    }}>
-      {[['NAME', 0], ['SIZE', 52], ['PRICE', 84], ['STOCK', 60], ['SOLD', 56], ['AVL', 76]].map(([h, w]) => (
-        <Text key={h} style={[type.overline, {
-          color: theme.textMuted, ...(w ? { width: w as number, textAlign: h === 'SIZE' ? 'left' : 'right' } : { flex: 3 }),
-        }]}>{h}</Text>
-      ))}
-    </View>
-  );
-
-  const editorTitle = mode === 'restock' ? 'Restock' : editId ? 'Edit product' : 'New product';
-  // S5.2: the 6-column table needs about 520 dp (fixed columns 328 + a readable NAME).
-  // At lg the editor pane takes 38 %, so the list pane (62 % minus the 88 rail) is
-  // ≈ 410 dp on a 10-inch portrait tablet: use the phone rows there, the table from xl.
-  const listPaneWidth = bp.atLeast('lg') ? (bp.width - 88) * 0.62 : bp.width - 88;
-  const showTable = bp.atLeast('md') && listPaneWidth >= 520;
-
-  // S5.0 header and S5.4 FAB are <Screen> slots; the list card clears the FAB through useFabClearance().
-  return (
-    <Screen
-      header={(
-        <TopAppBar
-          title="Products"
-          subtitle={`${products.length} items`}
-          theme={theme}
-          large
-          actions={[
-            ...(bp.isPhone ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => startEdit() }]),
-            { icon: 'download', label: 'Export products to Excel', onPress: exportXlsx, busy },
-          ]}
-        />
-      )}
-      fab={bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}
-    >
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
-          <View style={{ paddingTop: space[1] }}>
-            <SearchField value={search} onChange={setSearch} placeholder="Search products" theme={theme} />
-          </View>
-          <ProductListCard products={products} search={search} showTable={showTable} headerRow={headerRow}
-            onPress={startEdit} navInset={navInset} theme={theme} />
-        </View>
-        {bp.atLeast('lg') ? (
-          // S5.5: a ScrollView grows by default (flexGrow 1), which made 38% only a
-          // basis and squeezed the table until NAME vanished. Pin it.
-          <ScrollView style={{ width: '38%', flexGrow: 0, flexShrink: 0 }}
-            contentContainerStyle={{ paddingEnd: layout.side, paddingBottom: navInset }} keyboardShouldPersistTaps="handled">
-            <Card theme={theme} style={{ padding: 20 }}>
-              <SectionTitle title={editing ? editorTitle : 'Product editor'} theme={theme} />
-              {editing
-                ? (mode === 'restock' && editId ? restockFields : editorFields)
-                : <EmptyState icon="tag" text="Select a product to edit, or add a new one." theme={theme} />}
-            </Card>
-          </ScrollView>
-        ) : null}
-        {bp.atLeast('lg') ? null : (
-          <Sheet visible={editing} onClose={() => setEditing(false)} title={editorTitle} theme={theme} wide>
-            {mode === 'restock' && editId ? restockFields : editorFields}
-          </Sheet>
-        )}
-      </View>
-    </Screen>
   );
 }
 
-// S5.2 / S5.3 — the glass card that hugs the product rows (table rows at ≥ 520 dp, phone rows
-// otherwise) and scrolls when full; long lists on phones keep the last row clear of the FAB.
-function ProductListCard({ products, search, showTable, headerRow, onPress, navInset, theme }: {
-  products: ProductRow[]; search: string; showTable: boolean; headerRow: React.ReactNode;
-  onPress: (p: ProductRow) => void; navInset: number; theme: Theme;
-}) {
-  const fabClearance = useFabClearance(); // 0 when no FAB floats (tablets)
+// S5.7 — Restock: "name · size — current stock n" · Qty to add | New price (₹) · Note · Back / Add to stock.
+function RestockForm({ p, theme }: { p: Products; theme: Theme }) {
   return (
-    <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
-      {showTable ? headerRow : null}
-      <FlatList
-        data={products}
-        keyExtractor={p => String(p.id)}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={{ paddingBottom: products.length > 6 ? fabClearance : 0 }}
-        ListEmptyComponent={search
-          ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
-          : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
-        renderItem={({ item, index }) => showTable
-          ? <ProductTableRow p={item} last={index === products.length - 1} onPress={onPress} theme={theme} />
-          : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={onPress} theme={theme} />}
-      />
-    </Card>
+    <View>
+      <Text style={[type.bodyMedium, { color: theme.textMuted, marginBottom: space[3] }]}>
+        {p.draft.name} · {p.draft.size || 'No size'} — current stock {num(String(p.draft.stock_qty))}
+      </Text>
+      {/* S5.7.2 — one row, two equal columns */}
+      <Columns kind="input">
+        <Input label="Qty to add" value={p.rQty} error={p.qtyError || undefined}
+          onChange={v => { p.setRQty(num(v)); p.setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
+        <MoneyInput label="New price (₹)" valuePaise={p.rPricePaise} onChangePaise={p.setRPricePaise}
+          theme={theme} placeholder="Keep current" helper="Blank keeps price" />
+      </Columns>
+      <Input label="Note (lot / supplier)" value={p.rNote}
+        onChange={p.setRNote} theme={theme} placeholder="Optional" />
+      {/* S5.7.4 */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: space[2] }}>
+        <Button label="Back" variant="ghost" theme={theme} onPress={() => p.setMode('edit')} />
+        <Button label="Add to stock" icon="plus" theme={theme} onPress={() => void p.applyRestock()} />
+      </View>
+    </View>
   );
 }

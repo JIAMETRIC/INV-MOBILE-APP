@@ -341,3 +341,26 @@ The one loose end on the third row: two screens still carry their own copy of th
 
 Both are correct values, both disappear when S1 and S5 go through `/three-slot-screen` (they'll take `<Screen fab>` and `useFabClearance()` like S2). So the risk itself is closed; the cleanup follows the two restructures that are next on the list anyway.
 ```
+
+## Prompt 48
+
+```
+Yes. Run /three-slot-screen on S5 Products: inspect and show me the proposed function tree first, then wait for my OK.
+```
+
+## Prompt 49
+
+```
+OK, apply the S5 plan as proposed.
+```
+
+## Prompt 50
+
+```
+All three Fixed?: 
+Touch targets 44	⚠️ columns	3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44
+
+Lists	⚠️ coupling	last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with onLayout
+
+Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn't yet; pre-existing)
+```

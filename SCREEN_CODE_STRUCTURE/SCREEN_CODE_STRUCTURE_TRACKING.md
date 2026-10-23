@@ -148,3 +148,14 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | --- | --- | --- |
 | S1 and S5 take `<Screen header fab>` now, ahead of their full restructures; each gets one Main child (`DashboardMain`, `ProductListCard`) because `useMainInset` / `useFabClearance` read the scaffold's context and must run inside it | Closes the last copies of the FAB clearance without waiting; the child is a region the restructure would create anyway. | A `FAB_CLEARANCE` constant exported from `Screen.tsx` for screens to add themselves: the number would again be stated per screen. |
 | `useContentInset` removed from `navMetrics.ts` | No callers left; keeping it would invite the old pattern back. `useNavInset` / `useNavBottom` stay (the nav itself, the sheet, the list cards' margins). | — |
+
+## Prompt 49 — S5 Products restructured (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| File order: `SIZES`, `QUICK_PICKS`, `S5` · helpers · `useProducts()` · `ProductsScreen()` on `<Screen header fab>` · `Header` · `ListPane` (`SearchRow`, `ProductListCard`, `TableHeader`, the two memoised rows) · `EditorPane` / `EditorSheet` · `EditorBody` · `ProductForm` and its five rows · `RestockForm` | The method's reading order; the editor's pieces come after the list because that is where they appear (pane to the right, sheet on top). | — |
+| `S5.columns` is one list used by `TableHeader` and `ProductTableRow` (via `COL`) | The header and the rows had two separate literal lists of widths that could drift apart. | Keep both lists. |
+| The editor is defined once (`EditorBody`) and placed by `EditorPane` or `EditorSheet` | It was two JSX constants referenced from two branches; now the branch picks the container only. | — |
+| `showTable` and `editorTitle` are computed in the hook | They are derived state, not layout. | In the screen function. |
+| Pieces take the whole hook object `p` plus `theme`; the list card and rows keep explicit props | Short call sites; the memoised rows must keep explicit props for `memo` to work. | Explicit props everywhere. |
+| No footer | S5 has no action bar; the FAB is a `<Screen>` slot (rule 3: footers are for action bars). | — |
