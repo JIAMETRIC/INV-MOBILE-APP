@@ -1,114 +1,81 @@
 # What's inside SettingsScreen (S6, phone and tablet)
 
-File: `src/features/settings/SettingsScreen.tsx` (327 lines). Line numbers as of 2026-10-23.
+File: `src/features/settings/SettingsScreen.tsx` (469 lines). Line numbers as of 2026-10-23, after the Three-Slot restructure (Prompt 52).
 Opened by the Settings tab (bottom nav on phones, rail on tablets).
 IDs (S6.x) are from `SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md`.
 
+The file reads top to bottom: the labels and numbers you edit most (`SECTIONS`, `VERSION_LABEL`, `S6`),
+all the state in one hook (`useSettings`), the screen switch on `<Screen>`, then one function per
+region in on-screen order: the header, the scroller, the section list, and each section's content.
+Function names are stable; line numbers drift.
+
 ```
-SettingsScreen()                                                    line 34
-│
-├─ VERSION_LABEL      "Invoice ERP 1.0.1 (build n)" from app-version.json   23
-├─ SECTIONS           the 4 rows: key · label · hint · Feather icon         27
-│                     Company · Drafts · Backup & restore · Activity log
-│
-├─ "Loading settings…"  shown until getSettings() returns                   63
-│
-├─ PHONE: list, then drill-in                                     S6.1  283
-│    ├─ TopAppBar     "Settings" + "Company, drafts, backup" (large)        287
-│    │                or the open section's label + glass back button
-│    ├─ ScrollView    padding 20, gap 16, bottom = navInset                 294
-│    │    ├─ (nothing open) sectionList(true)                      S6.1  272
-│    │    │    └─ Card list: one ListItem per SECTIONS row:                 273-280
-│    │    │         icon chip · label · hint · chevron; tap = setOpenOnPhone
-│    │    ├─ (nothing open) version caption, centred                        301
-│    │    └─ (section open) panes[open.key]  → one of the 4 panes below     298
-│    └─ Android Back  closes the open section first (useBackIntercept)      49
-│
-├─ S6.2 companyForm                                                       144
-│    ├─ Card "Business"                                           S6.2.1  146
-│    │    ├─ Business name                                                  148
-│    │    ├─ Subtitle                                                       149
-│    │    ├─ Address  (multiline)                                           150
-│    │    ├─ row: City | Pincode  (1:1, 6 digits)                           152, 153
-│    │    ├─ row: PAN | Contact  (1:1; PAN upper-case 10, Contact phone)    156, 157
-│    │    └─ Email  (email keyboard)                                        160
-│    ├─ Card "Bank / UPI"                                         S6.2.2  163
-│    │    ├─ row: Bank | Branch  (1:1)                                      166, 167
-│    │    ├─ row: A/C no | IFSC  (1:1; A/C numeric tabular, IFSC upper 11)  170, 171
-│    │    └─ UPI ID                                                         174
-│    ├─ Card "Invoice numbering"                                  S6.2.3  177
-│    │    └─ row: Prefix | Next number  (1:1; Next number read-only,        181, 182
-│    │            e.g. PRE-002, from next_seq)
-│    └─ Button "Save" (blue, check icon, busy spinner)            S6.2.4  187
-│
-├─ S6.3 draftsPane                                                        191
-│    ├─ SectionTitle "Drafts (n)"  (tablet only; phone shows it in the bar) 193
-│    └─ Card list                                                           194
-│         ├─ EmptyState "No drafts"                                         196
-│         └─ one ListItem per draft: avatar initials · party ·              198
-│              "draft_no · n lines · ₹total · date" · trash IconButton      206, 209
-│              tap row = nav.openCreate({ draftId }); trash = confirm → delete
-│
-├─ S6.4 backupPane                                                        226
-│    ├─ Card "Backup & restore"                                             228
-│    │    ├─ info text (SQLCipher-encrypted, device-bound)                  230
-│    │    └─ row: Button "Export" (blue, share) | "Restore" (outline)       235, 236
-│    └─ (when backups exist) "Recent backups" + Card list                   239-249
-│         └─ ListItem: archive icon · file name · "kind · KB · date"        244
-│
-├─ S6.5 activityPane                                                      254
-│    ├─ SectionTitle "Recent activity"  (tablet only)                       256
-│    └─ Card list                                                           257
-│         ├─ EmptyState "No activity yet."                                  258
-│         └─ ListItem per audit row (latest 50): clock icon ·               260
-│              "action — entity_type entity_id" · created_at
-│
-└─ TABLET: master-detail                                                  311
-     ├─ TopAppBar "Settings" (large, no back)                               313
-     └─ row (gap 16)                                                        314
-          ├─ left column, width 300: sectionList(false) (selected row       315
-          │     tinted, no chevron) + version caption
-          └─ ScrollView, maxWidth 720: panes[section]                       321
+SECTIONS              S6.1  Company · Drafts · Backup & restore · Activity log (key · label · hint · icon)   35
+VERSION_LABEL         "Invoice ERP 1.0.1 (build n)" from app-version.json                            42
+S6                    every number specific to this screen:                                          46
+                        listWidth 300 · paneMaxWidth 720 · auditRows 50 · inputPull −16 ·
+                        pincodeLength 6 · panLength 10 · ifscLength 11 · numberPad 3
+
+useSettings()         state + data, no JSX: section (lg+) · openOnPhone (one pane) · settings ·    64
+                      drafts · backups · audit · busy · load · setField · saveCompany ·
+                      exportBackup · importBackup · removeDraft · openDraft · Android Back
+
+SettingsScreen()      the switch, on <Screen header>                                                185
+├─ loading   → "Loading settings…" (before <Screen>, so every region sees loaded settings)
+├─ one pane  → SectionScroll[ SectionList + version ]  or  SectionScroll[ SectionBody ]  (phones, md)
+└─ lg+       → row[ SectionListPane 300 | SectionScroll (max 720)[ SectionBody ] ]
+
+Header                S6.0  "Settings" + "Company, drafts, backup" (large); one pane with a         222
+                      section open: its label + glass back button
+
+Main
+├─ SectionScroll      the one scroller: side padding (one pane) or end padding + max width (lg+)   240
+├─ SectionList        S6.1  the four rows (chevrons on one pane, tint on lg+) + the version line   256
+├─ SectionListPane    lg+: the fixed 300-dp left column holding SectionList                         275
+├─ SectionBody        picks CompanyForm · DraftsPane · BackupPane · ActivityPane                    284
+├─ FieldRow           one row, two equal input columns (<Columns kind="input">)                    294
+├─ CompanyForm        S6.2  BusinessCard · BankCard · NumberingCard · Save (S6.2.4)                 299
+│    ├─ BusinessCard  S6.2.1  name · subtitle · address · City | Pincode · PAN | Contact · email     311
+│    ├─ BankCard      S6.2.2  Bank | Branch · A/C no | IFSC · UPI ID                                 335
+│    └─ NumberingCard S6.2.3  Prefix | Next number (read-only, "PRE-002")                            356
+├─ DraftsPane         S6.3  "Drafts (n)" title (lg+) · list card of DraftRows or "No drafts"        374
+│    └─ DraftRow      (React.memo) avatar · party · "no · lines · ₹ · date" · trash (confirm)       392
+├─ BackupPane         S6.4  info card + ExportRestoreRow · RecentBackups                            411
+│    ├─ ExportRestoreRow  Export (blue) | Restore (glass)                                           428
+│    └─ RecentBackups     "Recent backups": archive · file name · "kind · KB · date"                438
+└─ ActivityPane       S6.5  "Recent activity" title (lg+) · list card of audit rows                  454
+
+Footer: none (Save sits at the end of the company form)
 ```
 
 ## What each function does
 
 | Function | Line | Does |
 | --- | --- | --- |
-| `useBackIntercept` | 49 | phone: system Back closes the open section before leaving Settings |
-| `load()` | 54 | settings, drafts, backups, last 50 audit rows; reruns on `nav.refreshKey` |
-| `setField(k, v)` | 67 | edits one key of the local settings copy (not saved yet) |
-| `saveCompany()` | 71 | `updateSettings(...)` (empty prefix falls back to `PRE-`) → `nav.refresh()` → snackbar |
-| `doExportBackup()` | 91 | `exportDbBackup()` → share sheet → reload the backups list |
-| `doImportBackup()` | 104 | pick a file → "Restore backup?" confirm → `restoreDbBackup(uri)` (a safety copy is taken first) → refresh → snackbar |
-| `row(a, b)` | 135 | two inputs side by side, `flex: 1` each, gap 12 |
-| `last` | 142 | style that removes the last Input's 16 bottom margin inside a card |
-| `sectionList(phone)` | 272 | the 4-row list card; phone = chevron + drill-in, tablet = selected tint |
+| `useSettings()` | 64 | `load()` (settings, drafts, backups, the last `S6.auditRows` audit rows; reruns on `refreshKey`), `setField`, `saveCompany` (prefix defaults to `PRE-`, then refresh + snackbar), `exportBackup` (`exportDbBackup` → share), `importBackup` (pick a file → confirm → `restoreDbBackup`), `removeDraft` (confirm → `deleteDraft`), `openDraft` (S4 with the draft); Back closes the open section first on one pane |
+| `SettingsScreen()` | 185 | the loading line, then the one-pane or the master-detail `<Screen>` |
+| `Header` … `ActivityPane` | 222–454 | the regions above |
 
 ## Where to change what
 
 | You want to change | Go to |
 | --- | --- |
-| a section's label, hint or icon | `SECTIONS`, lines 27-32 |
-| add a section | add a row to `SECTIONS`, a key to `Section` (line 25), a pane to `panes` (line 268) |
-| a field label, keyboard or max length | that `<Input … />` line in the tree above |
-| which fields share a row | wrap them in `row(a, b)`, or unwrap to stack them |
-| the Save button's label or icon | line 187 |
-| which fields are saved | the object passed to `updateSettings` in `saveCompany()`, lines 75-82 |
-| the backup info text / confirm text | lines 231-232 / 113-114 |
-| the version line | `VERSION_LABEL`, line 23 (values from `app-version.json`) |
-| tablet list width (300) or pane max width (720) | lines 315 / 321 |
-| gap between cards / side padding | the ScrollView `contentContainerStyle`, line 295 (`layout.gap` 16, `layout.side` 20) |
-| colours, radii, fonts | `src/ui/tokens.ts` (never hex values in this file) |
-| the look of every Card / Input / ListItem / Button | `src/ui/components.tsx` (changes all screens) |
+| a section's label, hint or icon; add a section | `SECTIONS` (35); add the matching case in `SectionBody` |
+| the list width or the pane's reading width on tablets | `S6.listWidth`, `S6.paneMaxWidth` |
+| how many audit rows show | `S6.auditRows` |
+| a field's label, keyboard or length limit | its `<Input>` in `BusinessCard`, `BankCard` or `NumberingCard`; limits in `S6` |
+| which fields share a row | the `<FieldRow>` around them |
+| the order of the company cards | the four lines in `CompanyForm` (302–305) |
+| what a draft row shows | `DraftRow` (392) |
+| the backup text or buttons | `BackupPane` (411), `ExportRestoreRow` (428) |
+| what an activity row shows | `ActivityPane` (454) |
+| the version line | `VERSION_LABEL` (42) |
+| what Save / Export / Restore do | `saveCompany`, `exportBackup`, `importBackup` inside `useSettings` |
+| card / input / list looks (all screens) | `src/ui/components.tsx` |
+| colours, radii, fonts | `src/ui/tokens.ts` |
 
-## Tablet check (Prompt 32)
+## Size check (Prompt 52, after the restructure)
 
-Checked on 2026-10-23 with `/size-check` (then `/tablet-check`) (phone AVD resized): **md** 601×961 dp (8-inch portrait).
+Phone (411 dp): list, Company, Drafts, Backup & restore, Activity log, Back: **0.000 % differing pixels** before vs after (the backup view was checked by eye; the before run missed its tap). md and lg: see the walkthrough, Prompt 52.
 
-| Size | Seen | Verdict |
-| --- | --- | --- |
-| md 601 | since Prompt 32 the phone list (S6.1 with chevrons, version label) beside the rail; Company opens as a drill-in with a back bar; Back returns to the list | ok |
-| lg / xl / xxl | master-detail (section list 300 + pane), seen at xl in Prompt 30 | ok |
-
-`SettingsScreen` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`.
+Earlier size notes (Prompts 30, 32) are superseded by this section.

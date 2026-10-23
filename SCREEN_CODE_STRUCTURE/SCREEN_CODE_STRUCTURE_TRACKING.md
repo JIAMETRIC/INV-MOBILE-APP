@@ -159,3 +159,15 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | `showTable` and `editorTitle` are computed in the hook | They are derived state, not layout. | In the screen function. |
 | Pieces take the whole hook object `p` plus `theme`; the list card and rows keep explicit props | Short call sites; the memoised rows must keep explicit props for `memo` to work. | Explicit props everywhere. |
 | No footer | S5 has no action bar; the FAB is a `<Screen>` slot (rule 3: footers are for action bars). | — |
+
+## Prompt 52 — S6 Settings restructured (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| File order: `SECTIONS`, `VERSION_LABEL`, `S6` · `useSettings()` · `SettingsScreen()` on `<Screen header>` · `Header` · `SectionScroll` · `SectionList` / `SectionListPane` · `SectionBody` · `FieldRow` · `CompanyForm` + three cards · `DraftsPane` + `DraftRow` · `BackupPane` + two pieces · `ActivityPane` | The method's reading order; the list before the sections because it is what the user sees first on both layouts. | — |
+| The "Loading settings…" line stays before `<Screen>`; a `Loaded` type (settings non-null) is what every region takes | No region has to handle `settings === null`; the early return is the one place that does. | Optional chaining in every card. |
+| `SectionScroll` is one component with two paddings (one pane: both sides; lg+: end side and a reading width) | Both layouts have exactly one scroller; one function keeps that true and shows the only difference. | Two inline ScrollViews (as before). |
+| `FieldRow` wraps `Columns kind="input"` | The six two-column rows in the company form are one-liners again (rule 4, with the 128-dp cell floor). On the phone the cells are 163 dp, so nothing moves; screenshots are pixel-identical. | Six explicit `<Columns>`. |
+| `DraftRow` is `React.memo` with `onOpen` / `onDelete` from `useCallback` in the hook | Rule 5 for the one list that can grow. | Inline rows. |
+| `SectionBody` is a `switch` on the section key | Replaces the `panes` record of four JSX constants; each case is a named region. | Keep the record. |
+| No footer | Save belongs to the company form (S6.2.4); the other sections have no actions bar. | A footer with Save: it would show on sections that have nothing to save. |

@@ -364,3 +364,15 @@ Lists	⚠️ coupling	last row must clear footer + nav; today each screen hard-c
 
 Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn't yet; pre-existing)
 ```
+
+## Prompt 51
+
+```
+Yes. Run /three-slot-screen on S6 Settings: inspect and show me the proposed function tree first, then wait for my OK.
+```
+
+## Prompt 52
+
+```
+OK, apply the S6 plan as proposed.
+```

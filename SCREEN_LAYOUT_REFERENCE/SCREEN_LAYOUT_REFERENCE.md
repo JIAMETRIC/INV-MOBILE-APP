@@ -518,26 +518,28 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 
 | ID | Section | Rows / columns | Lines |
 | --- | --- | --- | --- |
-| S6.1 | Section list | ListItem: icon · label · hint (chevron on phones) | 26-31, 258-264, 277-283 |
-| S6.2 | **Company** form | | 133-169 |
-| S6.2.1 | Business | Business name · Subtitle · Address (multiline) · City \| Pincode · PAN \| Contact · Email | 135-146 |
-| S6.2.2 | Bank / UPI | title · Bank \| Branch · A/C no \| IFSC · UPI ID | 147-156 |
-| S6.2.3 | Invoice numbering | title · Prefix \| Next number (read-only, e.g. `PRE-002`) | 157-166 |
-| S6.2.4 | Save | right-aligned Save button | 167-168 |
-| S6.3 | **Drafts** | "Drafts (n)" (tablet) · Card list: title party · subtitle `draft_no · n lines · ₹total · date` · trailing trash (confirm). Tap → S4 with `draftId`. Empty: "No drafts" | 172-204 |
-| S6.4 | **Backup & restore** | info text · Export \| Restore (1:1 buttons) · "Recent backups": archive icon · file name · `kind · KB · date` | 206-224 |
-| S6.5 | **Activity log** | ListItem: `action — entity_type entity_id` · date (latest 50) | 226-236 |
+| S6.1 | Section list | `SectionList` (in `SectionListPane` on lg+): ListItem: icon · label · hint (chevron on one pane, tint on lg+); the version line under it | `SECTIONS`, `SectionList` |
+| S6.2 | **Company** form (`CompanyForm`) | three cards + Save | `CompanyForm` |
+| S6.2.1 | Business | Business name · Subtitle · Address (multiline) · City \| Pincode · PAN \| Contact (`FieldRow` = `Columns`) · Email | `BusinessCard` |
+| S6.2.2 | Bank / UPI | title · Bank \| Branch · A/C no \| IFSC · UPI ID | `BankCard` |
+| S6.2.3 | Invoice numbering | title · Prefix \| Next number (read-only, e.g. `PRE-002`, padded to `S6.numberPad`) | `NumberingCard` |
+| S6.2.4 | Save | the Save button at the end of the form | `CompanyForm` |
+| S6.3 | **Drafts** | `DraftsPane`: "Drafts (n)" (lg+) · Card list of `DraftRow` (memo): title party · subtitle `draft_no · n lines · ₹total · date` · trailing trash (confirm). Tap → S4 with `draftId`. Empty: "No drafts" | `DraftsPane`, `DraftRow` |
+| S6.4 | **Backup & restore** | `BackupPane`: info text · `ExportRestoreRow` (Export \| Restore, 1:1) · `RecentBackups`: archive icon · file name · `kind · KB · date` | `BackupPane` |
+| S6.5 | **Activity log** | `ActivityPane`: ListItem: `action — entity_type entity_id` · date (latest `S6.auditRows` 50) | `ActivityPane` |
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `useBackIntercept` | phone: Back closes the open section first | 47-50 |
-| `load()` | settings, drafts, backups, audit (50) | 52-59 |
-| `setField(k, v)` | edits the local settings copy | 65-67 |
-| `saveCompany()` | `updateSettings(...)` (prefix defaults to `PRE-`) → refresh → snackbar | 69-87 |
-| `doExportBackup()` | `exportDbBackup` → share | 89-100 |
-| `doImportBackup()` | pick a file → confirm → `restoreDbBackup` (takes a safety copy first) | 102-131 |
+| `useSettings()` | all state and actions below; `section` (lg+) / `openOnPhone` (one pane) | 64-178 |
+| `useBackIntercept` | one pane: Back closes the open section first | in `useSettings` |
+| `load()` | settings, drafts, backups, audit (`S6.auditRows`) | in `useSettings` |
+| `setField(k, v)` | edits the local settings copy | in `useSettings` |
+| `saveCompany()` | `updateSettings(...)` (prefix defaults to `PRE-`) → refresh → snackbar | in `useSettings` |
+| `exportBackup()` | `exportDbBackup` → share | in `useSettings` |
+| `importBackup()` | pick a file → confirm → `restoreDbBackup` (takes a safety copy first) | in `useSettings` |
+| `removeDraft(d)` / `openDraft(d)` | confirm → `deleteDraft` / S4 with the draft | in `useSettings` |
 
 ---
 

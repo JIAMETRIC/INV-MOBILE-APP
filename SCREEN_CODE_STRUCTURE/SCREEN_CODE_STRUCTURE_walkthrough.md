@@ -340,3 +340,28 @@ Kept exactly: every repo and audit call, the kit components and their props, the
 | Emulator | restored to 1080×2400 |
 
 Docs: `ProductsScreen_S5_P3_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S5 tables name functions; rationale in TRACKING. Pushed to origin/master.
+
+## Prompt 51 — S6 inspected; plan for the restructure (2026-10-23, session 14)
+
+**Current structure of `SettingsScreen.tsx` (327 lines):** `VERSION_LABEL`, `Section`, `SECTIONS` → one 293-line component: 3 hooks + 7 `useState` → `useBackIntercept` → `load` → an early "Loading settings…" return → `setField`, `saveCompany`, `doExportBackup`, `doImportBackup` → a `row(a, b)` helper and a `last` style → four JSX constants (`companyForm` S6.2 with three cards and six hand-written two-column rows, `draftsPane` S6.3, `backupPane` S6.4, `activityPane` S6.5) → a `panes` map → `sectionList(phone)` → two `return`s (one pane: list or drill-in; lg+: 300-dp list | pane). Inline numbers: `300` (list width), `720` (pane max width), `-space[4]` (last-input pull), `-space[3]`, `50` (audit rows), `1024` (KB), `3` (zero-padding), the `maxLength`s 6 / 10 / 11.
+
+The proposed tree is in the chat (Prompt 51); it is copied here once approved.
+
+## Prompt 52 — S6 Settings restructured, re-checked (2026-10-23, session 14)
+
+`SettingsScreen.tsx` 327 → 469 lines: one 293-line component → `SECTIONS` · `VERSION_LABEL` · `S6` (list width, pane max width, audit rows, input pull, the three length limits, the number padding) · `useSettings()` (7 state values, the five actions, the draft open / delete handlers, Back) · `SettingsScreen()` (37 lines: the loading line, then the one-pane or master-detail `<Screen header>`) · `Header` · `SectionScroll` · `SectionList` · `SectionListPane` · `SectionBody` · `FieldRow` · `CompanyForm` · `BusinessCard` · `BankCard` · `NumberingCard` · `DraftsPane` · `DraftRow` (memo) · `BackupPane` · `ExportRestoreRow` · `RecentBackups` · `ActivityPane`.
+
+Kept exactly: every repo call, the document picker and the two confirm dialogs, the kit components and their props, the one-pane rule (phones and md), the 300-dp list and 720-dp reading width on lg+. The six hand-written two-column rows are `FieldRow` (`Columns kind="input"`); the `panes` record became a `switch`; `doExportBackup` / `doImportBackup` are `exportBackup` / `importBackup` in the hook.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean first time |
+| Phone before vs after (`imgdiff.py`): Settings list, Company, Drafts, Activity log, the list after Back | **0.000 % differing pixels** on all five |
+| Phone, Backup & restore | checked by eye (the before run's tap missed: uiautomator encodes "&" as `&amp;`; the script now matches that): info card, Export \| Restore, four recent backups |
+| `/size-check` md | list with chevrons and the version line, Company as a drill-in under a back bar beside the rail, as in Prompt 32 |
+| `/size-check` lg | master-detail: 300-dp list with the tinted Company row and the version line, the form in the pane with its two-column rows |
+| Emulator | restored to 1080×2400 |
+
+Docs: `SettingsScreen_S6_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S6 tables name functions; rationale in TRACKING. Pushed to origin/master.
+
+With S6 done, five of six screens are on the Three-Slot method (S2, S4, S5, S6 fully; S1 on the scaffold with a `DashboardMain` region, its small hook and numbers block still to come).
