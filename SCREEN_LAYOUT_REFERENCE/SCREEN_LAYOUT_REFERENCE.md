@@ -217,7 +217,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S2.3a | Date fields | `DateRangeRow`: 2 columns (gap 12): From, To, `YYYY-MM-DD`, numeric, max 10 | `DateRangeRow` |
 | S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + status). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
 | S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | `InvoiceListCard` |
-| S2.6 | FAB | phone only, "New invoice", inside `ListPane` | `ListPane` |
+| S2.6 | FAB | phone only, "New invoice"; the `fab` slot of `<Screen>` in `InvoicesScreen()`; the list card clears it with `useFabClearance()` | `InvoicesScreen` |
 | S2.7 | Detail pane | `DetailPane`: lg+; width `S2.detailWidth` 50%, or 42% when the activity pane shows (xxl); left divider; renders S3 | `DetailPane` |
 | S2.8 | Activity pane | `ActivityPane`: **xxl** (`S2.activityFrom`) with a row selected; width `S2.activityWidth` 26%; small glass card: overline "Activity", `no · status`, "Issued <date>". At xl the screen is 2 panes (detail 50 %) | `ActivityPane` |
 
@@ -314,28 +314,28 @@ There are **three different layouts** built from the same blocks:
 
 | Layout | When | Lines |
 | --- | --- | --- |
-| S4.L1 Phone stepper | `bp.isPhone` | 487-513 |
-| S4.L2 Two-pane | md / lg | 560-589 |
-| S4.L3 Three-panel | xl+ | 515-558 |
+| S4.L1 Phone stepper | `bp.isPhone` | `CreateInvoiceScreen()` phone branch: `<Screen>` with `Header`, `Stepper`, `StepBody`, `TotalBar` |
+| S4.L2 Two-pane | md / lg | `CreateInvoiceScreen()` last branch: `FormPane` \| `PreviewPane` (md: the header's eye toggles them) |
+| S4.L3 Three-panel | xl+ | `CreateInvoiceScreen()` xl branch: `CatalogPanel` \| `FormPane` \| `PreviewPane` |
 
 ### Building blocks (shared by all layouts)
 
 | ID | Block | Rows / columns | Lines |
 | --- | --- | --- | --- |
-| S4.A | **Bill to** (`partySection`) | row 1 Party name * (full) · row 2 Address (full) · row 3 City \| Pincode (1:1, 6 digits) · row 4 Mobile \| Email (1:1) · row 5 Invoice date \| Due date (1:1, YYYY-MM-DD). Every field autosaves on blur | 268-314 |
-| S4.B | **Items** (`itemsSection`) | | 316-401 |
-| S4.B.1 | Items title | "Items (n)" + "Add from products" tonal button (hidden at xl, where S4.L3 shows the catalog panel) | 318-322 |
-| S4.B.2 | Empty card | "No items yet" | 323-330 |
-| S4.B.3 | Line-item card | header row "ITEM n · FROM PRODUCTS / FREE LINE" + trash IconButton · Description (full) · **Qty \| Rate (₹)** at flex **1 : 1.4** · footer row "Amount" … ₹value | 331-359 |
-| S4.B.4 | "Add free line" | outline button, left-aligned | 360-361 |
-| S4.B.5 | Adjustments | "Adjustments" title · row: Discount % (flex 1, clamped 0–100) \| "Ship to address" chip (flex 1) | 363-374 |
-| S4.B.6 | Shipping card | only when the chip is on: Consignee (full) · Address (full) · **City \| Pincode** (1:1, 6 digits); all printed in D1.2 | 375-396 |
-| S4.B.7 | Notes | multiline, "Optional — printed on the invoice" | 397-399 |
-| S4.C | **Totals** (`totalsBlock`) | Subtotal · Discount (if > 0) · Round off · **Total** | 403-412 |
-| S4.D | **Review** (`reviewSection`) | Bill-to filled card (party, `no · date · due`) · "Items (n)" compact rows: description (flex 1) \| `qty × rate` \| amount · S4.C · amount in words | 414-440 |
-| S4.E | **Preview** (`previewPane`) | "Preview" title + A4 / Letter chips · bordered white box, minHeight 400, WebView rendering D1 live | 442-462 |
-| S4.F | **Action buttons** | right-aligned: Save draft (outline) · Issue invoice / Update (solid, send / checkmark icon) | 464-469 |
-| P2 | Catalog sheet | see P2 below | 473-483, 630-658 |
+| S4.A | **Bill to** (`BillToCard`) | row 1 Party name * (full) · row 2 Address (full) · row 3 `CityPincodeRow` (Columns, 6 digits) · row 4 `MobileEmailRow` (Columns) · row 5 `DatesRow` (Columns, YYYY-MM-DD; stacks in the narrow xl form). Every field autosaves on blur | `BillToCard` |
+| S4.B | **Items** (`ItemsSection`) | | `ItemsSection` |
+| S4.B.1 | Items title | "Items (n)" + "Add from products" ghost button (hidden at xl, where S4.L3 shows the catalog panel) | `ItemsSection` |
+| S4.B.2 | Empty card | "No items yet" | `EmptyItemsCard` |
+| S4.B.3 | Line-item card | header row "ITEM n · FROM PRODUCTS / FREE LINE" + trash IconButton · Description (full) · **Qty \| Rate (₹)** as `Columns` weights **1 : 1.4** (`S4.qtyRateWeights`) · footer row "Amount" … ₹value | `LineItemCard` |
+| S4.B.4 | "Add free line" | outline button, left-aligned | inside `ItemsSection` |
+| S4.B.5 | Adjustments | "Adjustments" title · row: Discount % (flex 1, clamped 0–100) \| "Ship to address" chip (flex 1) | `AdjustmentsCard` |
+| S4.B.6 | Shipping fields | only when the chip is on: Consignee (full) · Address (full) · `CityPincodeRow`; all printed in D1.2 | `ShippingFields` |
+| S4.B.7 | Notes | multiline, "Optional — printed on the invoice" | inside `AdjustmentsCard` |
+| S4.C | **Totals** (`TotalsCard`) | Subtotal · Discount (if > 0) · Round off · **Total** | `TotalsCard` |
+| S4.D | **Review** (`ReviewSection`) | Bill-to filled card (party, `no · date · due`) · "Items (n)" compact rows: description (flex 1) \| `qty × rate` \| amount · `TotalsCard` · amount in words | `ReviewSection` |
+| S4.E | **Preview** (`PreviewPane`) | "Preview" title + A4 / Letter control (`S4.pageSizeControl` 180) · white page frame, `S4.previewMinHeight` 400, WebView rendering D1 live | `PreviewPane` |
+| S4.F | **Action buttons** (`ActionButtons`) | right-aligned: Save draft (outline) · Issue invoice / Update (solid, send / checkmark icon); in `FormPane` on tablets, in `TotalBar` on the phone's Review step | `ActionButtons` |
+| P2 | Catalog sheet | see P2 below | `CatalogSheet` |
 
 ### S4.L1 — Phone stepper
 
@@ -357,7 +357,7 @@ There are **three different layouts** built from the same blocks:
 │                    or S4.F   │   step 2: Save draft + Issue invoice
 └──────────────────────────────┘
 ```
-Stepper component `Stepper` (592-628): 24dp numbered circles, a check on done steps, 1dp connectors (accent when reached), touch height 48.
+`Stepper`: 28-dp numbered circles (`S4.stepCircle`), a check on done steps, 2-dp connectors (accent when reached), touch height 44. The phone body is `StepBody` (one `ScrollView`), the bar is `TotalBar` (a `<Screen>` footer: in the flex column, so it rises with the keyboard).
 
 ### S4.L2 — Two-pane (md / lg)
 
@@ -387,22 +387,11 @@ The panel loads the full product list as soon as the layout opens (`showsCatalog
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `blankForm()` | empty party, today, due = today + 14 days, 0% discount | 40-52 |
-| mount effect | loads settings, then the edit invoice (`invoiceId`) **or** a draft (`draftId`) **or** the next number preview | 72-114 |
-| `totals` | `computeTotals(lines, discount%)` → gross, discount, roundOff, total | 116-119 |
-| `patch(p)` | merges a form change and marks it unsaved | 121-124 |
-| `autosave()` | `saveDraft` (called on every field blur) | 126-135 |
-| `previewInvoice` / `previewHtml` | builds the D1 HTML for the live preview | 137-164 |
-| catalog-panel effect | at xl+ loads products on entering the layout (S4.L3 panel) | 166-171 |
-| `openCatalog()` | opens P2 and loads products | 173-176 |
-| `addLine(p)` | appends a product line (description `name - size`, qty 1) and closes P2 | 178-190 |
-| `addBlankLine()` | appends a free line | 192-199 |
-| `updateLine(i, p)` | edits a line and recomputes `line_paise` | 201-210 |
-| `removeLine(i)` | deletes a line and renumbers `sno` | 212-214 |
-| `issue()` | needs a party name (jumps to step 0) and ≥ 1 line (jumps to step 1) → `saveInvoice` → audit → delete draft → close → snackbar with **View** | 216-242 |
-| `saveAsDraft()` | autosave → close → snackbar | 244-249 |
-| `leave()` | back arrow: unsaved new work → saved as a draft first | 252-256 |
-| `useBackIntercept` | Android Back: phone step > 0 → previous step, else `leave()` | 259-264 |
+| `S4` | every number specific to this screen (pane widths, stepper circle, preview height, Qty : Rate weights) | 46 |
+| `blankForm()` | empty party, today, due = today + 14 days, 0% discount | 68 |
+| `useInvoiceForm({ draftId, invoiceId })` | all state and actions: the mount effect (settings, then the edit invoice **or** a draft **or** the next number), `totals`, `patch` (marks unsaved), `autosave` (`saveDraft` on every blur), `previewHtml`, the xl catalog effect, `openCatalog`, `searchCatalog`, `addLine`, `addBlankLine`, `updateLine`, `removeLine`, `issue` (party name → step 0, ≥ 1 line → step 1, save, audit, delete draft, close, snackbar **View**), `saveAsDraft`, `leave` (unsaved new work → draft first), Android Back (phone step back, else leave) | 88-317 |
+| `CreateInvoiceScreen()` | the phone / xl / md-lg switch on `<Screen overlay>` | 323-381 |
+| `useScrollPad()` | the padding every scrolling pane shares; bottom from `useMainInset()` | 445 |
 
 ### P2 — Catalog sheet (`CatalogSheet`, 630-658)
 
@@ -622,6 +611,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
 | C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S2.3a, S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
+| C16 | `Screen` | the Three-Slot scaffold: `header` · `below` (stepper) · Main (children, `flex: 1`) · `footer` (in the flex column, padded by the gesture inset, rises with the keyboard) · `fab` (floats over Main); `overlay` = no bottom nav underneath. `useMainInset()` = what Main's scroller pads at the bottom (nav inset or 32 in an overlay, + FAB clearance); `useFabClearance()` = 52 + 16 when a `fab` is set, else 0 | S2, S4 | Screen.tsx:23 |
 
 ### Design tokens (`src/ui/tokens.ts`)
 

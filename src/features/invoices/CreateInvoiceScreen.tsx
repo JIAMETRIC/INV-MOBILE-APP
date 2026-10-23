@@ -1,3 +1,11 @@
+// S4 — Create / Edit invoice. Read top to bottom:
+//   STEPS, S4             the text and the numbers you are most likely to edit
+//   blankForm()           the empty form
+//   useInvoiceForm()      all state, data and actions (no JSX)
+//   CreateInvoiceScreen() the phone / tablet switch, built on <Screen>
+//   Header … TotalBar     one function per region, in the order they appear on screen
+//   CatalogSheet          P2
+// IDs (S4.A, S4.B.3 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList, Platform, Pressable, ScrollView, Text, View,
@@ -8,7 +16,7 @@ import { useTheme } from '../../shell/providers';
 import { Feather } from '@expo/vector-icons';
 import { useBackIntercept, useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
-import { useNavBottom } from '../../ui/navMetrics';
+import { Screen, useMainInset } from '../../ui/Screen';
 import {
   Badge, Button, Card, Chip, IconButton, Input, ListItem, MoneyInput, MoneyText, SearchField, SectionTitle,
   SegmentedControl, TopAppBar, TotalRow, EmptyState,
@@ -17,6 +25,7 @@ import { Columns } from '../../ui/Columns';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
 import { font, layout, radius, shadow, space, touch, type, maxReadWidth } from '../../ui/tokens';
+import type { Theme } from '../../ui/tokens';
 import {
   addDaysIso, computeTotals, formatInvoiceNo, formatPaise, linePaise, numberToWordsIndian, todayIso,
 } from '../../data/money';
@@ -28,6 +37,24 @@ import { deleteDraft, getDraft, saveDraft, type DraftPayload } from '../../data/
 import { logAudit } from '../../data/auditRepo';
 import { buildInvoiceHtml } from '../../export/pdfTemplate';
 import type { InvoiceForm, ProductRow, Settings } from '../../data/types';
+
+// S4.L1.1 — the phone stepper's three steps, in order.
+const STEPS = ['Bill to', 'Items', 'Review'];
+
+// Every number that is specific to this screen. Shared spacing comes from
+// tokens.ts (layout.side 20, layout.gap 16, layout.grid 12).
+const S4 = {
+  stepCircle: 28, // S4.L1.1: stepper circle diameter
+  catalogWidth: '25%', // S4.L3: products panel
+  formWidth: '38%', // S4.L3: form pane (a ScrollView; 38% is its flex basis, it may grow)
+  previewWidth: '37%', // S4.L3: preview pane
+  previewWidthTwoPane: '40%', // S4.L2 at lg: preview pane beside the form
+  catalogNarrowBelow: 300, // S4.L3: under this panel width, product names take two lines
+  pageSizeControl: 180, // S4.E: width of the A4 / Letter control
+  previewMinHeight: 400, // S4.E: the printed page frame
+  qtyRateWeights: [1, 1.4], // S4.B.3: Qty | Rate column weights
+  inputPull: -space[4], // last input in a card: pulls the card's bottom padding up under the field
+} as const;
 
 const emptyParty = () => ({
   party_name: '', party_address: '', party_city: '', party_pincode: '',
@@ -52,11 +79,15 @@ function blankForm(): InvoiceForm {
   };
 }
 
-export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; invoiceId?: number }) {
-  const theme = useTheme();
+type Line = InvoiceForm['lines'][number];
+
+// ---------------------------------------------------------------------------
+// State and data: the form, its totals, the draft autosave, the catalog, the
+// preview HTML, and every action (issue, save draft, leave, Back).
+// ---------------------------------------------------------------------------
+function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: number }) {
   const nav = useNav();
   const bp = useBreakpoint();
-  const navBottom = useNavBottom();
   const snack = useSnackbar();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [form, setForm] = useState<InvoiceForm>(blankForm);
@@ -168,7 +199,7 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
   // The xl layout shows the catalog as a permanent panel, so it needs the list up front.
   const showsCatalogPanel = bp.atLeast('xl');
   // S4.L3 products panel is 25 % of the width after the 88 rail; under 300 dp names need two lines.
-  const narrowCatalog = (bp.width - 88) * 0.25 < 300;
+  const narrowCatalog = (bp.width - 88) * 0.25 < S4.catalogNarrowBelow;
   useEffect(() => {
     if (showsCatalogPanel) void listProducts(catalogSearch).then(setProducts);
     // Only on entering the xl layout; typing in the search reloads by itself.
@@ -177,6 +208,11 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
   const openCatalog = () => {
     setCatalogOpen(true);
     void listProducts().then(setProducts);
+  };
+
+  const searchCatalog = (v: string) => {
+    setCatalogSearch(v);
+    void listProducts(v).then(setProducts);
   };
 
   const addLine = (p: ProductRow) => {
@@ -202,7 +238,7 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
     });
   };
 
-  const updateLine = (i: number, p: Partial<(typeof form.lines)[number]>) => {
+  const updateLine = (i: number, p: Partial<Line>) => {
     patch({
       lines: form.lines.map((l, idx) => {
         if (idx !== i) return l;
@@ -267,354 +303,98 @@ export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; 
     return true;
   });
 
-  // ---------- building blocks ----------
+  return {
+    settings, form, totals, previewNo, editInvoiceId,
+    title: editInvoiceId ? 'Edit invoice' : 'New invoice',
+    step, setStep,
+    catalogOpen, closeCatalog: () => setCatalogOpen(false), catalogSearch, products, narrowCatalog,
+    tabPreview, togglePreview: () => setTabPreview(p => !p),
+    pageSize, setPageSize, previewHtml,
+    patch, autosave, openCatalog, searchCatalog, addLine, addBlankLine, updateLine, removeLine,
+    issue, saveAsDraft, leave,
+  };
+}
+type Form = ReturnType<typeof useInvoiceForm>;
 
-  const partySection = (
-    <Card theme={theme}>
-      <SectionTitle title="Bill to" theme={theme} />
-      <Input label="Party name *" value={form.party.party_name} autoCapitalize="words"
-        onChange={v => patch({ party: { ...form.party, party_name: v } })}
-        onBlur={() => void autosave()} theme={theme} />
-      <Input label="Address" value={form.party.party_address}
-        onChange={v => patch({ party: { ...form.party, party_address: v } })}
-        onBlur={() => void autosave()} theme={theme} />
-      <View style={{ flexDirection: 'row', gap: layout.grid }}>
-        <View style={{ flex: 1 }}>
-          <Input label="City" value={form.party.party_city}
-            onChange={v => patch({ party: { ...form.party, party_city: v } })}
-            onBlur={() => void autosave()} theme={theme} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Input label="Pincode" value={form.party.party_pincode}
-            onChange={v => patch({ party: { ...form.party, party_pincode: v } })}
-            onBlur={() => void autosave()} theme={theme} keyboardType="numeric" maxLength={6} />
-        </View>
-      </View>
-      <View style={{ flexDirection: 'row', gap: layout.grid }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Mobile" value={form.party.party_mobile}
-            onChange={v => patch({ party: { ...form.party, party_mobile: v } })}
-            onBlur={() => void autosave()} theme={theme} keyboardType="phone-pad" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Input label="Email" value={form.party.party_email}
-            onChange={v => patch({ party: { ...form.party, party_email: v } })}
-            onBlur={() => void autosave()} theme={theme} keyboardType="email-address" autoCapitalize="none" />
-        </View>
-      </View>
-      {/* S4.A row 5: Columns stacks the two dates when the form is too narrow
-          for them side by side (the xl three-panel form), instead of clipping. */}
-      <Columns kind="input" style={{ marginBottom: -space[4] }}>
-        <Input label="Invoice date" value={form.invoiceDate}
-          onChange={v => patch({ invoiceDate: v })} onBlur={() => void autosave()}
-          theme={theme} tabular placeholder="YYYY-MM-DD" />
-        <Input label="Due date" value={form.dueDate}
-          onChange={v => patch({ dueDate: v })} onBlur={() => void autosave()}
-          theme={theme} tabular placeholder="YYYY-MM-DD" />
-      </Columns>
-    </Card>
-  );
-
-  const itemsSection = (
-    <View style={{ gap: layout.gap }}>
-      <SectionTitle title={`Items (${form.lines.length})`} theme={theme}
-        right={bp.atLeast('xl') ? undefined : (
-          <Button label="Add from products" icon="tag" variant="ghost" theme={theme} onPress={openCatalog} />
-        )}
-      />
-      {form.lines.length === 0
-        ? (
-          <Card theme={theme}>
-            <EmptyState icon="shopping-cart" title="No items yet"
-              text={bp.atLeast('xl') ? 'Tap a product on the left, or add a free line.' : 'Pick products from your catalog, or add a free line.'}
-              theme={theme} />
-          </Card>
-        )
-        : form.lines.map((l, i) => (
-          <Card key={i} theme={theme}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: space[2], marginTop: -space[2] }}>
-              <Text style={[type.overline, { color: theme.textMuted, flex: 1 }]}>
-                Item {i + 1} · {l.product_id ? 'From products' : 'Free line'}
-              </Text>
-              <IconButton icon="trash-2" label={`Remove item ${i + 1}`} onPress={() => removeLine(i)} theme={theme} />
-            </View>
-            <Input label="Description" value={l.description}
-              onChange={v => updateLine(i, { description: v })}
-              onBlur={() => void autosave()} theme={theme} />
-            <View style={{ flexDirection: 'row', gap: layout.grid }}>
-              <View style={{ flex: 1 }}>
-                <Input label="Qty" value={String(l.qty)}
-                  onChange={v => updateLine(i, { qty: Math.max(0, Number(v.replace(/[^0-9.]/g, '')) || 0) })}
-                  onBlur={() => void autosave()} theme={theme} keyboardType="decimal-pad" tabular />
-              </View>
-              <View style={{ flex: 1.4 }}>
-                <MoneyInput label="Rate (₹)" valuePaise={l.unit_paise}
-                  onChangePaise={p => updateLine(i, { unit_paise: p })}
-                  onBlur={() => void autosave()} theme={theme} />
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Amount</Text>
-              <MoneyText paiseText={`₹${formatPaise(l.line_paise)}`} theme={theme} />
-            </View>
-          </Card>
-        ))}
-      <Button label="Add free line" icon="plus" variant="outline" theme={theme} onPress={addBlankLine}
-        style={{ alignSelf: 'flex-start' }} />
-
-      <Card theme={theme}>
-        <SectionTitle title="Adjustments" theme={theme} />
-        <View style={{ flexDirection: 'row', gap: layout.grid, alignItems: 'flex-end' }}>
-          <View style={{ flex: 1 }}>
-            <Input label="Discount %" value={String(form.discountPercent)}
-              onChange={v => patch({ discountPercent: Math.max(0, Math.min(100, Number(v) || 0)) })}
-              onBlur={() => void autosave()} theme={theme} keyboardType="decimal-pad" tabular />
-          </View>
-          <View style={{ flex: 1, marginBottom: space[4] }}>
-            <Chip label="Ship to address" icon="truck" active={form.hasShipping}
-              onPress={() => patch({ hasShipping: !form.hasShipping })} theme={theme} />
-          </View>
-        </View>
-        {form.hasShipping ? (
-          <>
-            <Input label="Consignee" value={form.ship.ship_name}
-              onChange={v => patch({ ship: { ...form.ship, ship_name: v } })}
-              onBlur={() => void autosave()} theme={theme} />
-            <Input label="Ship-to address" value={form.ship.ship_address}
-              onChange={v => patch({ ship: { ...form.ship, ship_address: v } })}
-              onBlur={() => void autosave()} theme={theme} />
-            <View style={{ flexDirection: 'row', gap: layout.grid }}>
-              <View style={{ flex: 1 }}>
-                <Input label="City" value={form.ship.ship_city}
-                  onChange={v => patch({ ship: { ...form.ship, ship_city: v } })}
-                  onBlur={() => void autosave()} theme={theme} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Input label="Pincode" value={form.ship.ship_pincode}
-                  onChange={v => patch({ ship: { ...form.ship, ship_pincode: v } })}
-                  onBlur={() => void autosave()} theme={theme} keyboardType="numeric" maxLength={6} />
-              </View>
-            </View>
-          </>
-        ) : null}
-        <View style={{ marginBottom: -space[4] }}>
-          <Input label="Notes" value={form.notes}
-            onChange={v => patch({ notes: v })} onBlur={() => void autosave()}
-            theme={theme} multiline placeholder="Optional — printed on the invoice" />
-        </View>
-      </Card>
-    </View>
-  );
-
-  const totalsBlock = (
-    <Card theme={theme}>
-      <TotalRow label="Subtotal" value={formatPaise(totals.gross)} theme={theme} />
-      {totals.discount > 0
-        ? <TotalRow label={`Discount (${form.discountPercent}%)`} value={`-${formatPaise(totals.discount)}`} theme={theme} />
-        : null}
-      <TotalRow label="Round off" value={formatPaise(totals.roundOff)} theme={theme} />
-      <TotalRow label="Total" value={`₹${formatPaise(totals.total)}`} theme={theme} strong />
-    </Card>
-  );
-
-  const reviewSection = (
-    <View style={{ gap: layout.gap }}>
-      <Card theme={theme} style={{ gap: space[1] }}>
-        <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
-        <Text style={[type.heading, { color: theme.text }]}>
-          {form.party.party_name || '(no party)'}
-        </Text>
-        <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
-          {previewNo} · {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
-        </Text>
-      </Card>
-      <Card theme={theme} list>
-        <View style={{ paddingTop: space[2] }}>
-          <SectionTitle title={`Items (${form.lines.length})`} theme={theme} />
-        </View>
-        {form.lines.map((l, i) => (
-          <View key={i} style={{
-            flexDirection: 'row', alignItems: 'center', paddingVertical: space[3], gap: space[3],
-            borderBottomWidth: i < form.lines.length - 1 ? 1 : 0, borderColor: theme.divider,
-          }}>
-            <Text style={[type.label, { color: theme.text, flex: 1 }]} numberOfLines={2}>
-              {l.description || '(no description)'}
-            </Text>
-            <Text style={[type.caption, { color: theme.textMuted }]}>{l.qty} × {formatPaise(l.unit_paise)}</Text>
-            <MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small />
-          </View>
-        ))}
-      </Card>
-      {totalsBlock}
-      <Text style={[type.caption, { color: theme.textMuted, fontStyle: 'italic' }]}>
-        {numberToWordsIndian(totals.total)}
-      </Text>
-    </View>
-  );
-
-  const previewPane = (
-    <View style={{ flex: 1, minWidth: 0, gap: space[3] }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] }}>
-        <Text style={[type.overline, { color: theme.textMuted }]}>Preview</Text>
-        <SegmentedControl label="Page size" value={pageSize} onChange={setPageSize} theme={theme} style={{ width: 180 }}
-          options={[{ value: 'A4', label: 'A4' }, { value: 'Letter', label: 'Letter' }]} />
-      </View>
-      {/* The printed page: always white (theme.paper) inside a glass frame. */}
-      <View style={{
-        flex: 1, borderWidth: 1, borderColor: theme.glassBorder, borderRadius: radius.card, overflow: 'hidden',
-        minHeight: 400, backgroundColor: theme.paper, boxShadow: theme.cardShadow,
-      }}>
-        {Platform.OS === 'web'
-          // Browser tier: the invoice HTML shares the page origin, so it is
-          // scoped to a padded box instead of a WebView sandbox.
-          // react-native-web's View renders a div and honours this prop, but
-          // the RN type surface doesn't declare it.
-          ? <View style={{ flex: 1 }} {...({ dangerouslySetInnerHTML: { __html: `<div style="padding:16px">${previewHtml}</div>` } } as object)} />
-          : <WebView originWhitelist={['*']} source={{ html: previewHtml }} style={{ flex: 1, backgroundColor: theme.paper }} />}
-      </View>
-    </View>
-  );
-
-  const actionButtons = (
-    <View style={{ flexDirection: 'row', gap: space[2], justifyContent: 'flex-end' }}>
-      <Button label="Save draft" variant="outline" theme={theme} onPress={() => void saveAsDraft()} />
-      <Button label={editInvoiceId ? 'Update' : 'Issue invoice'} icon={editInvoiceId ? 'check' : 'send'} theme={theme} onPress={() => void issue()} />
-    </View>
-  );
-
-  // ---------- layouts ----------
-
-  const catalogSheet = (
-    <CatalogSheet
-      open={catalogOpen} onClose={() => setCatalogOpen(false)} theme={theme}
-      products={products} onSearch={v => {
-        setCatalogSearch(v);
-        void listProducts(v).then(setProducts);
-      }}
-      searchValue={catalogSearch}
-      onPick={addLine}
-    />
-  );
-
-  const title = editInvoiceId ? 'Edit invoice' : 'New invoice';
-  const scrollPad = { paddingHorizontal: layout.side, paddingTop: space[1], paddingBottom: space[6], gap: layout.gap };
+// ---------------------------------------------------------------------------
+// The screen: phone = header + stepper + step body + TOTAL bar;
+// xl = header + [catalog | form | preview]; md / lg = header + [form | preview].
+// ---------------------------------------------------------------------------
+export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; invoiceId?: number }) {
+  const theme = useTheme();
+  const bp = useBreakpoint();
+  const f = useInvoiceForm({ draftId, invoiceId });
+  const sheet = <CatalogSheet
+    open={f.catalogOpen} onClose={f.closeCatalog} theme={theme}
+    products={f.products} onSearch={f.searchCatalog} searchValue={f.catalogSearch} onPick={f.addLine}
+  />;
 
   if (bp.isPhone) {
-    const steps = ['Bill to', 'Items', 'Review'];
     return (
-      <View style={{ flex: 1, backgroundColor: theme.bg }}>
-        <TopAppBar title={title} subtitle={previewNo} theme={theme} onBack={leave} />
-        <Stepper steps={steps} step={step} onStep={setStep} theme={theme} />
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={scrollPad} keyboardShouldPersistTaps="handled">
-          {step === 0 ? partySection : step === 1 ? itemsSection : reviewSection}
-        </ScrollView>
-        {/* Floating glass bar (bottom-nav recipe): running total + the step's primary
-            action. It sits in the flex column, so it rises with the keyboard. */}
-        <View style={{
-          marginHorizontal: layout.side, marginBottom: navBottom, marginTop: space[2],
-          paddingStart: 20, paddingEnd: space[2], paddingVertical: space[2],
-          borderRadius: radius.card, backgroundColor: theme.navSurface,
-          borderWidth: 1, borderColor: theme.navBorder, boxShadow: shadow.secondary,
-          flexDirection: 'row', alignItems: 'center', gap: space[2],
-        }}>
-          <View style={{ flex: 1 }}>
-            <Text style={[type.overline, { color: theme.textMuted }]}>Total</Text>
-            <Text style={[type.figure, { color: theme.text }]} numberOfLines={1}>
-              ₹{formatPaise(totals.total)}
-            </Text>
-          </View>
-          {step < 2
-            ? <Button label="Next" icon="arrow-right" theme={theme} onPress={() => setStep(s => s + 1)} />
-            : actionButtons}
-        </View>
-        {catalogSheet}
-      </View>
+      <Screen
+        overlay
+        header={<Header f={f} theme={theme} />}
+        below={<Stepper steps={STEPS} step={f.step} onStep={f.setStep} theme={theme} />}
+        footer={<TotalBar f={f} theme={theme} />}
+      >
+        <StepBody f={f} theme={theme} />
+        {sheet}
+      </Screen>
     );
   }
 
   if (bp.atLeast('xl')) {
-    // 3 panels: catalog (3 cols) / form (5) / live preview (4)
     return (
-      <View style={{ flex: 1, backgroundColor: theme.bg }}>
-        <TopAppBar title={title} subtitle={previewNo} theme={theme} onBack={leave} />
+      <Screen overlay header={<Header f={f} theme={theme} />}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <View style={{ width: '25%', paddingStart: layout.side, paddingBottom: layout.gap, gap: space[3] }}>
-            <SectionTitle title="Products" theme={theme} />
-            <SearchField value={catalogSearch} onChange={v => {
-              setCatalogSearch(v);
-              void listProducts(v).then(setProducts);
-            }} theme={theme} placeholder="Search products" />
-            <Card theme={theme} list style={{ flex: 1, overflow: 'hidden' }}>
-              <FlatList
-                data={products}
-                keyExtractor={p => String(p.id)}
-                ListEmptyComponent={<EmptyState text="No products. Add them under Products." theme={theme} />}
-                // Narrow panel (xl: 25 % ≈ 220 dp): the name wraps onto two lines and the
-                // size joins the price below it; wider: "name · size" on one line.
-                renderItem={({ item: p, index }) => (
-                  <ListItem
-                    theme={theme}
-                    flush
-                    divider={index < products.length - 1}
-                    title={narrowCatalog ? p.name : `${p.name}${p.size ? ` · ${p.size}` : ''}`}
-                    titleLines={narrowCatalog ? 2 : 1}
-                    subtitle={narrowCatalog && p.size ? `${p.size} · ₹${formatPaise(p.unit_paise)}` : `₹${formatPaise(p.unit_paise)}`}
-                    onPress={() => addLine(p)}
-                    trailing={<Badge label={`Avl ${p.avl_qty}`} tone={p.avl_qty < 0 ? 'error' : p.avl_qty === 0 ? 'neutral' : 'success'} theme={theme} />}
-                  />
-                )}
-              />
-            </Card>
-          </View>
-          <ScrollView style={{ width: '38%' }} contentContainerStyle={scrollPad} keyboardShouldPersistTaps="handled">
-            {partySection}
-            {itemsSection}
-            {totalsBlock}
-            {actionButtons}
-          </ScrollView>
-          <View style={{ width: '37%', paddingEnd: layout.side, paddingBottom: layout.gap }}>
-            {previewPane}
+          <CatalogPanel f={f} theme={theme} />
+          <FormPane f={f} theme={theme} width={S4.formWidth} />
+          <View style={{ width: S4.previewWidth, paddingEnd: layout.side, paddingBottom: layout.gap }}>
+            <PreviewPane f={f} theme={theme} />
           </View>
         </View>
-      </View>
+      </Screen>
     );
   }
 
-  // md / lg: 2 panes; at md preview is a tab.
+  // md: one pane, the header's eye button swaps form and preview; lg: form | preview 40 %.
+  const md = bp.bp === 'md';
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <TopAppBar
-        title={title} subtitle={previewNo} theme={theme} onBack={leave}
-        actions={bp.bp === 'md'
-          ? [{ icon: tabPreview ? 'edit-2' : 'eye', label: tabPreview ? 'Show form' : 'Show preview', onPress: () => setTabPreview(p => !p) }]
-          : undefined}
-      />
+    <Screen overlay header={<Header f={f} theme={theme} eye={md} />}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          {!(bp.bp === 'md' && tabPreview) ? (
-            <ScrollView contentContainerStyle={[scrollPad, { maxWidth: maxReadWidth }]} keyboardShouldPersistTaps="handled">
-              {partySection}
-              {itemsSection}
-              {totalsBlock}
-              {actionButtons}
-            </ScrollView>
-          ) : (
-            <View style={{ flex: 1, paddingHorizontal: layout.side, paddingBottom: layout.gap }}>{previewPane}</View>
-          )}
+          {!(md && f.tabPreview)
+            ? <FormPane f={f} theme={theme} maxWidth={maxReadWidth} />
+            : <View style={{ flex: 1, paddingHorizontal: layout.side, paddingBottom: layout.gap }}><PreviewPane f={f} theme={theme} /></View>}
         </View>
-        {bp.bp === 'md'
-          ? null
-          : <View style={{ width: '40%', paddingEnd: layout.side, paddingBottom: layout.gap }}>{previewPane}</View>}
+        {md ? null : (
+          <View style={{ width: S4.previewWidthTwoPane, paddingEnd: layout.side, paddingBottom: layout.gap }}>
+            <PreviewPane f={f} theme={theme} />
+          </View>
+        )}
       </View>
-      {catalogSheet}
-    </View>
+      {sheet}
+    </Screen>
   );
 }
 
-// Stepper on the kit's selected-state recipe: 28 circles (blue + white when
-// active or done, glass when not), 2px connectors, 14/500 labels.
+// S4 app bar — "New invoice" / "Edit invoice", the invoice number, glass back button (leave);
+// at md an eye / pencil button swaps the form and the preview.
+function Header({ f, theme, eye }: { f: Form; theme: Theme; eye?: boolean }) {
+  return (
+    <TopAppBar
+      title={f.title} subtitle={f.previewNo} theme={theme} onBack={f.leave}
+      actions={eye
+        ? [{ icon: f.tabPreview ? 'edit-2' : 'eye', label: f.tabPreview ? 'Show form' : 'Show preview', onPress: f.togglePreview }]
+        : undefined}
+    />
+  );
+}
+
+// S4.L1.1 — Stepper on the kit's selected-state recipe: 28 circles (blue + white when
+// active or done, glass when not), 2px connectors, 14/500 labels. Tap a step to jump.
 function Stepper({ steps, step, onStep, theme }: {
-  steps: string[]; step: number; onStep: (i: number) => void; theme: ReturnType<typeof useTheme>;
+  steps: string[]; step: number; onStep: (i: number) => void; theme: Theme;
 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: layout.side, paddingBottom: space[2] }}>
@@ -638,7 +418,8 @@ function Stepper({ steps, step, onStep, theme }: {
               style={{ flexDirection: 'row', alignItems: 'center', gap: space[2], minHeight: touch.min }}
             >
               <View style={{
-                width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+                width: S4.stepCircle, height: S4.stepCircle, borderRadius: S4.stepCircle / 2,
+                alignItems: 'center', justifyContent: 'center',
                 backgroundColor: active || done ? theme.fillStrong : theme.glassStrong,
                 borderWidth: active || done ? 0 : 1, borderColor: theme.glassBorderStrong,
                 boxShadow: active ? shadow.primary : undefined,
@@ -656,8 +437,369 @@ function Stepper({ steps, step, onStep, theme }: {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+// Padding of every scrolling pane: side 20, gap 16, and the bottom inset from <Screen>.
+function useScrollPad() {
+  const bottom = useMainInset();
+  return { paddingHorizontal: layout.side, paddingTop: space[1], paddingBottom: bottom, gap: layout.gap };
+}
+
+// S4.L1.2 — phone: the scrolling body of the current step.
+function StepBody({ f, theme }: { f: Form; theme: Theme }) {
+  const pad = useScrollPad();
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={pad} keyboardShouldPersistTaps="handled">
+      {f.step === 0 ? <BillToCard f={f} theme={theme} />
+        : f.step === 1 ? <ItemsSection f={f} theme={theme} />
+          : <ReviewSection f={f} theme={theme} />}
+    </ScrollView>
+  );
+}
+
+// S4.L2 / S4.L3 — tablets: the whole form in one scroll, actions at the end (S4.F).
+function FormPane({ f, theme, width, maxWidth }: { f: Form; theme: Theme; width?: string; maxWidth?: number }) {
+  const pad = useScrollPad();
+  return (
+    <ScrollView style={width ? { width } : undefined} contentContainerStyle={[pad, maxWidth ? { maxWidth } : null]}
+      keyboardShouldPersistTaps="handled">
+      <BillToCard f={f} theme={theme} />
+      <ItemsSection f={f} theme={theme} />
+      <TotalsCard f={f} theme={theme} />
+      <ActionButtons f={f} theme={theme} />
+    </ScrollView>
+  );
+}
+
+// S4.A — Bill to: Party name · Address · City | Pincode · Mobile | Email · Invoice date | Due date.
+// Every field autosaves the draft on blur.
+function BillToCard({ f, theme }: { f: Form; theme: Theme }) {
+  const party = f.form.party;
+  const set = (k: keyof typeof party) => (v: string) => f.patch({ party: { ...party, [k]: v } });
+  const blur = () => void f.autosave();
+  return (
+    <Card theme={theme}>
+      <SectionTitle title="Bill to" theme={theme} />
+      <Input label="Party name *" value={party.party_name} autoCapitalize="words"
+        onChange={set('party_name')} onBlur={blur} theme={theme} />
+      <Input label="Address" value={party.party_address}
+        onChange={set('party_address')} onBlur={blur} theme={theme} />
+      <CityPincodeRow city={party.party_city} pincode={party.party_pincode}
+        onCity={set('party_city')} onPincode={set('party_pincode')} onBlur={blur} theme={theme} />
+      <MobileEmailRow f={f} theme={theme} />
+      <DatesRow f={f} theme={theme} />
+    </Card>
+  );
+}
+
+// S4.A row 3 and S4.B.6 — one row, two equal columns: City | Pincode (6 digits).
+// Columns stacks them only if a cell would be under 128 wide.
+function CityPincodeRow({ city, pincode, onCity, onPincode, onBlur, theme }: {
+  city: string; pincode: string; onCity: (v: string) => void; onPincode: (v: string) => void;
+  onBlur: () => void; theme: Theme;
+}) {
+  return (
+    <Columns kind="input">
+      <Input label="City" value={city} onChange={onCity} onBlur={onBlur} theme={theme} />
+      <Input label="Pincode" value={pincode} onChange={onPincode} onBlur={onBlur}
+        theme={theme} keyboardType="numeric" maxLength={6} />
+    </Columns>
+  );
+}
+
+// S4.A row 4 — one row, two equal columns: Mobile | Email.
+function MobileEmailRow({ f, theme }: { f: Form; theme: Theme }) {
+  const party = f.form.party;
+  return (
+    <Columns kind="input">
+      <Input label="Mobile" value={party.party_mobile}
+        onChange={v => f.patch({ party: { ...party, party_mobile: v } })}
+        onBlur={() => void f.autosave()} theme={theme} keyboardType="phone-pad" />
+      <Input label="Email" value={party.party_email}
+        onChange={v => f.patch({ party: { ...party, party_email: v } })}
+        onBlur={() => void f.autosave()} theme={theme} keyboardType="email-address" autoCapitalize="none" />
+    </Columns>
+  );
+}
+
+// S4.A row 5 — one row, two equal columns: Invoice date | Due date (YYYY-MM-DD).
+// Stacks inside the narrow xl form instead of clipping.
+function DatesRow({ f, theme }: { f: Form; theme: Theme }) {
+  return (
+    <Columns kind="input" style={{ marginBottom: S4.inputPull }}>
+      <Input label="Invoice date" value={f.form.invoiceDate}
+        onChange={v => f.patch({ invoiceDate: v })} onBlur={() => void f.autosave()}
+        theme={theme} tabular placeholder="YYYY-MM-DD" />
+      <Input label="Due date" value={f.form.dueDate}
+        onChange={v => f.patch({ dueDate: v })} onBlur={() => void f.autosave()}
+        theme={theme} tabular placeholder="YYYY-MM-DD" />
+    </Columns>
+  );
+}
+
+// S4.B — Items: title + "Add from products" (hidden at xl, where the catalog is a panel),
+// the line-item cards or the empty card, "Add free line", then Adjustments.
+function ItemsSection({ f, theme }: { f: Form; theme: Theme }) {
+  const bp = useBreakpoint();
+  const xl = bp.atLeast('xl');
+  return (
+    <View style={{ gap: layout.gap }}>
+      <SectionTitle title={`Items (${f.form.lines.length})`} theme={theme}
+        right={xl ? undefined : (
+          <Button label="Add from products" icon="tag" variant="ghost" theme={theme} onPress={f.openCatalog} />
+        )}
+      />
+      {f.form.lines.length === 0
+        ? <EmptyItemsCard xl={xl} theme={theme} />
+        : f.form.lines.map((l, i) => <LineItemCard key={i} f={f} line={l} index={i} theme={theme} />)}
+      {/* S4.B.4 */}
+      <Button label="Add free line" icon="plus" variant="outline" theme={theme} onPress={f.addBlankLine}
+        style={{ alignSelf: 'flex-start' }} />
+      <AdjustmentsCard f={f} theme={theme} />
+    </View>
+  );
+}
+
+// S4.B.2 — "No items yet".
+function EmptyItemsCard({ xl, theme }: { xl: boolean; theme: Theme }) {
+  return (
+    <Card theme={theme}>
+      <EmptyState icon="shopping-cart" title="No items yet"
+        text={xl ? 'Tap a product on the left, or add a free line.' : 'Pick products from your catalog, or add a free line.'}
+        theme={theme} />
+    </Card>
+  );
+}
+
+// S4.B.3 — one line-item card: "ITEM n · FROM PRODUCTS / FREE LINE" + trash ·
+// Description · Qty | Rate (1 : 1.4) · "Amount … ₹value".
+function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: number; theme: Theme }) {
+  const blur = () => void f.autosave();
+  return (
+    <Card theme={theme}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: space[2], marginTop: -space[2] }}>
+        <Text style={[type.overline, { color: theme.textMuted, flex: 1 }]}>
+          Item {index + 1} · {line.product_id ? 'From products' : 'Free line'}
+        </Text>
+        <IconButton icon="trash-2" label={`Remove item ${index + 1}`} onPress={() => f.removeLine(index)} theme={theme} />
+      </View>
+      <Input label="Description" value={line.description}
+        onChange={v => f.updateLine(index, { description: v })} onBlur={blur} theme={theme} />
+      <Columns kind="input" weights={[...S4.qtyRateWeights]}>
+        <Input label="Qty" value={String(line.qty)}
+          onChange={v => f.updateLine(index, { qty: Math.max(0, Number(v.replace(/[^0-9.]/g, '')) || 0) })}
+          onBlur={blur} theme={theme} keyboardType="decimal-pad" tabular />
+        <MoneyInput label="Rate (₹)" valuePaise={line.unit_paise}
+          onChangePaise={p => f.updateLine(index, { unit_paise: p })} onBlur={blur} theme={theme} />
+      </Columns>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Amount</Text>
+        <MoneyText paiseText={`₹${formatPaise(line.line_paise)}`} theme={theme} />
+      </View>
+    </Card>
+  );
+}
+
+// S4.B.5 — Adjustments: Discount % | "Ship to address" chip · shipping fields (S4.B.6, when
+// the chip is on) · Notes (S4.B.7).
+function AdjustmentsCard({ f, theme }: { f: Form; theme: Theme }) {
+  const blur = () => void f.autosave();
+  return (
+    <Card theme={theme}>
+      <SectionTitle title="Adjustments" theme={theme} />
+      <View style={{ flexDirection: 'row', gap: layout.grid, alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}>
+          <Input label="Discount %" value={String(f.form.discountPercent)}
+            onChange={v => f.patch({ discountPercent: Math.max(0, Math.min(100, Number(v) || 0)) })}
+            onBlur={blur} theme={theme} keyboardType="decimal-pad" tabular />
+        </View>
+        <View style={{ flex: 1, marginBottom: space[4] }}>
+          <Chip label="Ship to address" icon="truck" active={f.form.hasShipping}
+            onPress={() => f.patch({ hasShipping: !f.form.hasShipping })} theme={theme} />
+        </View>
+      </View>
+      {f.form.hasShipping ? <ShippingFields f={f} theme={theme} /> : null}
+      <View style={{ marginBottom: S4.inputPull }}>
+        <Input label="Notes" value={f.form.notes}
+          onChange={v => f.patch({ notes: v })} onBlur={blur}
+          theme={theme} multiline placeholder="Optional — printed on the invoice" />
+      </View>
+    </Card>
+  );
+}
+
+// S4.B.6 — Consignee · Ship-to address · City | Pincode; all printed on the invoice (D1.2).
+function ShippingFields({ f, theme }: { f: Form; theme: Theme }) {
+  const ship = f.form.ship;
+  const set = (k: keyof typeof ship) => (v: string) => f.patch({ ship: { ...ship, [k]: v } });
+  const blur = () => void f.autosave();
+  return (
+    <>
+      <Input label="Consignee" value={ship.ship_name} onChange={set('ship_name')} onBlur={blur} theme={theme} />
+      <Input label="Ship-to address" value={ship.ship_address} onChange={set('ship_address')} onBlur={blur} theme={theme} />
+      <CityPincodeRow city={ship.ship_city} pincode={ship.ship_pincode}
+        onCity={set('ship_city')} onPincode={set('ship_pincode')} onBlur={blur} theme={theme} />
+    </>
+  );
+}
+
+// S4.C — Subtotal · Discount (if > 0) · Round off · Total.
+function TotalsCard({ f, theme }: { f: Form; theme: Theme }) {
+  const { totals } = f;
+  return (
+    <Card theme={theme}>
+      <TotalRow label="Subtotal" value={formatPaise(totals.gross)} theme={theme} />
+      {totals.discount > 0
+        ? <TotalRow label={`Discount (${f.form.discountPercent}%)`} value={`-${formatPaise(totals.discount)}`} theme={theme} />
+        : null}
+      <TotalRow label="Round off" value={formatPaise(totals.roundOff)} theme={theme} />
+      <TotalRow label="Total" value={`₹${formatPaise(totals.total)}`} theme={theme} strong />
+    </Card>
+  );
+}
+
+// S4.D — Review (phone step 3): Bill-to summary · compact item rows · totals · amount in words.
+function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
+  const { form } = f;
+  return (
+    <View style={{ gap: layout.gap }}>
+      <Card theme={theme} style={{ gap: space[1] }}>
+        <Text style={[type.overline, { color: theme.textMuted }]}>Bill to</Text>
+        <Text style={[type.heading, { color: theme.text }]}>
+          {form.party.party_name || '(no party)'}
+        </Text>
+        <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
+          {f.previewNo} · {form.invoiceDate}{form.dueDate ? ` · due ${form.dueDate}` : ''}
+        </Text>
+      </Card>
+      <Card theme={theme} list>
+        <View style={{ paddingTop: space[2] }}>
+          <SectionTitle title={`Items (${form.lines.length})`} theme={theme} />
+        </View>
+        {form.lines.map((l, i) => (
+          // one row: description (flex 1) | "qty × rate" | amount
+          <View key={i} style={{
+            flexDirection: 'row', alignItems: 'center', paddingVertical: space[3], gap: space[3],
+            borderBottomWidth: i < form.lines.length - 1 ? 1 : 0, borderColor: theme.divider,
+          }}>
+            <Text style={[type.label, { color: theme.text, flex: 1 }]} numberOfLines={2}>
+              {l.description || '(no description)'}
+            </Text>
+            <Text style={[type.caption, { color: theme.textMuted }]}>{l.qty} × {formatPaise(l.unit_paise)}</Text>
+            <MoneyText paiseText={formatPaise(l.line_paise)} theme={theme} small />
+          </View>
+        ))}
+      </Card>
+      <TotalsCard f={f} theme={theme} />
+      <Text style={[type.caption, { color: theme.textMuted, fontStyle: 'italic' }]}>
+        {numberToWordsIndian(f.totals.total)}
+      </Text>
+    </View>
+  );
+}
+
+// S4.F — right-aligned: Save draft (glass) · Issue invoice / Update (blue).
+function ActionButtons({ f, theme }: { f: Form; theme: Theme }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: space[2], justifyContent: 'flex-end' }}>
+      <Button label="Save draft" variant="outline" theme={theme} onPress={() => void f.saveAsDraft()} />
+      <Button label={f.editInvoiceId ? 'Update' : 'Issue invoice'} icon={f.editInvoiceId ? 'check' : 'send'} theme={theme}
+        onPress={() => void f.issue()} />
+    </View>
+  );
+}
+
+// S4.E — "Preview" + A4 / Letter control, then the printed page (always white) in a glass frame.
+function PreviewPane({ f, theme }: { f: Form; theme: Theme }) {
+  return (
+    <View style={{ flex: 1, minWidth: 0, gap: space[3] }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] }}>
+        <Text style={[type.overline, { color: theme.textMuted }]}>Preview</Text>
+        <SegmentedControl label="Page size" value={f.pageSize} onChange={f.setPageSize} theme={theme}
+          style={{ width: S4.pageSizeControl }}
+          options={[{ value: 'A4', label: 'A4' }, { value: 'Letter', label: 'Letter' }]} />
+      </View>
+      <View style={{
+        flex: 1, borderWidth: 1, borderColor: theme.glassBorder, borderRadius: radius.card, overflow: 'hidden',
+        minHeight: S4.previewMinHeight, backgroundColor: theme.paper, boxShadow: theme.cardShadow,
+      }}>
+        {Platform.OS === 'web'
+          // Browser tier: the invoice HTML shares the page origin, so it is
+          // scoped to a padded box instead of a WebView sandbox.
+          // react-native-web's View renders a div and honours this prop, but
+          // the RN type surface doesn't declare it.
+          ? <View style={{ flex: 1 }} {...({ dangerouslySetInnerHTML: { __html: `<div style="padding:16px">${f.previewHtml}</div>` } } as object)} />
+          : <WebView originWhitelist={['*']} source={{ html: f.previewHtml }} style={{ flex: 1, backgroundColor: theme.paper }} />}
+      </View>
+    </View>
+  );
+}
+
+// S4.L3 — xl: the products panel (25 %): search, then a list; tap a product to add a line.
+// Under 300 dp the name takes two lines and the size joins the price below it.
+function CatalogPanel({ f, theme }: { f: Form; theme: Theme }) {
+  const { products, narrowCatalog } = f;
+  return (
+    <View style={{ width: S4.catalogWidth, paddingStart: layout.side, paddingBottom: layout.gap, gap: space[3] }}>
+      <SectionTitle title="Products" theme={theme} />
+      <SearchField value={f.catalogSearch} onChange={f.searchCatalog} theme={theme} placeholder="Search products" />
+      <Card theme={theme} list style={{ flex: 1, overflow: 'hidden' }}>
+        <FlatList
+          data={products}
+          keyExtractor={p => String(p.id)}
+          ListEmptyComponent={<EmptyState text="No products. Add them under Products." theme={theme} />}
+          renderItem={({ item: p, index }) => (
+            <ListItem
+              theme={theme}
+              flush
+              divider={index < products.length - 1}
+              title={narrowCatalog ? p.name : `${p.name}${p.size ? ` · ${p.size}` : ''}`}
+              titleLines={narrowCatalog ? 2 : 1}
+              subtitle={narrowCatalog && p.size ? `${p.size} · ₹${formatPaise(p.unit_paise)}` : `₹${formatPaise(p.unit_paise)}`}
+              onPress={() => f.addLine(p)}
+              trailing={<Badge label={`Avl ${p.avl_qty}`} tone={p.avl_qty < 0 ? 'error' : p.avl_qty === 0 ? 'neutral' : 'success'} theme={theme} />}
+            />
+          )}
+        />
+      </Card>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Footer
+// ---------------------------------------------------------------------------
+
+// S4.L1.3 — phone: floating glass bar (bottom-nav recipe) with the running TOTAL and the
+// step's primary action: Next on steps 1–2, Save draft + Issue on the Review step.
+// <Screen> keeps it in the flex column (it rises with the keyboard) and pads the gesture inset.
+function TotalBar({ f, theme }: { f: Form; theme: Theme }) {
+  return (
+    <View style={{
+      marginHorizontal: layout.side, marginTop: space[2],
+      paddingStart: 20, paddingEnd: space[2], paddingVertical: space[2],
+      borderRadius: radius.card, backgroundColor: theme.navSurface,
+      borderWidth: 1, borderColor: theme.navBorder, boxShadow: shadow.secondary,
+      flexDirection: 'row', alignItems: 'center', gap: space[2],
+    }}>
+      <View style={{ flex: 1 }}>
+        <Text style={[type.overline, { color: theme.textMuted }]}>Total</Text>
+        <Text style={[type.figure, { color: theme.text }]} numberOfLines={1}>
+          ₹{formatPaise(f.totals.total)}
+        </Text>
+      </View>
+      {f.step < 2
+        ? <Button label="Next" icon="arrow-right" theme={theme} onPress={() => f.setStep(f.step + 1)} />
+        : <ActionButtons f={f} theme={theme} />}
+    </View>
+  );
+}
+
+// P2 — "Add from products" bottom sheet (phones, md, lg): search + the first 60 products.
 function CatalogSheet({ open, onClose, theme, products, onSearch, searchValue, onPick }: {
-  open: boolean; onClose: () => void; theme: ReturnType<typeof useTheme>;
+  open: boolean; onClose: () => void; theme: Theme;
   products: ProductRow[]; onSearch: (v: string) => void; searchValue: string; onPick: (p: ProductRow) => void;
 }) {
   return (

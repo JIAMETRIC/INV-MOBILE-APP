@@ -13,7 +13,8 @@ order they appear on screen. Every function's name is stable; line numbers drift
 STATUSES              S2.2  All · Issued · Partial · Paid · Void (text to edit)       31
 S2                    every number specific to this screen:                            41
                         filterGap 10 · dateRowPull −16 · longList 6 ·
-                        fabClearance 52+16 · detailWidth 50 % / 42 % · activityWidth 26 %
+                        detailWidth 50 % / 42 % · activityWidth 26 % · activityFrom xxl
+                        (the FAB clearance now comes from <Screen>: useFabClearance())
 
 useInvoiceList()      state + data, no JSX: rows, search, status, dateOpen,            53
                       from, to, busy · load() reruns on any filter or refreshKey ·
@@ -38,14 +39,15 @@ ListPane              S2.1–S2.6  column, side padding 20, gap 16              
 │      only while the calendar button is on
 ├─ InvoiceListCard    S2.5  Card list, hugs its rows (flexShrink 1), scrolls when     183
 │    │                      full, stops navInset above the nav
-│    ├─ FlatList      paddingBottom = S2.fabClearance on phones with > 6 rows         195
+│    ├─ FlatList      paddingBottom = useFabClearance() with > 6 rows (0 on tablets)    
 │    ├─ empty         S2.5.e  filtered → "No matches" · else "No invoices yet"        200
 │    └─ InvoiceRow    one row (React.memo; onPress(id) is a stable useCallback):      219
 │           avatar (initials; alternate rows grey) · party name ·
 │           "no · date" caption · ₹ total (Bebas, small) over the status pill ·
 │           divider except on the last row · tinted when selected (tablet) ·
 │           tap: phone → S3 overlay, tablet → select the row
-└─ FAB                S2.6  "New invoice" → nav.openCreate(); phone only              151
+└─ FAB                S2.6  "New invoice" → nav.openCreate(); phone only; the `fab`
+                      slot of <Screen> (C16) in InvoicesScreen(), not inside ListPane
 
 DetailPane            S2.7  tablet: width S2.detailWidth[panes], left divider;        244
                             InvoiceDetail (S3) or "No invoice selected"
@@ -73,7 +75,7 @@ ActivityPane          S2.8  3-pane tablets with a row selected: width 26 %,     
 | You want to change | Go to |
 | --- | --- |
 | a status tab's name, or add / remove a tab | `STATUSES` (31); the value must be an `InvoiceStatus` or `'all'` |
-| the gap between search and calendar, the FAB clearance, pane widths | `S2` (41-48), one line each |
+| the gap between search and calendar, pane widths | `S2` (41-48), one line each; the FAB clearance lives in `src/ui/Screen.tsx` |
 | the order of search / tabs / date fields | the 5 lines inside `ListPane` (147-151) |
 | the search placeholder or the calendar label | `FilterRow` (160-161) |
 | the date fields' labels, placeholder or keyboard | `DateRangeRow` (173, 175); to stack them always, add `stackAt="sm"` to `Columns` |
@@ -101,3 +103,5 @@ Checked on 2026-10-23 with `/tablet-check` (phone AVD resized): **md** 601×961 
 | xxl 1280 | 3 panes: everything readable | ok |
 
 Applied for md (Prompt 32): `InvoicesScreen()` switches on `bp.panes === 1` (phones and md) instead of `bp.isPhone`; `onPressRow` opens the overlay when single-pane. Applied for xl (Prompt 33): `showActivity = bp.atLeast(S2.activityFrom) && selected`, with `S2.activityFrom = 'xxl'`; the detail pane is 42 % only when the activity pane shows, else 50 %.
+
+Since Prompt 37 the screen is built on `<Screen>` (C16): `InvoicesScreen()` passes `Header` as `header` and the phone FAB as `fab`; `ListPane` is Main. Line numbers after the switch moved by a few lines; names are unchanged.

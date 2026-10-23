@@ -234,3 +234,31 @@ Open after this: S2 list at xl (3 panes at 961 dp; show `ActivityPane` only at x
 | Emulator | restored to 1080×2400 |
 
 Every tablet finding from Prompt 30 is now closed: 1 and 2 in Prompt 31, 3, 4 and 5 in Prompt 32, 3 (xl) and 6 here.
+
+## Prompt 36 — S4 inspected; plan for the Screen scaffold + S4 restructure (2026-10-23, session 14)
+
+**Current structure of `CreateInvoiceScreen.tsx` (689 lines):** 3 helpers (`emptyParty`, `emptyShip`, `blankForm`) → one 557-line component: 6 hooks + 11 `useState` + a ref → mount effect (settings / edit invoice / draft / next number) → `totals`, `patch`, `autosave`, `previewInvoice`, `previewHtml` → catalog effect → `openCatalog`, `addLine`, `addBlankLine`, `updateLine`, `removeLine`, `issue`, `saveAsDraft`, `leave`, `useBackIntercept` → seven JSX constants (`partySection` 45 lines, `itemsSection` 90, `totalsBlock`, `reviewSection`, `previewPane`, `actionButtons`, `catalogSheet`) → three `return`s (phone stepper with the TOTAL bar; xl three panels; md/lg two panes) → `Stepper` and `CatalogSheet` components at the bottom. Inline numbers: `'25%'`, `'38%'`, `'37%'`, `'40%'`, `width: 180`, `minHeight: 400`, 28-px stepper circles, `flex: 1.4`, `paddingBottom: space[6]`, `300` (narrow catalog), `-space[4]` pulls.
+
+The proposed tree is in the chat (Prompt 36); it is copied here once approved.
+
+## Prompt 37 — `Screen` scaffold built, S4 restructured, re-checked (2026-10-23, session 14)
+
+**New:** `src/ui/Screen.tsx` (C16, 60 lines): `header` · `below` · Main · `footer` · `fab` · `overlay`; `useMainInset()`, `useFabClearance()`.
+
+**S4** (`CreateInvoiceScreen.tsx`, 689 → 831 lines): one 557-line component → `STEPS` · `S4` numbers block (10 values) · `blankForm` · `useInvoiceForm()` (all state and actions) · `CreateInvoiceScreen()` (58 lines, three `<Screen>` branches) · `Header` · `Stepper` · `useScrollPad` · `StepBody` · `FormPane` · `BillToCard` + `CityPincodeRow` · `MobileEmailRow` · `DatesRow` · `ItemsSection` + `EmptyItemsCard` · `LineItemCard` · `AdjustmentsCard` · `ShippingFields` · `TotalsCard` · `ReviewSection` · `ActionButtons` · `PreviewPane` · `CatalogPanel` · `TotalBar` · `CatalogSheet`. The five hand-written two-column rows are `Columns kind="input"` (Qty | Rate with `S4.qtyRateWeights`). The TOTAL bar is the `footer` slot (its `marginBottom: navBottom` moved into `Screen`). The catalog search handler became `searchCatalog` in the hook (it was duplicated in the sheet and the panel).
+
+**S2:** `InvoicesScreen()` builds on `<Screen>`; the FAB is the `fab` slot; `InvoiceListCard` reads `useFabClearance()`; `S2.fabClearance` removed.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean first time |
+| Phone, before vs after (`imgdiff.py`, status bar excluded): S4 step 0, Items, Review, Dashboard after leaving | **0.000 % differing pixels** |
+| Phone, catalog sheet (P2) | 0.066 % in the sheet's left column: the slide-in animation caught a frame apart; identical to the eye (crops compared) |
+| Phone, S2 | FAB and nav where they were |
+| Tour at md, lg, xxl (S4) | as before the restructure |
+| Tour at xl (S4.L3) | **one visible difference:** City \| Pincode and Mobile \| Email now stack like the dates, because they are `Columns kind="input"` in a 289-dp form (cells 122 dp < 128). Before, only the dates stacked (the others were hand-written rows that clipped nothing because they were empty). Consistent with rule 4; kept |
+| Emulator | restored to 1080×2400 |
+
+Not memoised: `LineItemCard` (see TRACKING). Not changed: `components.tsx` and `tokens.ts` (`ListItem titleLines` was Prompt 33), the data calls, the navigation calls.
+
+Docs: `CreateInvoiceScreen_S4_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S4 tables name functions, C16 added, S2.6 updated; `InvoicesScreen_S2_tree.md` updated; rationale in TRACKING.

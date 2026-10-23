@@ -237,3 +237,33 @@ Yes. Make md (600-767 dp) single-pane like the phone layout but with the rail, s
 ```
 Yes: show the S2 ActivityPane only at xxl, and let the S4.L3 products panel show name and size on two lines when narrow. Re-check at xl.
 ```
+
+## Prompt 34
+
+```
+these three is Fixed?: 
+
+Touch targets 44	⚠️ columns	3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44
+
+Lists	⚠️ coupling	last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with onLayout
+
+Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn't yet; pre-existing)
+```
+
+## Prompt 35
+
+```
+What we have to do now?; 2 reduced from "three copies of a magic number" to "one token", with the measuring step waiting on the Screen scaffold, which is the next piece of work on the list.
+```
+
+## Prompt 36
+
+```
+Yes. Run /three-slot-screen on S4 Create invoice, including the Screen scaffold with footer measuring: inspect and show me the proposed function tree first, then wait for my OK.
+```
+
+## Prompt 37
+
+```
+OK, build the Screen scaffold and apply the S4 plan as proposed.
+```

@@ -10,13 +10,14 @@ import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { useNavInset } from '../../ui/navMetrics';
+import { Screen, useFabClearance } from '../../ui/Screen';
 import { Columns } from '../../ui/Columns';
 import {
   Card, EmptyState, FAB, IconButton, Input, ListItem, MoneyText, SearchField, SegmentedControl, StatusGlyph,
   TopAppBar, initials,
 } from '../../ui/components';
 import { alert } from '../../ui/alert';
-import { layout, space, touch, type } from '../../ui/tokens';
+import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { listInvoices } from '../../data/invoicesRepo';
@@ -41,8 +42,7 @@ const STATUSES: ReadonlyArray<{ value: StatusFilter; label: string }> = [
 const S2 = {
   filterGap: 10, // S2.1: between the search field and the calendar button
   dateRowPull: -space[4], // S2.3a: pulls the list card up under the date inputs' bottom gap
-  longList: 6, // S2.5: more rows than this on a phone -> keep the last one clear of the FAB
-  fabClearance: touch.button + layout.gap, // S2.5: that clearance (52 + 16)
+  longList: 6, // S2.5: more rows than this on a phone -> keep the last one clear of the FAB (useFabClearance)
   detailWidth: { 2: '50%', 3: '42%' } as const, // S2.7: detail pane width by pane count
   activityWidth: '26%', // S2.8: activity pane width
   activityFrom: 'xxl' as const, // S2.8: shown from this breakpoint; at xl (961 dp) three panes squeezed the list
@@ -98,30 +98,32 @@ type InvoiceList = ReturnType<typeof useInvoiceList>;
 export function InvoicesScreen() {
   const theme = useTheme();
   const bp = useBreakpoint();
+  const nav = useNav();
   const list = useInvoiceList();
 
   // S2.8 needs the width of xxl; with it the list at xl was ≈ 280 dp.
   const showActivity = bp.atLeast(S2.activityFrom) && list.selected !== null;
 
+  // S2.6 — the FAB floats over Main on phones; <Screen> tells the list card how much to clear.
+  const fab = bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null;
+
   // One pane: phones, and md tablets (rail, no panes); a tap opens S3 as an overlay.
   if (bp.panes === 1) {
     return (
-      <View style={{ flex: 1 }}>
-        <Header list={list} theme={theme} />
+      <Screen header={<Header list={list} theme={theme} />} fab={fab}>
         <ListPane list={list} theme={theme} />
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <Header list={list} theme={theme} />
+    <Screen header={<Header list={list} theme={theme} />}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <ListPane list={list} theme={theme} />
         <DetailPane selected={list.selected} width={S2.detailWidth[showActivity ? 3 : 2]} theme={theme} />
         {showActivity && list.selected ? <ActivityPane selected={list.selected} theme={theme} /> : null}
       </View>
-    </View>
+    </Screen>
   );
 }
 
@@ -142,10 +144,8 @@ function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
   );
 }
 
-// S2.1–S2.6 — the column under the header: filters, then the list card, then the FAB.
+// S2.1–S2.5 — the column under the header: filters, then the list card (the FAB, S2.6, is a <Screen> slot).
 function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
-  const nav = useNav();
-  const bp = useBreakpoint();
   const navInset = useNavInset();
   return (
     <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
@@ -153,7 +153,6 @@ function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
       <SegmentedControl label="Status" options={STATUSES} value={list.status} onChange={list.setStatus} theme={theme} />
       {list.dateOpen ? <DateRangeRow list={list} theme={theme} /> : null}
       <InvoiceListCard list={list} theme={theme} navInset={navInset} />
-      {bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null}
     </View>
   );
 }
@@ -188,6 +187,7 @@ function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
 function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: Theme; navInset: number }) {
   const nav = useNav();
   const bp = useBreakpoint();
+  const fabClearance = useFabClearance(); // 0 when no FAB floats (tablets)
   const { rows } = list;
   // Stable, so the memoised rows don't re-render on every keystroke in the search box.
   const single = bp.panes === 1;
@@ -201,7 +201,7 @@ function InvoiceListCard({ list, theme, navInset }: { list: InvoiceList; theme: 
         data={rows}
         keyExtractor={r => String(r.id)}
         style={{ flexGrow: 0 }}
-        contentContainerStyle={{ paddingBottom: bp.isPhone && rows.length > S2.longList ? S2.fabClearance : 0 }}
+        contentContainerStyle={{ paddingBottom: rows.length > S2.longList ? fabClearance : 0 }}
         ListEmptyComponent={list.filtered
           ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
           : <EmptyState icon="file-text" title="No invoices yet" text="Tap New invoice to create the first one." theme={theme} />}
