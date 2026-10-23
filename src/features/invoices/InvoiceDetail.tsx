@@ -7,8 +7,9 @@
 // S3 has no header or footer of its own: on phones the shell draws the "Invoice" back bar
 // (App.tsx), on tablets S2's DetailPane hosts it. So this file is an embeddable Main.
 // IDs (S3.1 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
@@ -21,9 +22,10 @@ import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getInvoice, getLines, setStatus } from '../../data/invoicesRepo';
 import { paidPaiseForInvoice, recordPayment } from '../../data/paymentsRepo';
 import { logAudit } from '../../data/auditRepo';
-import { exportInvoicePdfAndShare, shareFile } from '../../export/pdf';
-import { exportInvoicesXlsx } from '../../export/xlsx';
-import type { Invoice, InvoiceLine } from '../../data/types';
+import { exportInvoicePdf, exportInvoicePdfAndShare, shareFile } from '../../export/pdf';
+import { getSettings } from '../../data/settingsRepo';
+import { IMAGE_WIDTH, InvoiceImage } from './InvoiceImage';
+import type { Invoice, InvoiceLine, Settings } from '../../data/types';
 
 // P1 — the payment modes, in order.
 const PAY_MODES = ['Cash', 'UPI', 'NEFT', 'Cheque'].map(m => ({ value: m, label: m }));
@@ -41,13 +43,18 @@ const S3 = {
 // State and data: the invoice, its lines and payments, the two exports, Void,
 // and the Record-payment sheet (P1).
 // ---------------------------------------------------------------------------
+// The share actions: the PDF, the picture (Image and WhatsApp), and Save (PDF into the app's Invoices folder).
+type ShareKind = 'pdf' | 'image' | 'whatsapp' | 'save';
+
 function useInvoiceDetail(invoiceId: number) {
   const nav = useNav();
   const snack = useSnackbar();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [paid, setPaid] = useState(0);
-  const [busy, setBusy] = useState<'pdf' | 'xlsx' | null>(null);
+  const [busy, setBusy] = useState<ShareKind | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const imageRef = useRef<React.ComponentRef<typeof View>>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [payAmount, setPayAmount] = useState('');
   const [payError, setPayError] = useState('');
@@ -56,6 +63,7 @@ function useInvoiceDetail(invoiceId: number) {
   const load = useCallback(async () => {
     const i = await getInvoice(invoiceId);
     setInv(i);
+    setSettings(await getSettings());
     if (i) {
       setLines(await getLines(i.id));
       setPaid(await paidPaiseForInvoice(i.id));
@@ -111,13 +119,20 @@ function useInvoiceDetail(invoiceId: number) {
     snack(`₹${formatPaise(amountPaise)} recorded (${payMode})`);
   };
 
-  const share = (kind: 'pdf' | 'xlsx') => {
+  // WhatsApp and Image both send the picture through the phone's share sheet (WhatsApp is listed there).
+  // Save writes the PDF to the app's Invoices folder, then opens the share sheet so it can go to Files.
+  const share = (kind: ShareKind) => {
     if (!inv) return;
     setBusy(kind);
-    const job = kind === 'pdf'
-      ? exportInvoicePdfAndShare(inv.id)
-      : exportInvoicesXlsx([inv]).then(f => shareFile(f.uri));
-    void job.catch(e => alert('Export failed', e instanceof Error ? e.message : String(e)))
+    const picture = () => captureRef(imageRef, { format: 'png', quality: 1, result: 'tmpfile' })
+      .then(uri => shareFile(uri));
+    const job = kind === 'pdf' ? exportInvoicePdfAndShare(inv.id)
+      : kind === 'save' ? exportInvoicePdf(inv.id).then(f => {
+        snack(`Saved ${f.name} to the app's Invoices folder`);
+        return shareFile(f.uri);
+      })
+        : picture();
+    void job.catch(e => alert('Share failed', e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(null));
   };
 
@@ -126,7 +141,7 @@ function useInvoiceDetail(invoiceId: number) {
   const contact = inv ? [inv.party_mobile && `Ph ${inv.party_mobile}`, inv.party_email].filter(Boolean).join(' · ') : '';
 
   return {
-    inv, lines, paid, outstanding, busy, canPay, party, contact,
+    inv, lines, settings, imageRef, paid, outstanding, busy, canPay, party, contact,
     payOpen, closePayment: () => setPayOpen(false), payAmount, setPayAmount, payError, setPayError, payMode, setPayMode,
     voidInvoice, askPayment, submitPayment, share,
     openEdit: () => { if (inv) nav.openCreate({ invoiceId: inv.id }); },
@@ -155,6 +170,12 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
     <>
       <DetailMain s={s} theme={theme} />
       <PaymentSheet s={s} theme={theme} />
+      {/* The invoice picture for the Image and WhatsApp shares: laid out off screen, captured on tap. */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: -IMAGE_WIDTH * 2, top: 0 }}>
+        <View ref={d.imageRef} collapsable={false}>
+          <InvoiceImage inv={s.inv} lines={s.lines} settings={s.settings} />
+        </View>
+      </View>
     </>
   );
 }
@@ -210,15 +231,19 @@ function BillToCard({ s, theme }: { s: Loaded; theme: Theme }) {
 }
 
 // S3.3 — primary actions first, within thumb reach; the row wraps:
-// Record payment (only when something is outstanding) · Share PDF · Excel.
+// Record payment (only when something is outstanding) · WhatsApp · Image · Save · Share PDF.
 function ActionRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: layout.grid }}>
       {s.canPay ? <Button label="Record payment" icon="credit-card" theme={theme} onPress={s.askPayment} /> : null}
+      <Button label="WhatsApp" icon="message-circle" variant="outline" theme={theme}
+        busy={s.busy === 'whatsapp'} onPress={() => s.share('whatsapp')} />
+      <Button label="Image" icon="image" variant="outline" theme={theme}
+        busy={s.busy === 'image'} onPress={() => s.share('image')} />
+      <Button label="Save" icon="download" variant="outline" theme={theme}
+        busy={s.busy === 'save'} onPress={() => s.share('save')} />
       <Button label="Share PDF" icon="share-2" variant={s.canPay ? 'tonal' : 'solid'} theme={theme}
         busy={s.busy === 'pdf'} onPress={() => s.share('pdf')} />
-      <Button label="Excel" icon="grid" variant="outline" theme={theme}
-        busy={s.busy === 'xlsx'} onPress={() => s.share('xlsx')} />
     </View>
   );
 }
