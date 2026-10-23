@@ -436,3 +436,34 @@ and SKILLS too
 ```
 As per New Method Make a tree file (Refractor layout for all Screens): Replace the files in folder "SCREEN_CODE_STRUCTURE" with new ones
 ```
+
+## Prompt 60
+
+```
+InvoicesScreen(): Just Layout Rows and Columns function Names Only
+```
+
+## Prompt 61
+
+```
+InvoiceListCard is having all, issued, Partial, Paid and Vpoid?
+```
+
+## Prompt 62
+
+```
+Why "STATUSES" not here in:
+[the S2 rows-and-columns tree from the reply to Prompt 60]
+```
+
+## Prompt 63
+
+```
+i want to know the Exact Screen items and its Funtions even Graphical way also fine: so that i can diretcly poin that Function, row, column
+```
+
+## Prompt 64
+
+```
+Perfect Same way Give me for all Screen and How you remember? this we can create this as a Skill? or Template?: beacuse i will do this for Every APP
+```

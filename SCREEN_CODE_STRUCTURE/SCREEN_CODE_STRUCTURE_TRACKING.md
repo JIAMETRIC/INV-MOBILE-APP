@@ -215,3 +215,13 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Filenames unchanged | README, the layout reference and the skills link to them. | Rename to `S1_Dashboard_tree.md`. |
 | Every line number re-taken from today's sources; facts the code no longer supports were dropped or corrected, not carried over (listed in the walkthrough) | A tree file is only useful if its numbers are true today. | Carry the old numbers forward. |
 | Three stale code comments corrected while checking (S2 date-range row: 128 not 44; S5 list-pane estimate 441 not 410; Sheet top radius 16 not 24) and four stale values in `SCREEN_LAYOUT_REFERENCE.md` (S3.3 gap 12, S3.4.h flex, S0.4 nav 68 tall, Rail lines) | The audit found them; a comment that contradicts the code misleads the next reader. No behaviour changed. | Leave them for a later pass. |
+
+## Prompts 60–64 — the screen map (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| A generated page, `SCREEN_CODE_STRUCTURE/screen-map.html`, one tab per screen, phone / one pane beside tablet panes; every block = function name · layout ID · "what" · cells | The owner wants to point at a region by its function and cell ("DateRangeRow, first column"). A picture of the screen labelled with code names is the shortest path from "that thing on screen" to the function. | Inline chat widgets per screen (not kept anywhere); ASCII trees only (already in the tree files). |
+| The data lives in `scripts/screen-map.py` (`SCREENS`), the renderer in the same file; the page is never hand-edited | One place to update after a restructure; the same script works in the next app with a new `SCREENS`. | Hand-written HTML per screen. |
+| Blocks are the regions of the tree files, nothing more: a kit component placed inline (`SegmentedControl`) is named as the component with `options = STATUSES` in its "what" | `STATUSES` is data, not a layout piece; the block that draws it is the segmented control (Prompt 62). | Listing constants as blocks. |
+| A skill `/screen-map` (project) and a section + template in the user-level `responsive-screens` skill; `/three-slot-screen` step 7 now ends with the map | "How do you remember this?": a skill is the procedure, the script is the template; both are needed for the next app. | A memory note only. |
+| The page uses the app's own kit (Flat Glass · Brand Blue, Inter, the glass cards, the segmented control) like the two method pages | Same look as the app it describes. | The chat widget styling. |

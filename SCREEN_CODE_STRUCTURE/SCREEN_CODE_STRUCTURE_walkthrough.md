@@ -453,3 +453,16 @@ All ten `*_tree.md` files in `SCREEN_CODE_STRUCTURE/` were rewritten from the so
 | README and `SCREEN_LAYOUT_REFERENCE.md` | the description of the tree files updated to the new format |
 
 Not re-run: the size checks. Section 8 of each file carries the breakpoint findings as recorded by the Prompt that observed them.
+
+## Prompts 60–64 — the screen map (2026-10-23, session 14)
+
+Prompts 60–62 were answered in chat (the S2 rows-and-columns tree; the status tabs are `SegmentedControl` fed by `STATUSES`, inside `ListPane`, and only on short screens inside `InvoiceListCard` as the list header). Prompt 63 got an inline map of S2. Prompt 64:
+
+| Item | Where | Check |
+| --- | --- | --- |
+| Generator + data for S1–S6 | `scripts/screen-map.py` (data from the tree files, sections 1, 3 and 5) | runs; 6 screens |
+| The page | `SCREEN_CODE_STRUCTURE/screen-map.html` (38 KB) | opened in the browser pane: tabs switch, S4 shows the stepper, the three step blocks with their Columns rows, the TotalBar footer and the sheet; published as https://claude.ai/artifact/2eSJt98Zy4PqVMXvF4QwKe |
+| Skill | `.claude/skills/screen-map/SKILL.md`; `/three-slot-screen` step 7 ends with the map; `CLAUDE.md` and README point to it | read back |
+| Portable | `~/.claude/skills/responsive-screens/templates/scripts/screen-map.py` (the generator with S2 as the example entry) and a new §7 in that skill | generated from the repo script by slicing the S2 entry |
+
+Not done: no screenshots of the page at phone width (the browser pane here is small; the page uses the same responsive CSS as the two method pages, one column under 720 px).

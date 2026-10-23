@@ -62,6 +62,7 @@ Each region function starts with a one-line comment: its ID and what it draws (`
 ## 7. Document
 - Rewrite the screen's tree file (`SCREEN_CODE_STRUCTURE/<Screen>_<ID>_tree.md`) for the new functions and today's line numbers.
 - In `SCREEN_LAYOUT_REFERENCE.md`, replace that screen's line-number column with the function names.
+- Regenerate the screen's function map (`/screen-map`: update its entry in `scripts/screen-map.py`, run it, republish `SCREEN_CODE_STRUCTURE/screen-map.html`).
 - Record the decisions in `SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md` and the verification in `_walkthrough.md`; append the prompt to `_session-prompts.md` (AGENTS.md rules).
 
 Report what moved, what was renamed, and what could not be verified.

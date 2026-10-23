@@ -110,6 +110,7 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | `npm run test:money` | Money core / amount-in-words unit tests |
 | `npm run test:integration` | Headless SQLite harness over the real data layer |
 | `npm run test:xlsx` | ZIP / OOXML checks on the spreadsheet writer |
+| `python -I scripts/screen-map.py` | regenerate `SCREEN_CODE_STRUCTURE/screen-map.html`, the per-screen function map |
 | `npm run test:columns` | Layout decisions of the `Columns` helper (row / wrap / stack by width) |
 | `python -I scripts/size-tour.py <out> <tag> <WxH> <dpi>` | Resize the running phone emulator to a phone or tablet profile and screenshot every screen (profiles in `/size-check`) |
 | `python -I scripts/build-pdf-fonts.py` | Rebuilds `src/export/pdfFonts.ts` (Inter + Bebas Neue subsets for the PDF). Needs `pip install fonttools brotli`; re-run after upgrading either `@expo-google-fonts` package |
@@ -165,6 +166,7 @@ INV-MOBILE-APP/
 ├── design/                 DESIGN.md (Flat Glass spec) + screens/ (4 reference PNG + HTML)
 ├── .claude/skills/apply-design/  the kit's /apply-design skill
 ├── .claude/skills/three-slot-screen/  /three-slot-screen: restructure a screen as Header / Main / Footer with named regions
+├── .claude/skills/screen-map/         /screen-map: regenerate the per-screen function map (SCREEN_CODE_STRUCTURE/screen-map.html) from scripts/screen-map.py
 │   (the portable version for a new app is the user-level skill `~/.claude/skills/responsive-screens/`: rules + the layout helpers + the size-tour script)
 ├── .claude/skills/size-check/  /size-check: screenshot every screen at phone and tablet sizes (scripts/size-tour.py)
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
