@@ -171,3 +171,15 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | `DraftRow` is `React.memo` with `onOpen` / `onDelete` from `useCallback` in the hook | Rule 5 for the one list that can grow. | Inline rows. |
 | `SectionBody` is a `switch` on the section key | Replaces the `panes` record of four JSX constants; each case is a named region. | Keep the record. |
 | No footer | Save belongs to the company form (S6.2.4); the other sections have no actions bar. | A footer with Save: it would show on sections that have nothing to save. |
+
+## Prompt 54 — S1 Dashboard and S3 Invoice detail restructured (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| S1 file order: `STOCK_TILES`, `S1` · `fyLabel` · `useDashboard()` · `DashboardScreen()` on `<Screen header fab>` · `Header` · `DashboardMain` · `HeroCard` · `StatTilesRow` · `StatTile` | The method's reading order on the smallest screen; the tiles are a label table so adding a fourth is one line. | Leave S1 as it was (it was already on the scaffold): the inline numbers and the inline tile list were the last ones outside an `S<n>` block. |
+| `StatTilesRow` keeps three `flex: 1` cells and never stacks (no `Columns`) | The kit's dashboard is 3-across at every width and the tiles carry one figure each (no label + value cells), so rule 3's "≤ 3 columns" holds; `Columns kind="touch"` would stack them at 320 dp where the kit shows them side by side. | `Columns` with `minCell`. |
+| S3 has no `<Screen>` wrapper: `InvoiceDetail()` returns `DetailMain` + `PaymentSheet` | S3 is hosted: the shell's back bar is its header on one pane, S2's `DetailPane` on lg+. A `Screen` inside a pane would add a second flex column and a second background. The file says so in its header comment. | Wrap it in `<Screen>` with no header: it would double the bottom inset on phones. |
+| `S3.itemColumns` is one array read by `ItemsHeader` and `LineRow` | The flexes were typed twice (header and rows) and had to be kept equal by hand; the tree file's "keep both the same" rule is gone. | Keep two copies. |
+| `LineRow` is `React.memo`; the hook returns `closePayment` and `openEdit` as plain closures | Rule 5 for the only list; the rest are single buttons, so no `useCallback` needed. | Memoise nothing (lines are rarely more than ten). |
+| `Loaded = DetailState & { inv: Invoice }`, cast once after the spinner | Every region sees a non-null invoice; the early return is the one place that checks. Same pattern as S6. | `s.inv!` in every region. |
+| P1 not exercised on the device | PRE-001 totals ₹0, so `canPay` is false and the button is hidden; the sheet's code path (props, handlers) was checked by reading. | Create a priced invoice on the emulator first: out of scope for a no-behaviour-change restructure. |

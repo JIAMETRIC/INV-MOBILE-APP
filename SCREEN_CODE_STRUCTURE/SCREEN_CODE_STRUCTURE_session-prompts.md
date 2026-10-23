@@ -376,3 +376,15 @@ Yes. Run /three-slot-screen on S6 Settings: inspect and show me the proposed fun
 ```
 OK, apply the S6 plan as proposed.
 ```
+
+## Prompt 53
+
+```
+Yes. Run /three-slot-screen on S1 Dashboard and S3 Invoice detail: inspect both and show me the proposed function trees first, then wait for my OK.
+```
+
+## Prompt 54
+
+```
+OK, apply the S1 and S3 plans as proposed.
+```

@@ -365,3 +365,32 @@ Kept exactly: every repo call, the document picker and the two confirm dialogs, 
 Docs: `SettingsScreen_S6_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S6 tables name functions; rationale in TRACKING. Pushed to origin/master.
 
 With S6 done, five of six screens are on the Three-Slot method (S2, S4, S5, S6 fully; S1 on the scaffold with a `DashboardMain` region, its small hook and numbers block still to come).
+
+## Prompt 53 — S1 and S3 inspected; plans for both (2026-10-23, session 14)
+
+**S1 `DashboardScreen.tsx` (108 lines):** `fyLabel`, `StatTile` → a 33-line component (2 `useState`, `load`, the three stock tiles built inline, `<Screen header fab>` from Prompt 47) → `DashboardMain` (hero card + tiles row inline). Inline numbers: `padding: 20`, `gap: 6`, `gap: 10`, `minHeight: 36`, `0.6` (font scale), `0.9` (max width share).
+
+**S3 `InvoiceDetail.tsx` (208 lines):** one 191-line component: 8 `useState` → `load` → an early spinner return → `voidInvoice`, `askPayment`, `submitPayment`, `share` → derived `canPay`, `party`, `contact`, `modes` → one `return`: a `ScrollView` (header row, bill-to card, action row, items card with an inline header row and inline line rows, totals card, Edit / Void row) + the P1 `Sheet` inline. Inline numbers: the column flexes `2.6 : 0.8 : 1.3 : 1.3`, `maxWidth: 720`, `paddingBottom: space[6]`, `100` (paise), the four payment modes. S3 has **no header or footer of its own**: on phones the shell draws the "Invoice" back bar (`App.tsx`), on tablets S2's `DetailPane` hosts it.
+
+The proposed trees are in the chat (Prompt 53); they are copied here once approved.
+
+## Prompt 54 — S1 and S3 restructured, re-checked (2026-10-23, session 14)
+
+`DashboardScreen.tsx` 108 → 159 lines: `STOCK_TILES` · `S1` (hero padding and gap, tile gap, label height, figure min scale, read-width share) · `fyLabel` · `useDashboard()` · `DashboardScreen()` · `Header` · `DashboardMain` · `HeroCard` · `StatTilesRow` · `StatTile`.
+
+`InvoiceDetail.tsx` 208 → 321 lines: one 191-line component → `PAY_MODES` · `S3` (item column flexes, read width, bottom pad, paise per rupee) · `useInvoiceDetail()` (8 state values, `load`, `voidInvoice`, `askPayment`, `submitPayment`, `share`, the derived `outstanding` / `canPay` / `party` / `contact`) · `InvoiceDetail()` (spinner, then Main + P1) · `DetailMain` · `HeaderRow` · `BillToCard` · `ActionRow` · `ItemsCard` + `ItemsHeader` + `LineRow` (memo) · `TotalsCard` · `EditVoidRow` · `PaymentSheet`. No `<Screen>` wrapper: S3 is an embeddable Main (shell back bar on one pane, S2's `DetailPane` on lg+).
+
+Kept exactly: every repo and export call, the confirm dialog, the snackbar texts, the kit components and their props, the 2.6 : 0.8 : 1.3 : 1.3 columns (now one array), the 720-dp reading width.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean first time |
+| Phone before vs after (`imgdiff.py`): S1 Dashboard, S3 opened from the list, S3 scrolled to the bottom | **0.000 % differing pixels** on all three |
+| P1 Record payment | not reachable on the device (PRE-001 totals ₹0 → `canPay` false, button hidden); code path checked by reading |
+| `/size-check` md (8-inch portrait) | S3 as the full-width overlay beside the rail under the "Invoice" back bar; items header ITEM · QTY · RATE · AMOUNT complete; S1 full width, no FAB |
+| `/size-check` lg (10-inch portrait) | S3 in S2's 50 % pane; RATE and AMOUNT header labels touch in the ≈ 370-dp pane, as noted in Prompt 30 (not caused by this change: the flexes and labels are identical) |
+| Emulator | restored to 1080×2400 |
+
+Docs: `DashboardScreen_S1_tree.md` and `InvoiceDetail_S3_P1_tree.md` rewritten; `SCREEN_LAYOUT_REFERENCE.md` S1, S3 and P1 tables name functions; rationale in TRACKING.
+
+All six screens (S1–S6) are now on the Three-Slot method.

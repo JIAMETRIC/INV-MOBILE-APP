@@ -155,22 +155,23 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 
 | ID | Section | Rows / columns | Key props | Lines |
 | --- | --- | --- | --- | --- |
-| S1.0 | Header | `TopAppBar large`: caption `fyLabel()` above the "Dashboard" H2 | — | 20-23, 68 |
-| S1.1 | Hero card | glass card, padding 20, gap 6: overline "Total billed · FY" + badge "N invoice(s)" (`kpis.invoiceCount`, this FY) · `₹ kpis.billedPaise` in `type.hero` (Bebas Neue 44) | — | 76-87 |
-| S1.2 | Stat tiles | one row, 3 cells (flex 1, gap 12); each `StatTile`: small glass card (`shadow.primary`), padding 16, gap 10, `IconChip` · label 13 `#666` (2 lines, min height 36 so values align) · value `type.figure` (Bebas 28) | — | 26-39 (StatTile), 60-64, 89-95 |
-| S1.2.a | "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; = SOLD in S5) · `shopping-cart` | | 61 |
-| S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | 62 |
-| S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | 63 |
-| S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9) | | 93 |
-| — | Scroll container | side padding 20, gap 16, bottom = `useMainInset()` (clears nav + FAB; from `<Screen fab>`), maxWidth max(720, 90% width) | | 69-75 |
+| S1.0 | Header | `TopAppBar large`: caption `fyLabel()` above the "Dashboard" H2 | — | `Header` |
+| S1.1 | Hero card | glass card, padding 20, gap 6: overline "Total billed · FY" + badge "N invoice(s)" (`kpis.invoiceCount`, this FY) · `₹ kpis.billedPaise` in `type.hero` (Bebas Neue 44) | `S1.heroPadding`, `S1.heroGap`, `S1.figureMinScale` | `HeroCard` |
+| S1.2 | Stat tiles | one row, 3 cells (flex 1, gap 12); each `StatTile`: small glass card (`shadow.primary`), padding 16, gap 10, `IconChip` · label 13 `#666` (2 lines, min height 36 so values align) · value `type.figure` (Bebas 28) | `S1.tileGap`, `S1.tileLabelHeight` | `StatTilesRow`, `StatTile` |
+| S1.2.a | "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; = SOLD in S5) · `shopping-cart` | | `STOCK_TILES` |
+| S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | `STOCK_TILES` |
+| S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | `STOCK_TILES` |
+| S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9); the `fab` slot of `<Screen>` | | `DashboardScreen` |
+| — | Scroll container | side padding 20, gap 16, bottom = `useMainInset()` (clears nav + FAB; from `<Screen fab>`), maxWidth max(720, `S1.readShare` 90% width) | | `DashboardMain` |
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | 20-23 |
-| `StatTile({kpi, theme})` | one kit stat tile | 26-39 |
-| `load()` | runs the 2 queries in parallel (KPIs, stock totals); reruns on `refreshKey` | 46-49 |
+| `fyLabel(d)` | "FY 2026–27 overview" (April–March year) | `fyLabel` |
+| `useDashboard()` | `kpis`, `stock`, `load()`, the `tiles` list | `useDashboard` |
+| `load()` | runs the 2 queries in parallel (KPIs, stock totals); reruns on `refreshKey` | in `useDashboard` |
+| `StatTile({kpi, theme})` | one kit stat tile | `StatTile` |
 | `getStockTotals()` (productsRepo.ts:40) | Σ stock, Σ sold (same SOLD rule as S5), avl = stock − sold | — |
 
 ---
@@ -272,27 +273,28 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 
 | ID | Section | Spec | Lines |
 | --- | --- | --- | --- |
-| S3.0 | Loading | centred spinner until the invoice loads | 44-50 |
-| S3.1 | Header row | left column: invoice_no (title) + date · due; right: StatusGlyph | 112-121 |
-| S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`) | 106-107, 123-128 |
-| S3.3 | Primary actions | wrap row, gap 8: **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | 105, 131-137 |
-| S3.4 | Items table | SectionTitle "Items (n)"; header row Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3**, numbers right-aligned; each line row padded 12, bottom border; description up to 2 lines | 139-158 |
-| S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | 160-173 |
-| S3.6 | Secondary actions | not void → **Edit** (outline, opens S4 in edit mode) · **Void** (ghost, red) | 175-181 |
-| P1 | Record-payment sheet | see P1 below | 183-200 |
+| S3.0 | Loading | centred spinner until the invoice loads | `InvoiceDetail` |
+| S3.1 | Header row | left column: invoice_no (title) + date · due; right: StatusGlyph | `HeaderRow` |
+| S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`) | `BillToCard` |
+| S3.3 | Primary actions | wrap row, gap 8: **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | `ActionRow` |
+| S3.4 | Items table | SectionTitle "Items (n)"; `ItemsHeader` Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3** (`S3.itemColumns`, read by the header and the rows), numbers right-aligned; each `LineRow` (memo) padded 12, bottom border; description up to 2 lines | `ItemsCard`, `ItemsHeader`, `LineRow` |
+| S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | `TotalsCard` |
+| S3.6 | Secondary actions | not void → **Edit** (outline, opens S4 in edit mode) · **Void** (ghost, red) | `EditVoidRow` |
+| P1 | Record-payment sheet | see P1 below | `PaymentSheet` |
 
 ### Functions
 
 | Function | Does | Lines |
 | --- | --- | --- |
-| `load()` | invoice + lines + paid total | 33-42 |
-| `voidInvoice()` | confirm dialog → `setStatus('void')` → audit → refresh → snackbar | 52-65 |
-| `askPayment()` | reset fields, open P1 | 67-71 |
-| `submitPayment()` | validate amount > 0 → `recordPayment` (today, selected mode) → audit → refresh → snackbar | 75-94 |
-| `share('pdf' \| 'xlsx')` | PDF (D1) or single-invoice XLSX (D2.1) → share | 96-103 |
-| `canPay` | not void, not paid, outstanding > 0 | 105 |
+| `useInvoiceDetail(id)` | all state and the actions below; `outstanding`, `canPay`, `party`, `contact`, `openEdit` | `useInvoiceDetail` |
+| `load()` | invoice + lines + paid total | in `useInvoiceDetail` |
+| `voidInvoice()` | confirm dialog → `setStatus('void')` → audit → refresh → snackbar | in `useInvoiceDetail` |
+| `askPayment()` | reset fields, open P1 | in `useInvoiceDetail` |
+| `submitPayment()` | validate amount > 0 → `recordPayment` (today, selected mode) → audit → refresh → snackbar | in `useInvoiceDetail` |
+| `share('pdf' \| 'xlsx')` | PDF (D1) or single-invoice XLSX (D2.1) → share | in `useInvoiceDetail` |
+| `canPay` | not void, not paid, outstanding > 0 | in `useInvoiceDetail` |
 
-### P1 — Record-payment sheet (InvoiceDetail.tsx:183-200)
+### P1 — Record-payment sheet (InvoiceDetail.tsx `PaymentSheet`)
 
 ```
 Record payment                    ✕
@@ -302,7 +304,7 @@ Mode
 [Cash][UPI][NEFT][Cheque]         single-select chips
                  [Cancel] [Save payment]
 ```
-Phone = bottom sheet; tablet = centred dialog (see C10). Payment modes (Cash, UPI, NEFT, Cheque) are a `SegmentedControl`, hard-coded in `InvoiceDetail.tsx` (`modes`).
+Phone = bottom sheet; tablet = centred dialog (see C10). Payment modes (Cash, UPI, NEFT, Cheque) are a `SegmentedControl`, listed in `InvoiceDetail.tsx` (`PAY_MODES`).
 
 ---
 
