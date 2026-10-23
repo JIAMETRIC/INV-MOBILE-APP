@@ -64,7 +64,8 @@ navMetrics.ts          S0.4.4
 ├─ NAV_HEIGHT = 68                                                                  7
 ├─ useNavBottom()      max(gesture inset, 20) — the nav's distance from the bottom  9
 ├─ useNavInset()       phone: bottom + 68 + 16; tablet: inset + 16                 17
-└─ useContentInset(withFab)  useNavInset() + (52 + 16 when a FAB floats)           25
+└─ (useContentInset retired, Prompt 47: Main's bottom padding is useMainInset() /
+   useFabClearance() from src/ui/Screen.tsx, C16)
 ```
 
 ## What each function does
@@ -85,7 +86,7 @@ navMetrics.ts          S0.4.4
 | `pushBack(fn)` / `useBackIntercept(fn)` | navigation.tsx:62 / 38 | a screen claims Android Back while mounted (S4 stepper, S6 drill-in) |
 | Back handler | navigation.tsx:71 | order: innermost interceptor → close overlay → go to Home → leave the app |
 | `BottomTabs`, `Rail`, `NavItem` | Nav.tsx:45 / 69 / 21 | see the tree |
-| `useNavBottom` / `useNavInset` / `useContentInset` | navMetrics.ts:9 / 17 / 25 | the three bottom spacings every screen, FAB and snackbar share |
+| `useNavBottom` / `useNavInset` | navMetrics.ts:9 / 17 | the bottom spacings the nav, FAB, sheets and list cards share; a screen's Main pads with `useMainInset()` from `Screen.tsx` |
 
 ## Where to change what
 
