@@ -785,3 +785,17 @@ First build after the rename to `INV-MOBILE-APP` (path-bound caches had been cle
 | Screenshot | Dashboard renders (FY 2026–27, 1 invoice PRE-001, bottom tabs Home/Invoices/Products/Settings) |
 
 Note: `CI=1` keeps the CLI non-interactive but disables Metro watch mode, so file edits need a re-run (or start Metro without `CI` for live reload).
+
+## Prompt 34 — Session start: run on emulator, confirm Dashboard (2026-10-23, session 14)
+
+Code-only start (no rebuild): the debug app `com.jiametric.invoiceerp` was already installed.
+
+| Step | Result |
+| --- | --- |
+| `emulator -avd Medium_Phone_API_37.0` (default GPU) | booted without crashing (`emulator-5554`); no `-gpu swiftshader_indirect` needed |
+| `npx expo start --dev-client --port 8081` + `adb reverse tcp:8081 tcp:8081` | Metro up on 8081 (watch mode on, so edits live-reload) |
+| First screenshot | the emulator's quick-boot snapshot reopened the app on New invoice, step 2 (old JS). Pressing Back would autosave a draft, so the app was force-stopped instead |
+| `am force-stop` → `am start -d "invoiceerp://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081"` | `Android Bundled 895ms index.ts (912 modules)` |
+| Screenshot | Dashboard renders: "FY 2026–27 overview" / Dashboard header, TOTAL BILLED · FY ₹0.00 with "1 invoice" badge, stock tiles Products Sold 3 · Balance Stock 12 · Actual Stock 15, "New invoice" button, floating bottom nav with Home active |
+
+Tip: to open the dev client on Metro from the command line, use the deep link above (`scheme: 'invoiceerp'` in app.config.ts).

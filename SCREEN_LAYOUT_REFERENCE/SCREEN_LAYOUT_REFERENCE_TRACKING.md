@@ -15,7 +15,7 @@
 - Breakpoints: xs < 360 · sm 360 · md 600 · lg 768 · xl 960 · xxl 1200 (`src/ui/useBreakpoint.ts`).
 - Width budgets: S2 detail pane 50% (2 panes) / 42% + activity 26% (3 panes); S4.L3 25% / 38% / 37%; S4.L2 preview 40%; S5 editor 38%; S6 section list 300dp; Rail 88dp; BottomTabs 80dp.
 - S5 table columns: NAME flex 3 · SIZE 52 · PRICE 84 · STOCK 60 · SOLD 56 · AVL 76 (dp).
-- S3 items table: flex 3 : 1 : 1 : 1.
+- S3 items table: flex 2.6 : 0.8 : 1.3 : 1.3 (corrected 2026-10-23; the file said 3 : 1 : 1 : 1).
 
 ## Observations found while mapping — fixed in Prompt 2
 

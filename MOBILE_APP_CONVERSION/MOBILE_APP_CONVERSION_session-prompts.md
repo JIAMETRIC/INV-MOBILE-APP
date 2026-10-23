@@ -263,3 +263,43 @@ Change the MOBILE-APP name to : INV-MOBILE-APP
 ```
 run the app in Emulator
 ```
+
+## Prompt 34
+
+```
+Continue work on my Invoice ERP mobile app.
+
+Project folder: C:\Users\admin\Desktop\WIP\Barathy-Invoive-App\INV-MOBILE-APP
+(Expo SDK 58 / React Native 0.88, TypeScript, offline SQLCipher app, Android).
+
+Before doing anything, read these so you know the rules and what's already done:
+1. AGENTS.md: my workflow rules (topic folders, prompt logs, README). Follow them every time.
+2. CLAUDE.md: the Flat Glass · Brand Blue design rules, plus the "Project exceptions" I chose.
+3. design/DESIGN.md and design/screens/: the design spec and 4 reference screens.
+4. SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md: every screen with IDs (S1.2, C9...) I use in prompts.
+5. THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md and BRAND_COLOURS.md: theme history and current tokens.
+
+Where things stand (all committed on branch master, latest commit d6c1843; no git remote):
+- Every screen follows the Flat Glass kit. Tokens live in src/ui/tokens.ts and components in src/ui/.
+- My exceptions to the kit:
+  - Bebas Neue for numbers, Inter 300-600 for all other text.
+  - White text on #2596be buttons.
+  - Corner radii: chip 10, control 12, item 14, card 16, form 18.
+  - Dark mode follows the phone.
+  - No backdrop blur.
+- Dashboard shows only the Total billed card, 3 stock tiles (Products Sold / Balance Stock / Actual Stock) and the New invoice button.
+
+To run it: start the emulator Medium_Phone_API_37.0.
+- If it crashes on boot, add -gpu swiftshader_indirect.
+- The debug app is already installed, so for code-only changes start Metro and open the dev client:
+  npx expo start --dev-client --port 8081, then adb reverse tcp:8081 tcp:8081.
+- Only if the app is missing or a native module changed, rebuild: JAVA_HOME = Android Studio's jbr, then npx expo run:android --variant debug.
+
+Start by running the app in the emulator and confirming the Dashboard loads. Then wait for my next change request.
+```
+
+## Prompt 35
+
+```
+What is Optimized Propmt to open the root folder files in the terminal?
+```

@@ -49,3 +49,9 @@ Dark mode = "Follow the phone (Recommended)"; Kit files = "Install the kit (Reco
 ```
 In dashboard Remove: 1.Recent Invoices and 2. Outstanding (aging)
 ```
+
+## Prompt 6
+
+```
+Open this Folder: C:\Users\admin\Desktop\WIP\Barathy-Invoive-App\INV-MOBILE-APP\SCREEN_LAYOUT_REFERENCE
+```

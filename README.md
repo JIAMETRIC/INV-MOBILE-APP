@@ -165,6 +165,7 @@ INV-MOBILE-APP/
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)
 ├── SCREEN_LAYOUT_REFERENCE/ per-screen layout map with IDs for edit prompts (+ TRACKING · walkthrough · session-prompts)
+├── SCREEN_CODE_STRUCTURE/   one *_tree.md per screen / overlay / document / component: tree, line numbers, "where to change what" (+ TRACKING · walkthrough · session-prompts)
 ├── app.config.ts     Expo config (package com.jiametric.invoiceerp, SQLCipher plugin)
 ├── eas.json          development / preview / production profiles
 └── invoice-app-plan.md
@@ -183,6 +184,7 @@ restore on the same device or install.
 - [`MOBILE_APP_CONVERSION/MOBILE_APP_CONVERSION_session-prompts.md`](MOBILE_APP_CONVERSION/MOBILE_APP_CONVERSION_session-prompts.md): prompt history
 - [`SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md): every screen's sections, rows, columns and functions with stable IDs (S1.2, S4.B.3 …) to quote in edit prompts
 - [`SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_TRACKING.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_TRACKING.md) · [`_walkthrough.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_walkthrough.md) · [`_session-prompts.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_session-prompts.md)
+- [`SCREEN_CODE_STRUCTURE/`](SCREEN_CODE_STRUCTURE/): tree files for S0–S6, P1–P3, D1–D2 and C1–C4 (`AppShell_S0_tree.md` … `SharedComponents_C1-C4_tree.md`), each with the component tree, current line numbers, a function table and a "where to change what" table; restructure decisions in [`SCREEN_CODE_STRUCTURE_TRACKING.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md) · [`_walkthrough.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md) · [`_session-prompts.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_session-prompts.md)
 - [`THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md`](THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md): `brand` root colours in `src/ui/tokens.ts`, theme roles, how to rebrand · [`_walkthrough.md`](THEME_AND_COLORS/THEME_AND_COLORS_walkthrough.md) · [`_session-prompts.md`](THEME_AND_COLORS/THEME_AND_COLORS_session-prompts.md)
 - [`CLAUDE.md`](CLAUDE.md) and [`design/DESIGN.md`](design/DESIGN.md): the Flat Glass · Brand Blue design system every screen follows; reference screens in [`design/screens/`](design/screens/)
 - [`agents.md`](agents.md): AI-assistant workflow rules for this folder

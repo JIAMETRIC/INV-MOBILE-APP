@@ -118,7 +118,9 @@ Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen
 | `pushBack` / `useBackIntercept(fn)` | a screen claims Android Back (S4 stepper, S6 drill-in) | navigation.tsx:38-43 |
 | Back order | screen interceptor → close overlay → go to Home → exit app | navigation.tsx:67-81 |
 
-Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_BAR_HEIGHT + 72` (App.tsx:79).
+Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 52 + 2 * 16 + 8` (= 160; App.tsx:95).
+
+> **Per-screen tree files:** `SCREEN_CODE_STRUCTURE/` holds one `*_tree.md` per screen, overlay, document and shared component (S0–S6, P1–P3, D1–D2, C1–C4) with the current component tree, line numbers, a function table and a "where to change what" table. Line numbers there are refreshed more often than the ones in this file.
 
 ---
 
@@ -272,7 +274,7 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 | S3.1 | Header row | left column: invoice_no (title) + date · due; right: StatusGlyph | 112-121 |
 | S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`) | 106-107, 123-128 |
 | S3.3 | Primary actions | wrap row, gap 8: **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | 105, 131-137 |
-| S3.4 | Items table | SectionTitle "Items (n)"; header row Item/Qty/Rate/Amount with **flex 3 : 1 : 1 : 1**, numbers right-aligned; each line row padded 12, bottom border; description up to 2 lines | 139-158 |
+| S3.4 | Items table | SectionTitle "Items (n)"; header row Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3**, numbers right-aligned; each line row padded 12, bottom border; description up to 2 lines | 139-158 |
 | S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | 160-173 |
 | S3.6 | Secondary actions | not void → **Edit** (outline, opens S4 in edit mode) · **Void** (ghost, red) | 175-181 |
 | P1 | Record-payment sheet | see P1 below | 183-200 |
