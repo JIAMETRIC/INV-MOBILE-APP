@@ -21,7 +21,4 @@ export function useNavInset(): number {
   return isPhone ? bottom + NAV_HEIGHT + layout.gap : insets.bottom + layout.gap;
 }
 
-// Bottom padding for a scrolling screen: clears the nav, plus the FAB when one floats there.
-export function useContentInset(withFab = false): number {
-  return useNavInset() + (withFab ? 52 + layout.gap : 0);
-}
+// The FAB clearance lives in src/ui/Screen.tsx (useMainInset / useFabClearance).

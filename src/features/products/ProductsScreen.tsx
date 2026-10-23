@@ -9,10 +9,11 @@ import {
   Badge, Button, Card, Chip, EmptyState, FAB, Input, ListItem, ListRow, MoneyInput, SearchField, SectionTitle, TopAppBar,
 } from '../../ui/components';
 import { useNavInset } from '../../ui/navMetrics';
+import { Screen, useFabClearance } from '../../ui/Screen';
 import { Columns } from '../../ui/Columns';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { layout, space, touch, type } from '../../ui/tokens';
+import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise } from '../../data/money';
 import { PRODUCT_SIZES, PRODUCT_SEED_NAMES } from '../../data/schema';
@@ -296,40 +297,30 @@ export function ProductsScreen() {
   const listPaneWidth = bp.atLeast('lg') ? (bp.width - 88) * 0.62 : bp.width - 88;
   const showTable = bp.atLeast('md') && listPaneWidth >= 520;
 
+  // S5.0 header and S5.4 FAB are <Screen> slots; the list card clears the FAB through useFabClearance().
   return (
-    <View style={{ flex: 1 }}>
-      <TopAppBar
-        title="Products"
-        subtitle={`${products.length} items`}
-        theme={theme}
-        large
-        actions={[
-          ...(bp.isPhone ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => startEdit() }]),
-          { icon: 'download', label: 'Export products to Excel', onPress: exportXlsx, busy },
-        ]}
-      />
+    <Screen
+      header={(
+        <TopAppBar
+          title="Products"
+          subtitle={`${products.length} items`}
+          theme={theme}
+          large
+          actions={[
+            ...(bp.isPhone ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => startEdit() }]),
+            { icon: 'download', label: 'Export products to Excel', onPress: exportXlsx, busy },
+          ]}
+        />
+      )}
+      fab={bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}
+    >
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0, paddingHorizontal: layout.side, gap: layout.gap }}>
           <View style={{ paddingTop: space[1] }}>
             <SearchField value={search} onChange={setSearch} placeholder="Search products" theme={theme} />
           </View>
-          <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
-            {showTable ? headerRow : null}
-            <FlatList
-              data={products}
-              keyExtractor={p => String(p.id)}
-              style={{ flexGrow: 0 }}
-              // Phones, long lists: keep the last row clear of the Add product button.
-              contentContainerStyle={{ paddingBottom: bp.isPhone && products.length > 6 ? touch.button + layout.gap : 0 }}
-              ListEmptyComponent={search
-                ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
-                : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
-              renderItem={({ item, index }) => showTable
-                ? <ProductTableRow p={item} last={index === products.length - 1} onPress={startEdit} theme={theme} />
-                : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={startEdit} theme={theme} />}
-            />
-          </Card>
-          {bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => startEdit()} theme={theme} /> : null}
+          <ProductListCard products={products} search={search} showTable={showTable} headerRow={headerRow}
+            onPress={startEdit} navInset={navInset} theme={theme} />
         </View>
         {bp.atLeast('lg') ? (
           // S5.5: a ScrollView grows by default (flexGrow 1), which made 38% only a
@@ -350,6 +341,32 @@ export function ProductsScreen() {
           </Sheet>
         )}
       </View>
-    </View>
+    </Screen>
+  );
+}
+
+// S5.2 / S5.3 — the glass card that hugs the product rows (table rows at ≥ 520 dp, phone rows
+// otherwise) and scrolls when full; long lists on phones keep the last row clear of the FAB.
+function ProductListCard({ products, search, showTable, headerRow, onPress, navInset, theme }: {
+  products: ProductRow[]; search: string; showTable: boolean; headerRow: React.ReactNode;
+  onPress: (p: ProductRow) => void; navInset: number; theme: Theme;
+}) {
+  const fabClearance = useFabClearance(); // 0 when no FAB floats (tablets)
+  return (
+    <Card theme={theme} list style={{ flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
+      {showTable ? headerRow : null}
+      <FlatList
+        data={products}
+        keyExtractor={p => String(p.id)}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingBottom: products.length > 6 ? fabClearance : 0 }}
+        ListEmptyComponent={search
+          ? <EmptyState icon="search" title="No matches" text={`Nothing matches "${search}".`} theme={theme} />
+          : <EmptyState icon="tag" title="No products" text="Add your first product to start billing from stock." theme={theme} />}
+        renderItem={({ item, index }) => showTable
+          ? <ProductTableRow p={item} last={index === products.length - 1} onPress={onPress} theme={theme} />
+          : <ProductListRow p={item} alt={index % 2 === 1} last={index === products.length - 1} onPress={onPress} theme={theme} />}
+      />
+    </Card>
   );
 }

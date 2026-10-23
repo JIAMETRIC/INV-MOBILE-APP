@@ -316,3 +316,28 @@ Yes. Rename tablet-check to size-check, add the phone profiles (xs 320, sm 360, 
 ```
 Yes, fix the S2 list card collapse on short screens (phone landscape with the date range open), re-check with /size-check phoneL, and push.
 ```
+
+## Prompt 46
+
+```
+All three Fixed?: 
+
+Touch targets 44	⚠️ columns	3 columns on a 360 dp phone ≈ 105 dp each: fine for buttons, tight for labels. Rule: ≤ 3 columns on phones, tappable cells ≥ 44
+
+Lists	⚠️ coupling	last row must clear footer + nav; today each screen hard-codes it, the scaffold can measure the footer with onLayout
+
+Performance	⚠️ one habit	list rows should be React.memo (S2's InvoiceRow isn't yet; pre-existing)
+```
+
+## Prompt 47
+
+```
+Do this also: 
+
+The one loose end on the third row: two screens still carry their own copy of the number, because they haven't been restructured yet:
+
+* `DashboardScreen.tsx:42` uses `useContentInset(bp.isPhone)` (the old helper)
+* `ProductsScreen.tsx:323` has `touch.button + layout.gap` inline
+
+Both are correct values, both disappear when S1 and S5 go through `/three-slot-screen` (they'll take `<Screen fab>` and `useFabClearance()` like S2). So the risk itself is closed; the cleanup follows the two restructures that are next on the list anyway.
+```

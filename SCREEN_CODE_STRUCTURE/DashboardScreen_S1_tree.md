@@ -65,3 +65,7 @@ DashboardScreen()                                                    line 38
 ## Tablet (md+)
 
 Same blocks, no branch in the layout: only the FAB disappears (`bp.isPhone`, line 93) because the rail's "+" takes its place, and the bottom padding drops to the gesture inset (`useContentInset(false)`, line 42).
+
+## On the Screen scaffold (Prompt 47, 2026-10-23)
+
+`DashboardScreen()` (line 38) now returns `<Screen header={TopAppBar} fab={FAB on phones}>` with `DashboardMain` (line 73) as Main: the scrolling body (hero card, stat tiles) whose bottom padding is `useMainInset()`. `useContentInset` is gone. Phone screenshot before / after: pixel-identical. The full Three-Slot restructure (numbers block, state hook) is still to come.

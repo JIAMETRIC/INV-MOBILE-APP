@@ -104,7 +104,7 @@ Overlay "invoice-detail" → TopAppBar "Invoice" (back) + S3 full screen (also o
 | S0.4.2 | `BottomTabs` | kit floating bottom nav: absolute, 20 from the left/right edges and `useNavBottom()` (≥ 20) from the bottom; height 68 (`NAV_HEIGHT`), radius 16, glass nav fill + 1px border, `shadow.secondary`; 4 icon-only items (label is the accessibility label) | Nav.tsx:45-66 |
 | S0.4.2a | `NavItem` | 48×48, radius 14; active = blue fill, white 22px icon, `shadow.primary`; inactive = `#666` icon | Nav.tsx:21-41 |
 | S0.4.3 | `Rail` | tablet: width 88, glass nav fill, right border; "New invoice" primary button (52, radius 12) on top, then `NavItem`s; labels under them at xl+ | Nav.tsx:69-123 |
-| S0.4.4 | `navMetrics.ts` | `NAV_HEIGHT` 68 · `useNavBottom()` · `useNavInset()` (space screens keep clear above the nav) · `useContentInset(withFab)` | navMetrics.ts |
+| S0.4.4 | `navMetrics.ts` | `NAV_HEIGHT` 68 · `useNavBottom()` · `useNavInset()` (space screens keep clear above the nav) · `useMainInset()` / `useFabClearance()` from `Screen.tsx` (C16) | navMetrics.ts |
 
 ### S0.5 Navigation state (`NavProvider`, navigation.tsx)
 
@@ -162,7 +162,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | 62 |
 | S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | 63 |
 | S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9) | | 93 |
-| — | Scroll container | side padding 20, gap 16, bottom = `useContentInset(true)` (clears nav + FAB), maxWidth max(720, 90% width) | | 69-75 |
+| — | Scroll container | side padding 20, gap 16, bottom = `useMainInset()` (clears nav + FAB; from `<Screen fab>`), maxWidth max(720, 90% width) | | 69-75 |
 
 ### Functions
 

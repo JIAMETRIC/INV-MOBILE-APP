@@ -141,3 +141,10 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | --- | --- | --- |
 | Under `S2.shortScreen` (600 dp of height) the filter rows become the FlatList's `ListHeaderComponent` and the card fills the pane (`InvoiceListCard fill header`) | On a phone in landscape (411 dp) the fixed filters left the hugging card nothing; letting the whole column scroll keeps every control reachable and keeps one scroller in Main (rule: no FlatList in a ScrollView). The three filter rows are built once in `ListPane` and placed either way. | A `minHeight` on the card: it would overflow the 411-dp pane and clip the last row. A compact header: fragile, only buys ≈ 40 dp. Hiding filters in landscape: loses the feature. |
 | Normal heights are untouched (filters fixed above a hugging card) | The portrait phone screenshot is unchanged; the short-screen branch is a separate return. | One layout for all heights (filters always scroll): a behaviour change on every phone for a landscape-only problem. |
+
+## Prompt 47 — S1 and S5 on the scaffold; `useContentInset` retired (2026-10-23)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| S1 and S5 take `<Screen header fab>` now, ahead of their full restructures; each gets one Main child (`DashboardMain`, `ProductListCard`) because `useMainInset` / `useFabClearance` read the scaffold's context and must run inside it | Closes the last copies of the FAB clearance without waiting; the child is a region the restructure would create anyway. | A `FAB_CLEARANCE` constant exported from `Screen.tsx` for screens to add themselves: the number would again be stated per screen. |
+| `useContentInset` removed from `navMetrics.ts` | No callers left; keeping it would invite the old pattern back. `useNavInset` / `useNavBottom` stay (the nav itself, the sheet, the list cards' margins). | — |

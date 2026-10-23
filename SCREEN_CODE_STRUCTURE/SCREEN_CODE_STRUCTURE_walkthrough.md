@@ -302,3 +302,19 @@ Emulator restored to 1080×2400.
 | Emulator | restored to 1080×2400 |
 
 Pushed to origin/master.
+
+## Prompt 47 — Last FAB-clearance copies removed (2026-10-23, session 14)
+
+| Change | File |
+| --- | --- |
+| `<Screen header fab>`; `DashboardMain` (the ScrollView) pads with `useMainInset()` | `DashboardScreen.tsx` |
+| `<Screen header fab>`; `ProductListCard` (the hugging card + FlatList) pads long lists with `useFabClearance()`; unused `touch` import dropped | `ProductsScreen.tsx` |
+| `useContentInset` removed | `src/ui/navMetrics.ts` |
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| Phone before / after (`imgdiff.py`): S1, S5 top | 0.000 % differing pixels |
+| Phone S5 scrolled | 6 % differing, the fling landed half a row apart; the rows and layout are the same (pair compared) |
+
+`grep useContentInset\|52 + layout.gap\|touch.button + layout.gap src` outside `Screen.tsx`: nothing. The third risk of the analysis is now closed in every screen.

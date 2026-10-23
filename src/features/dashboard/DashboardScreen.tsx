@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
-import { useContentInset } from '../../ui/navMetrics';
+import { Screen, useMainInset } from '../../ui/Screen';
 import {
   Badge, Card, FAB, IconChip, TopAppBar, type IconName,
 } from '../../ui/components';
@@ -39,7 +39,6 @@ export function DashboardScreen() {
   const theme = useTheme();
   const nav = useNav();
   const bp = useBreakpoint();
-  const bottomInset = useContentInset(bp.isPhone);
   const [kpis, setKpis] = useState({ invoiceCount: 0, billedPaise: 0 });
   const [stock, setStock] = useState({ stockQty: 0, soldQty: 0, avlQty: 0 });
 
@@ -59,9 +58,24 @@ export function DashboardScreen() {
     { label: 'Actual Stock', value: qty(stock.stockQty), icon: 'layers' },
   ];
 
+  // S1.5 — the FAB is a <Screen> slot; Main pads for it through useMainInset().
   return (
-    <View style={{ flex: 1 }}>
-      <TopAppBar title="Dashboard" subtitle={fyLabel()} theme={theme} large />
+    <Screen
+      header={<TopAppBar title="Dashboard" subtitle={fyLabel()} theme={theme} large />}
+      fab={bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null}
+    >
+      <DashboardMain kpis={kpis} stockTiles={stockTiles} theme={theme} />
+    </Screen>
+  );
+}
+
+// S1.1 + S1.2 — the scrolling body: the hero card, then the row of three stat tiles.
+function DashboardMain({ kpis, stockTiles, theme }: {
+  kpis: { invoiceCount: number; billedPaise: number }; stockTiles: Kpi[]; theme: Theme;
+}) {
+  const bp = useBreakpoint();
+  const bottomInset = useMainInset();
+  return (
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: layout.side, paddingTop: space[1], paddingBottom: bottomInset, gap: layout.gap,
@@ -90,7 +104,5 @@ export function DashboardScreen() {
           ))}
         </View>
       </ScrollView>
-      {bp.isPhone ? <FAB icon="plus" label="New invoice" onPress={() => nav.openCreate()} theme={theme} /> : null}
-    </View>
   );
 }
