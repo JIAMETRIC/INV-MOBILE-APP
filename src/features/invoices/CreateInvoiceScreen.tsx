@@ -549,7 +549,8 @@ function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: n
         <Text style={[type.overline, { color: theme.textMuted, flex: 1 }]}>
           Item {index + 1} · {line.product_id ? 'From products' : 'Free line'}
         </Text>
-        <IconButton icon="trash-2" label={`Remove item ${index + 1}`} onPress={() => f.removeLine(index)} theme={theme} />
+        <IconButton icon="trash-2" label={`Remove item ${index + 1}`} onPress={() => f.removeLine(index)} theme={theme}
+          color={theme.destructive} />
       </View>
       <Input label="Description" value={line.description}
         onChange={v => f.updateLine(index, { description: v })} onBlur={blur} theme={theme} />
