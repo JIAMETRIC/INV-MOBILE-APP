@@ -62,6 +62,7 @@ async function sendToWhatsApp(uri: string): Promise<void> {
       await startActivityAsync('android.intent.action.SEND', {
         type: MIME[ext] ?? 'application/octet-stream',
         packageName,
+        className: 'com.whatsapp.ContactPicker', // WhatsApp's own share screen; without a className the phone shows every app
         flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
         extra: { 'android.intent.extra.STREAM': content },
       });
