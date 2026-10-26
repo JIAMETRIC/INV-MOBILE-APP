@@ -1,10 +1,7 @@
-import { Platform } from 'react-native';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { Alert, Platform } from 'react-native';
+import { getContentUriAsync } from 'expo-file-system/legacy';
+import { startActivityAsync } from 'expo-intent-launcher';
 import { Directory, File, Paths } from 'expo-file-system';
-import { buildInvoiceHtml, type PageSize } from './pdfTemplate';
-import { getSettings } from '../data/settingsRepo';
-import { getInvoice, getLines } from '../data/invoicesRepo';
 
 export const isWeb = Platform.OS === 'web';
 
@@ -26,43 +23,65 @@ export function webBlobDownload(data: Blob | string, filename: string, mime = 't
   return url;
 }
 
-export async function exportInvoicePdfHtml(invoiceId: number, pageSize: PageSize): Promise<string> {
-  const inv = await getInvoice(invoiceId);
-  if (!inv) throw new Error('Invoice not found');
-  const [settings, lines] = await Promise.all([getSettings(), getLines(invoiceId)]);
-  return buildInvoiceHtml(inv, lines, settings, pageSize);
-}
+export type ShareTarget = 'whatsapp' | 'device';
 
-export async function exportInvoicePdf(invoiceId: number, pageSize: PageSize = 'A4'): Promise<File> {
-  if (isWeb) throw new Error('Direct PDF generation is Android-only; use the HTML download on web');
-  const html = await exportInvoicePdfHtml(invoiceId, pageSize);
-  const inv = await getInvoice(invoiceId);
-  const safeNo = inv!.invoice_no.replace(/[^A-Za-z0-9_-]/g, '-');
-  const generated = await Print.printToFileAsync({ html, base64: false });
-  const target = new File(docsDir('Invoices'), `${safeNo}.pdf`);
-  // Re-sharing an invoice regenerates it; moveSync refuses to overwrite.
-  if (target.exists) target.delete();
-  new File(generated.uri).moveSync(target);
-  return target;
-}
+const MIME: Record<string, string> = {
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  png: 'image/png',
+};
+const WHATSAPP_PACKAGES = ['com.whatsapp', 'com.whatsapp.w4b'];
 
-export async function shareFile(uri: string): Promise<void> {
+// Every Share / Download button ends here, with only two destinations:
+// WhatsApp, or a folder on the phone's own storage that the user picks.
+// With no `target` the user is asked which one.
+export async function shareFile(uri: string, target?: ShareTarget): Promise<void> {
   if (isWeb) {
     if (uri.startsWith('blob:')) return; // blob downloads already triggered themselves
     throw new Error('Sharing is Android-only');
   }
-  if (!(await Sharing.isAvailableAsync())) {
-    throw new Error('No share target available on this device');
-  }
-  await Sharing.shareAsync(uri, { dialogTitle: 'Share file' });
+  const to = target ?? await askTarget();
+  if (to === 'whatsapp') await sendToWhatsApp(uri);
+  else if (to === 'device') await saveToDevice(uri);
 }
 
-export async function exportInvoicePdfAndShare(invoiceId: number, pageSize: PageSize = 'A4'): Promise<void> {
-  if (isWeb) {
-    const html = await exportInvoicePdfHtml(invoiceId, pageSize);
-    webBlobDownload(html, `invoice-${invoiceId}.html`);
-    return;
+function askTarget(): Promise<ShareTarget | null> {
+  return new Promise(resolve => {
+    Alert.alert('Share file', undefined, [
+      { text: 'WhatsApp', onPress: () => resolve('whatsapp') },
+      { text: 'Save to phone', onPress: () => resolve('device') },
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+    ], { cancelable: true, onDismiss: () => resolve(null) });
+  });
+}
+
+async function sendToWhatsApp(uri: string): Promise<void> {
+  const ext = uri.split('.').pop()?.toLowerCase() ?? '';
+  const content = await getContentUriAsync(uri);
+  for (const packageName of WHATSAPP_PACKAGES) {
+    try {
+      await startActivityAsync('android.intent.action.SEND', {
+        type: MIME[ext] ?? 'application/octet-stream',
+        packageName,
+        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+        extra: { 'android.intent.extra.STREAM': content },
+      });
+      return;
+    } catch {
+      // not installed: try the next WhatsApp package
+    }
   }
-  const file = await exportInvoicePdf(invoiceId, pageSize);
-  await shareFile(file.uri);
+  throw new Error('WhatsApp is not installed on this phone');
+}
+
+async function saveToDevice(uri: string): Promise<void> {
+  let dir: Directory;
+  try {
+    dir = await Directory.pickDirectoryAsync();
+  } catch {
+    return; // the folder picker was closed without a choice
+  }
+  const source = new File(uri);
+  const target = new File(dir, source.name);
+  if (target.exists) target.delete();
+  source.copy(dir);
 }

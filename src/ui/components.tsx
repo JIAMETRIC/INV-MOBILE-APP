@@ -29,6 +29,7 @@ type ButtonProps = {
   // solid = kit primary button · tonal / outline = glass button · ghost = text link.
   variant?: 'solid' | 'tonal' | 'outline' | 'ghost';
   icon?: IconName;
+  iconColor?: string; // overrides the icon colour only (the label keeps its colour)
   danger?: boolean;
   destructive?: boolean; // a delete action: red text and icon (theme.destructive)
   disabled?: boolean;
@@ -38,7 +39,7 @@ type ButtonProps = {
 };
 
 export function Button({
-  label, onPress, theme, variant = 'solid', icon, danger, destructive, disabled, busy, style, labelStyle,
+  label, onPress, theme, variant = 'solid', icon, iconColor, danger, destructive, disabled, busy, style, labelStyle,
 }: ButtonProps) {
   const off = disabled || busy;
   const solid = variant === 'solid';
@@ -76,7 +77,7 @@ export function Button({
     >
       {busy ? <ActivityIndicator color={color} /> : (
         <>
-          {icon ? <Feather name={icon} size={18} color={color} /> : null}
+          {icon ? <Feather name={icon} size={18} color={iconColor ?? color} /> : null}
           <Text style={[
             solid ? type.heading : variant === 'ghost' ? { ...type.label, fontFamily: font.semibold } : { ...type.body, fontFamily: font.medium },
             { color }, labelStyle,

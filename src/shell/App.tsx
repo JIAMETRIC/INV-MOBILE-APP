@@ -121,7 +121,7 @@ function Shell() {
     if (overlay?.k === 'create-invoice') {
       return (
         <View style={{ flex: 1, backgroundColor: theme.bg }}>
-          <CreateInvoiceScreen draftId={overlay.draftId} invoiceId={overlay.invoiceId} />
+          <CreateInvoiceScreen invoiceId={overlay.invoiceId} />
         </View>
       );
     }
@@ -153,7 +153,7 @@ function Shell() {
         />
         <SafeAreaView style={{ flex: 1, minWidth: 0 }} edges={['bottom']}>
           {overlay?.k === 'create-invoice'
-            ? <CreateInvoiceScreen draftId={overlay.draftId} invoiceId={overlay.invoiceId} />
+            ? <CreateInvoiceScreen invoiceId={overlay.invoiceId} />
             : overlay?.k === 'invoice-detail' && bp.panes === 1
               // md: one pane beside the rail, so the invoice opens like on a phone.
               ? (

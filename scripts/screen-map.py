@@ -18,7 +18,7 @@ import html, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "SCREEN_CODE_STRUCTURE", "screen-map.html")
 APP = "Invoice ERP"
-DATE = "2026-10-23"
+DATE = "2026-10-26"
 
 def n(fn, id="", what="", cells=None, kids=None, columns=False, dashed=False):
     return dict(fn=fn, id=id, what=what, cells=cells or [], kids=kids or [], columns=columns, dashed=dashed)
@@ -47,13 +47,11 @@ SCREENS = [
     ]),
 
   dict(key="S2", title="Invoices", file="src/features/invoices/InvoicesScreen.tsx",
-    note="One pane when bp.panes === 1. Under 600 dp of height the three filter blocks move inside InvoiceListCard as the list header (same order on screen).",
-    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): 640 dp is above S2.shortScreen (600), so the filters stay as rows above the card; with the date range open one invoice row is visible above the FAB.",
+    note="One pane when bp.panes === 1. Under 600 dp of height the two filter blocks (FilterRow, DateRangeRow) move inside InvoiceListCard as the list header (same order on screen). The Draft tab is removed: the list shows issued invoices only, so there is no status SegmentedControl.",
     phone=[
-      n("Header", "S2.0", "TopAppBar large: N invoices · Invoices · download · book"),
+      n("Header", "S2.0", "TopAppBar large: N invoices · Invoices · one action: download = Export all invoices to Excel (every invoice, all details, ignores the filters)"),
       n("ListPane", "", "Main: the column below, sides 20, gap 16", kids=[
         n("FilterRow", "S2.1 + S2.3", "plain row (not Columns)", cells=["SearchField · flex 1", "IconButton calendar · 44"]),
-        n("SegmentedControl", "S2.2", "options = STATUSES", cells=["All", "Issued", "Partial", "Paid", "Void"]),
         n("DateRangeRow", "S2.3a", "Columns kind=\"input\" · only while the calendar is on", cells=["From", "To"]),
         n("InvoiceListCard", "S2.5", "Card with the one FlatList; marginBottom useNavInset(); long lists pad useFabClearance()", kids=[
           n("InvoiceRow × n", "S2.5.r", "React.memo; onPress from useCallback", cells=["avatar", "party · no · date", "₹ total / StatusGlyph"]),
@@ -64,77 +62,69 @@ SCREENS = [
     tablet=[
       n("Header", "S2.0", "same"),
       n("panes", "", "View row", columns=True, kids=[
-        n("ListPane", "", "flex 1 · the same rows", kids=[n("FilterRow"), n("SegmentedControl"), n("DateRangeRow"), n("InvoiceListCard", "", "selected row tinted")]),
+        n("ListPane", "", "flex 1 · the same rows", kids=[n("FilterRow"), n("DateRangeRow"), n("InvoiceListCard", "", "selected row tinted")]),
         n("DetailPane", "S2.7", "S2.detailWidth: 50 % (2 panes) · 42 % (3 panes)", kids=[n("InvoiceDetail", "S3", "hosted; its own file")]),
         n("ActivityPane", "S2.8", "26 %, xxl only, with a row selected", dashed=True),
       ]),
     ]),
 
-  dict(key="S3", title="Invoice detail", file="src/features/invoices/InvoiceDetail.tsx",
-    note="An embeddable Main: no Screen wrapper, no header or footer of its own. One pane: the shell's Invoice back bar hosts it (App.tsx); lg+: S2's DetailPane.",
-    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): Back bar, header row, bill-to, Share PDF | Excel on one line, items table; the RATE and AMOUNT labels nearly touch (known, same as xs 320). Scrolls for totals and Edit / Void.",
+  dict(key="S3", title="Invoice detail · Issued", file="src/features/invoices/InvoiceDetail.tsx",
+    note="An embeddable Main: no Screen wrapper, no header or footer of its own. One pane: the shell's Invoice back bar hosts it (App.tsx); lg+: S2's DetailPane. The only action buttons are WhatsApp (inside BillToCard) and Edit / Delete (EditDeleteRow). The old ActionRow is removed; no button opens the payment sheet now.",
     phone=[
       n("host: TopAppBar Invoice", "S0", "back = nav.closeOverlay (App.tsx, not this file)", dashed=True),
       n("DetailMain", "", "Main: one ScrollView, maxWidth 720, bottom S3.bottomPad", kids=[
-        n("HeaderRow", "S3.1", "row, space-between", cells=["invoice_no / date · due", "StatusGlyph"]),
-        n("BillToCard", "S3.2", "Bill to · party · address · contact"),
-        n("ActionRow", "S3.3", "row, wraps, gap 12", cells=["Record payment (if canPay)", "Share PDF", "Excel"]),
+        n("HeaderRow", "S3.1", "row, space-between", cells=["invoice_no / date · due", "StatusGlyph (Issued)"]),
+        n("BillToCard", "S3.2", "Bill to · party · address · Ph contact; last child = WhatsApp Button (solid, fill #25D366, white icon and label, alignSelf start) → s.share('whatsapp')", cells=["overline Bill to", "party name", "address", "contact", "Button WhatsApp"]),
         n("ItemsCard", "S3.4", "Items (n)", kids=[
           n("ItemsHeader", "S3.4.h", "flex from S3.itemColumns", cells=["ITEM 2.6", "QTY 0.8", "RATE 1.3", "AMOUNT 1.3"]),
           n("LineRow × n", "S3.4.r", "React.memo; the same S3.itemColumns", cells=["description", "qty", "rate", "amount"]),
         ]),
-        n("TotalsCard", "S3.5", "TotalRow × Gross · Discount · Round off · Total · Paid · Balance due; words; notes"),
-        n("EditVoidRow", "S3.6", "hidden when void", cells=["Edit", "Void"]),
+        n("TotalsCard", "S3.5", "TotalRow × Gross · Discount (if > 0) · Round off · Total · Paid (if > 0) · Balance due; words; notes"),
+        n("EditDeleteRow", "S3.6", "row, gap 12", cells=["Edit (blue)", "Delete (red)"]),
       ]),
-      n("PaymentSheet", "P1", "Sheet: outstanding line · Input Amount · SegmentedControl PAY_MODES · Cancel | Save payment", dashed=True),
+      n("PaymentSheet", "P1", "Sheet: outstanding line · Input Amount · SegmentedControl PAY_MODES · Cancel | Save payment. Not reachable now (Record payment button removed; s.askPayment has no caller)", dashed=True),
+      n("InvoiceImage", "", "off screen (left -IMAGE_WIDTH * 2), captured by the WhatsApp share", dashed=True),
     ],
     tablet=[
       n("host: S2 DetailPane", "S2.7", "InvoiceDetail inside the pane, under S2's header", dashed=True),
-      n("DetailMain", "", "the same blocks", kids=[n("HeaderRow", "S3.1"), n("BillToCard", "S3.2"), n("ActionRow", "S3.3"), n("ItemsCard", "S3.4"), n("TotalsCard", "S3.5"), n("EditVoidRow", "S3.6")]),
+      n("DetailMain", "", "the same blocks", kids=[n("HeaderRow", "S3.1"), n("BillToCard", "S3.2", "incl. WhatsApp button"), n("ItemsCard", "S3.4"), n("TotalsCard", "S3.5"), n("EditDeleteRow", "S3.6")]),
       n("PaymentSheet", "P1", "centred dialog on tablets (Sheet, C10)", dashed=True),
     ]),
 
   dict(key="S4", title="Create / Edit invoice", file="src/features/invoices/CreateInvoiceScreen.tsx",
-    note="An overlay (no nav under it). Phones: Header · below = Stepper · one step at a time · footer = TotalBar. md / lg: form pane (+ preview at lg). xl: three panes.",
-    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): Stepper, then about four fields of Bill to above the TOTAL bar (Party name, Address, City | Pincode, Mobile | Email); Items step: title row, empty card, Add free line, the adjustments card below the fold.",
+    note="An overlay (no nav under it). No drafts: leaving closes the screen and unsaved input is lost. Phones: Header · below = Stepper · one step at a time · footer = TotalBar. md / lg: form pane (+ preview at lg). xl: three panes.",
     phone=[
       n("Header", "S4.L1", "TopAppBar: f.title · f.previewNo · back = f.leave"),
       n("below: Stepper", "S4.L1.1", "STEPS × 3, tap = f.setStep", cells=["Bill to", "Items", "Review"]),
       n("StepBody", "S4.L1.2", "Main: one ScrollView, pad = useScrollPad()", kids=[
-        n("step 0 · BillToCard", "S4.A", "Card", kids=[
-          n("Input Party name *"), n("Input Address"),
-          n("CityPincodeRow", "S4.A r3", "Columns kind=\"input\"", cells=["City", "Pincode"]),
-          n("MobileEmailRow", "S4.A r4", "Columns kind=\"input\"", cells=["Mobile", "Email"]),
-          n("DatesRow", "S4.A r5", "Columns kind=\"input\"", cells=["Invoice date", "Due date"]),
+        n("step 0 · BillToCard", "S4.A", "Card (sheet fill)", kids=[
+          n("SectionTitle Bill to"), n("Input Customer name *"), n("Input Mobile"),
+          n("DatesRow", "S4.A", "one Input, Invoice date (YYYY-MM-DD); pulls the card bottom up", cells=["Invoice date"]),
         ]),
         n("step 1 · ItemsSection", "S4.B", "gap 16", kids=[
-          n("SectionTitle + Add from products", "S4.B.1", "→ f.openCatalog (P2)"),
+          n("SectionTitle Items (n) + Add from products", "S4.B.1", "button hidden at xl; → f.openCatalog (P2)"),
           n("EmptyItemsCard", "S4.B.2", "when no lines", dashed=True),
           n("LineItemCard × n", "S4.B.3", "Card per line", kids=[
-            n("row", "", "", cells=["overline Item n", "IconButton trash"]),
+            n("row", "", "", cells=["overline Item n · From products / Free line", "IconButton trash (red)"]),
             n("Input Description"),
-            n("row", "", "Columns kind=\"input\" weights S4.qtyRateWeights", cells=["Qty", "Rate (₹)"]),
+            n("row", "", "Columns kind=\"input\" weights S4.lineWeights [1, 1, 1.4]", cells=["Size (Dropdown)", "Qty", "Rate (₹)"]),
             n("row", "", "space-between", cells=["Amount", "MoneyText"]),
           ]),
-          n("Button Add free line", "S4.B.4"),
-          n("AdjustmentsCard", "S4.B.5", "Card", kids=[
-            n("row", "", "plain row, flex 1 each", cells=["Discount %", "Chip Ship to address"]),
-            n("ShippingFields", "S4.B.6", "only when the chip is on: Consignee · Ship-to · CityPincodeRow", dashed=True),
-            n("Input Notes", "S4.B.7"),
-          ]),
+          n("Button Add free line", "S4.B.4", "alignSelf start"),
+          n("PaymentCard", "S4.B.5", "Card: SectionTitle Payment · SegmentedControl Cash | UPI (saved with the invoice; does not record money received)"),
         ]),
-        n("step 2 · ReviewSection", "S4.D", "Bill to card · Items card · TotalsCard (S4.C) · words"),
+        n("step 2 · ReviewSection", "S4.D", "Bill to summary card · Items card (Edit / Delete icon buttons, rows: description | qty × rate | amount) · TotalsCard (S4.C) · amount in words"),
       ]),
-      n("footer: TotalBar", "S4.L1.3", "glass bar", cells=["Total ₹", "Next · or ActionButtons (S4.F)"]),
+      n("footer: TotalBar", "S4.L1.3", "glass bar", cells=["Total ₹", "Next (steps 1–2) · or ActionButtons = Issue invoice / Update (step 3)"]),
       n("CatalogSheet", "P2", "bottom sheet: SearchField · ListItem × 60 → f.addLine", dashed=True),
     ],
     tablet=[
       n("Header", "S4.L1", "md: eye / pencil toggles preview"),
       n("panes", "", "md / lg: [ FormPane 720 | PreviewPane 40 % (lg) ] · xl: [ 25 | 38 | 37 ]", columns=True, kids=[
         n("CatalogPanel", "S4.L3", "xl only, 25 %: Products · SearchField · list → f.addLine", dashed=True),
-        n("FormPane", "S4.L2", "ScrollView: BillToCard · ItemsSection · TotalsCard · ActionButtons (S4.F)", kids=[
-          n("BillToCard", "S4.A"), n("ItemsSection", "S4.B"), n("TotalsCard", "S4.C"),
-          n("ActionButtons", "S4.F", "flex-end", cells=["Save draft", "Issue invoice / Update"]),
+        n("FormPane", "S4.L2", "ScrollView: BillToCard · ItemsSection (with PaymentCard) · TotalsCard · ActionButtons (S4.F)", kids=[
+          n("BillToCard", "S4.A"), n("ItemsSection", "S4.B", "ends with PaymentCard S4.B.5"), n("TotalsCard", "S4.C", "Subtotal · Discount (if > 0) · Round off · Total"),
+          n("ActionButtons", "S4.F", "flex-end; the Save draft button and draft autosave are removed", cells=["Issue invoice / Update"]),
         ]),
         n("PreviewPane", "S4.E", "overline Preview | A4 / Letter; page frame", kids=[n("WebView page")]),
       ]),
@@ -180,11 +170,10 @@ SCREENS = [
 
   dict(key="S6", title="Settings", file="src/features/settings/SettingsScreen.tsx",
     note="One pane: the section list, or the open section under a back header. lg+: list 300 | section capped at 720. No footer: Save is the last row of CompanyForm.",
-    small="5-inch phone, 360 × 640 dp (checked 2026-10-23): The four-row section list and the version line with room to spare; Company: Business name, Subtitle, Address, City | Pincode above the nav, the rest by scrolling.",
     phone=[
-      n("Header", "S6.0", "TopAppBar large: Settings; section open → its label + back"),
+      n("Header", "S6.0", "TopAppBar large: Settings · Company, backup; section open → its label + back"),
       n("SectionScroll", "", "Main: one ScrollView; bottom = useNavInset()", kids=[
-        n("SectionList", "S6.1", "Card list: ListItem × 4 + VERSION_LABEL", cells=["Company", "Drafts", "Backup & restore", "Activity log"]),
+        n("SectionList", "S6.1", "Card list: ListItem × 3 + VERSION_LABEL", cells=["Company", "Backup & restore", "Activity log"]),
         n("SectionBody (switch)", "", "one of:", kids=[
           n("CompanyForm", "S6.2", "", kids=[
             n("BusinessCard", "S6.2.1", "FieldRow × 2 = Columns kind=\"input\"", cells=["City | Pincode", "PAN | Contact"]),
@@ -192,7 +181,6 @@ SCREENS = [
             n("NumberingCard", "S6.2.3", "FieldRow", cells=["Prefix", "Next number"]),
             n("Button Save", "S6.2.4", "→ saveCompany()"),
           ]),
-          n("DraftsPane", "S6.3", "Card list: DraftRow × n (memo)", dashed=True),
           n("BackupPane", "S6.4", "", kids=[
             n("ExportRestoreRow", "", "plain row, flex 1 each", cells=["Export", "Restore"]),
             n("RecentBackups", "", "when any", dashed=True),
@@ -205,7 +193,7 @@ SCREENS = [
       n("Header", "S6.0", "large, no back"),
       n("panes", "", "View row, gap 16", columns=True, kids=[
         n("SectionListPane", "", "width S6.listWidth 300", kids=[n("SectionList", "S6.1", "selected row tinted"), n("VERSION_LABEL")]),
-        n("SectionScroll", "", "maxWidth S6.paneMaxWidth 720", kids=[n("SectionBody(section)", "S6.2–S6.5")]),
+        n("SectionScroll", "", "maxWidth S6.paneMaxWidth 720", kids=[n("SectionBody(section)", "S6.2, S6.4, S6.5")]),
       ]),
     ]),
 ]

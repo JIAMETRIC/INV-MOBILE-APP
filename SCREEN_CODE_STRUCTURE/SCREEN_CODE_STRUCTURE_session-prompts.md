@@ -496,3 +496,15 @@ Rule: keep everything else identical
 ```
 Continue and Comple the Task
 ```
+
+## Prompt (screen map: Invoice detail, Issued)
+
+```
+Strictly from the folder and file: ".\SCREEN_CODE_STRUCTURE\screen-map.html": Create screen map for "INVOICE-issued" Screen (screenshot of the Issued invoice: Record payment, WhatsApp, Image, Save, Share PDF, items, totals, Edit, Delete)
+```
+
+## Prompt (screen map: refresh to the latest screens)
+
+```
+update the /screen-map to the latest Screens (with Clear infos)
+```

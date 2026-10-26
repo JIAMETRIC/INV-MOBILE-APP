@@ -16,13 +16,13 @@ import { useNav } from '../../shell/navigation';
 import { Button, Card, Input, MoneyText, SectionTitle, SegmentedControl, StatusGlyph, TotalRow } from '../../ui/components';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { layout, space, type, maxReadWidth } from '../../ui/tokens';
+import { layout, space, type, maxReadWidth, whatsappGreen, whatsappWhite } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { deleteInvoice, getInvoice, getLines } from '../../data/invoicesRepo';
 import { paidPaiseForInvoice, recordPayment } from '../../data/paymentsRepo';
 import { logAudit } from '../../data/auditRepo';
-import { exportInvoicePdf, exportInvoicePdfAndShare, shareFile } from '../../export/pdf';
+import { shareFile } from '../../export/pdf';
 import { getSettings } from '../../data/settingsRepo';
 import { IMAGE_WIDTH, InvoiceImage } from './InvoiceImage';
 import type { Invoice, InvoiceLine, Settings } from '../../data/types';
@@ -43,8 +43,6 @@ const S3 = {
 // State and data: the invoice, its lines and payments, the two exports, Delete,
 // and the Record-payment sheet (P1).
 // ---------------------------------------------------------------------------
-// The share actions: the PDF, the picture (Image and WhatsApp), and Save (PDF into the app's Invoices folder).
-type ShareKind = 'pdf' | 'image' | 'whatsapp' | 'save';
 
 function useInvoiceDetail(invoiceId: number) {
   const nav = useNav();
@@ -52,7 +50,7 @@ function useInvoiceDetail(invoiceId: number) {
   const [inv, setInv] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [paid, setPaid] = useState(0);
-  const [busy, setBusy] = useState<ShareKind | null>(null);
+  const [busy, setBusy] = useState<'whatsapp' | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const imageRef = useRef<React.ComponentRef<typeof View>>(null);
   const [payOpen, setPayOpen] = useState(false);
@@ -122,20 +120,13 @@ function useInvoiceDetail(invoiceId: number) {
     snack(`₹${formatPaise(amountPaise)} recorded (${payMode})`);
   };
 
-  // WhatsApp and Image both send the picture through the phone's share sheet (WhatsApp is listed there).
-  // Save writes the PDF to the app's Invoices folder, then opens the share sheet so it can go to Files.
-  const share = (kind: ShareKind) => {
+  // WhatsApp: the invoice picture, captured off screen, goes straight to WhatsApp.
+  const share = () => {
     if (!inv) return;
-    setBusy(kind);
-    const picture = () => captureRef(imageRef, { format: 'png', quality: 1, result: 'tmpfile' })
-      .then(uri => shareFile(uri));
-    const job = kind === 'pdf' ? exportInvoicePdfAndShare(inv.id)
-      : kind === 'save' ? exportInvoicePdf(inv.id).then(f => {
-        snack(`Saved ${f.name} to the app's Invoices folder`);
-        return shareFile(f.uri);
-      })
-        : picture();
-    void job.catch(e => alert('Share failed', e instanceof Error ? e.message : String(e)))
+    setBusy('whatsapp');
+    void captureRef(imageRef, { format: 'png', quality: 1, result: 'tmpfile' })
+      .then(uri => shareFile(uri, 'whatsapp'))
+      .catch(e => alert('Share failed', e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(null));
   };
 
@@ -187,7 +178,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
 // Main
 // ---------------------------------------------------------------------------
 
-// S3 — the one scroller, capped at the reading width: header row, bill-to, actions, items, totals, Edit / Delete.
+// S3 — the one scroller, capped at the reading width: header row, bill-to (with the WhatsApp button), items, totals, Edit / Delete.
 function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <ScrollView contentContainerStyle={{
@@ -196,7 +187,6 @@ function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
     }}>
       <HeaderRow s={s} theme={theme} />
       <BillToCard s={s} theme={theme} />
-      <ActionRow s={s} theme={theme} />
       <ItemsCard s={s} theme={theme} />
       <TotalsCard s={s} theme={theme} />
       <EditDeleteRow s={s} theme={theme} />
@@ -229,25 +219,11 @@ function BillToCard({ s, theme }: { s: Loaded; theme: Theme }) {
       <Text style={[type.heading, { color: theme.text }]}>{s.inv.party_name || '(no customer)'}</Text>
       {s.party ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.party}</Text> : null}
       {s.contact ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.contact}</Text> : null}
+      <Button label="WhatsApp" icon="message-circle" iconColor={whatsappWhite} theme={theme}
+        style={{ alignSelf: 'flex-start', marginTop: space[2], backgroundColor: whatsappGreen }}
+        labelStyle={{ color: whatsappWhite }}
+        busy={s.busy === 'whatsapp'} onPress={() => s.share()} />
     </Card>
-  );
-}
-
-// S3.3 — primary actions first, within thumb reach; the row wraps:
-// Record payment (only when something is outstanding) · WhatsApp · Image · Save · Share PDF.
-function ActionRow({ s, theme }: { s: Loaded; theme: Theme }) {
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: layout.grid }}>
-      {s.canPay ? <Button label="Record payment" icon="credit-card" theme={theme} onPress={s.askPayment} /> : null}
-      <Button label="WhatsApp" icon="message-circle" variant="outline" theme={theme}
-        busy={s.busy === 'whatsapp'} onPress={() => s.share('whatsapp')} />
-      <Button label="Image" icon="image" variant="outline" theme={theme}
-        busy={s.busy === 'image'} onPress={() => s.share('image')} />
-      <Button label="Save" icon="download" variant="outline" theme={theme}
-        busy={s.busy === 'save'} onPress={() => s.share('save')} />
-      <Button label="Share PDF" icon="share-2" variant={s.canPay ? 'tonal' : 'solid'} theme={theme}
-        busy={s.busy === 'pdf'} onPress={() => s.share('pdf')} />
-    </View>
   );
 }
 

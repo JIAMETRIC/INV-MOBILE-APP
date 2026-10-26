@@ -4,7 +4,7 @@
 //   InvoicesScreen()    the phone / tablet switch
 //   Header … ActivityPane   one function per region, in the order they appear on screen
 // IDs (S2.0 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
@@ -13,7 +13,7 @@ import { useNavInset } from '../../ui/navMetrics';
 import { Screen, useFabClearance } from '../../ui/Screen';
 import { Columns } from '../../ui/Columns';
 import {
-  Card, EmptyState, FAB, IconButton, Input, ListItem, MoneyText, SearchField, SegmentedControl, StatusGlyph,
+  Card, EmptyState, FAB, IconButton, Input, ListItem, MoneyText, SearchField, StatusGlyph,
   TopAppBar, initials,
 } from '../../ui/components';
 import { alert } from '../../ui/alert';
@@ -21,20 +21,10 @@ import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { listInvoices } from '../../data/invoicesRepo';
-import { listDrafts } from '../../data/draftsRepo';
-import { exportInvoicesXlsx, exportConsolidatedRegister } from '../../export/xlsx';
+import { exportInvoicesXlsx } from '../../export/xlsx';
 import { shareFile } from '../../export/pdf';
 import { InvoiceDetail } from './InvoiceDetail';
-import { DraftSheet } from './DraftSheet';
-import type { Draft, Invoice } from '../../data/types';
-
-type StatusFilter = 'all' | 'draft';
-
-// S2.2 — the status tabs, in order: All (issued invoices) and Draft (autosaved, not yet issued).
-const STATUSES: ReadonlyArray<{ value: StatusFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-];
+import type { Invoice } from '../../data/types';
 
 // Every number that is specific to this screen. Shared spacing comes from
 // tokens.ts (layout.side 20, layout.gap 16, layout.grid 12).
@@ -54,47 +44,30 @@ const S2 = {
 function useInvoiceList() {
   const nav = useNav();
   const [rows, setRows] = useState<Invoice[]>([]);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [openDraft, setOpenDraft] = useState<Draft | null>(null);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
   const [dateOpen, setDateOpen] = useState(false);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [busy, setBusy] = useState<'list' | 'register' | null>(null);
-  const isDraft = status === 'draft';
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    if (status === 'draft') {
-      setDrafts(await listDrafts());
-      return;
-    }
     setRows(await listInvoices({
       search: search.trim(), from: from || undefined, to: to || undefined, limit: 500,
     }));
-  }, [search, status, from, to]);
+  }, [search, from, to]);
 
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
 
-  // Drafts are searched by customer name or draft number (the drafts table has no search query).
-  const shownDrafts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q ? drafts.filter(d => d.party_name.toLowerCase().includes(q) || d.draft_no.toLowerCase().includes(q)) : drafts;
-  }, [drafts, search]);
-
-  const runExport = (kind: 'list' | 'register') => {
-    setBusy(kind);
-    const job = kind === 'list' ? exportInvoicesXlsx(rows) : exportConsolidatedRegister();
-    void job.then(f => shareFile(f.uri))
+  const runExport = () => {
+    setBusy(true);
+    void exportInvoicesXlsx().then(f => shareFile(f.uri))
       .catch(e => alert('Export failed', e instanceof Error ? e.message : String(e)))
-      .finally(() => setBusy(null));
+      .finally(() => setBusy(false));
   };
 
   return {
-    rows, drafts: shownDrafts, isDraft, openDraft, setOpenDraft, reload: load,
-    count: isDraft ? shownDrafts.length : rows.length,
+    rows, count: rows.length,
     search, setSearch,
-    status, setStatus,
     dateOpen, toggleDates: () => setDateOpen(o => !o),
     from, setFrom, to, setTo,
     datesSet: !!from || !!to,
@@ -140,7 +113,7 @@ export function InvoicesScreen() {
   );
 }
 
-// S2.0 — title, "N invoices", and the two Excel export buttons.
+// S2.0 — title, "N invoices", and the Excel export button.
 function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
   const n = list.count;
   return (
@@ -150,8 +123,7 @@ function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
       theme={theme}
       large
       actions={[
-        { icon: 'download', label: 'Export list to Excel', onPress: () => list.runExport('list'), busy: list.busy === 'list' },
-        { icon: 'book', label: 'Export consolidated register', onPress: () => list.runExport('register'), busy: list.busy === 'register' },
+        { icon: 'download', label: 'Export all invoices to Excel', onPress: list.runExport, busy: list.busy },
       ]}
     />
   );
@@ -164,7 +136,6 @@ function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
   const filters = (
     <>
       <FilterRow list={list} theme={theme} />
-      <SegmentedControl label="Status" options={STATUSES} value={list.status} onChange={list.setStatus} theme={theme} />
       {list.dateOpen ? <DateRangeRow list={list} theme={theme} /> : null}
     </>
   );
@@ -232,22 +203,6 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
     <Card theme={theme} list style={fill
       ? { flex: 1, marginTop: space[1], marginBottom: navInset, overflow: 'hidden' }
       : { flexShrink: 1, marginBottom: navInset, overflow: 'hidden' }}>
-      {list.isDraft ? (
-        <FlatList
-          data={list.drafts}
-          keyExtractor={d => `draft-${d.id}`}
-          style={fill ? { flex: 1 } : { flexGrow: 0 }}
-          ListHeaderComponent={header}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: list.drafts.length > S2.longList ? fabClearance : 0 }}
-          ListEmptyComponent={list.filtered
-            ? <EmptyState icon="search" title="No matches" text="Try a different search or clear the filters." theme={theme} />
-            : <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />}
-          renderItem={({ item, index }) => (
-            <DraftRow d={item} alt={index % 2 === 1} last={index === list.drafts.length - 1} onOpen={list.setOpenDraft} theme={theme} />
-          )}
-        />
-      ) : (
         <FlatList
           data={rows}
           keyExtractor={r => String(r.id)}
@@ -269,30 +224,9 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
             />
           )}
         />
-      )}
-      <DraftSheet draft={list.openDraft} onClose={() => list.setOpenDraft(null)} onChanged={() => void list.reload()} theme={theme} />
     </Card>
   );
 }
-
-// S2.2 Draft tab row — avatar · customer · "DRAFT-n · date" · ₹ total. Tap opens S4 with the draft.
-const DraftRow = React.memo(function DraftRow({ d, alt, last, onOpen, theme }: {
-  d: Draft; alt: boolean; last: boolean; onOpen: (d: Draft) => void; theme: Theme;
-}) {
-  return (
-    <ListItem
-      theme={theme}
-      flush
-      leadingText={initials(d.party_name)}
-      leadingAlt={alt}
-      divider={!last}
-      title={d.party_name || '(no customer)'}
-      subtitle={`${d.draft_no} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
-      onPress={() => onOpen(d)}
-      trailing={<MoneyText paiseText={`₹${formatPaise(d.total_paise)}`} theme={theme} small />}
-    />
-  );
-});
 
 // S2.5 row — avatar (initials) · party name · "invoice no · date" · ₹ total over the status pill.
 // Memoised: a row re-renders only when its own props change (rule 5).

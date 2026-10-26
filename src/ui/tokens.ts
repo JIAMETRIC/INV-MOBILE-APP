@@ -36,6 +36,10 @@ export const shadow = {
   secondary: '0 8px 16px rgba(20, 71, 108, 0.2)',
 } as const;
 
+// WhatsApp's brand green and its white text/icon: the WhatsApp share button only.
+export const whatsappGreen = '#25D366';
+export const whatsappWhite = '#ffffff';
+
 // Real status colours (DESIGN.md §11 allows green/red "only for real status").
 const status = {
   green: '#2e7d32', greenDark: '#66bb6a',

@@ -3,7 +3,7 @@ import { BackHandler } from 'react-native';
 import type { Tab } from '../ui/Nav';
 
 export type Overlay =
-  | { k: 'create-invoice'; draftId?: number; invoiceId?: number }
+  | { k: 'create-invoice'; invoiceId?: number }
   | { k: 'invoice-detail'; id: number }
   | null;
 
@@ -14,7 +14,7 @@ export interface NavApi {
   tab: Tab;
   goTab: (t: Tab) => void;
   overlay: Overlay;
-  openCreate: (opts?: { draftId?: number; invoiceId?: number }) => void;
+  openCreate: (opts?: { invoiceId?: number }) => void;
   closeOverlay: () => void;
   selectedInvoiceId: number | null;
   selectInvoice: (id: number | null) => void;
@@ -51,7 +51,7 @@ export function NavProvider({ children, isPhone }: { children: React.ReactNode; 
 
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
   const goTab = useCallback((t: Tab) => { setTab(t); setOverlay(null); }, []);
-  const openCreate = useCallback((opts?: { draftId?: number; invoiceId?: number }) => {
+  const openCreate = useCallback((opts?: { invoiceId?: number }) => {
     setOverlay({ k: 'create-invoice', ...opts });
   }, []);
   const closeOverlay = useCallback(() => setOverlay(null), []);

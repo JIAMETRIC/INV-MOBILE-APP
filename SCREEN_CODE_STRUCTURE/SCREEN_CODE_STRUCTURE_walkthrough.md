@@ -493,3 +493,18 @@ Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (
 | --- | --- |
 | `npx tsc --noEmit` | no errors |
 | On the emulator | not run |
+
+## 2026-10-26: S3 screen map refreshed (Invoice detail · Issued)
+
+`scripts/screen-map.py` S3 entry rewritten from `InvoiceDetail.tsx`: ActionRow now WhatsApp · Image · Save · Share PDF (Excel removed), `EditVoidRow` is `EditDeleteRow` (Edit blue, Delete red), and the off-screen `InvoiceImage` capture block was added. Regenerated `screen-map.html`. The `_tree.md` file for S3 still describes the old Excel / Void layout.
+
+## 2026-10-26: screen map refreshed to the latest screens (S2, S3, S4, S6)
+
+`scripts/screen-map.py`, then `screen-map.html` regenerated (date 2026-10-26):
+
+- **S2 Invoices:** Draft tab and the status SegmentedControl removed; header has one action (download = Export all invoices to Excel, all details, ignores filters); book removed.
+- **S3 Invoice detail:** ActionRow removed; WhatsApp is now the last child of BillToCard (fill #25D366, white icon and label). PaymentSheet marked unreachable (no button opens it).
+- **S4 Create / Edit:** Save draft and draft autosave removed (leaving loses unsaved input); BillToCard is Customer name · Mobile · Invoice date; line item has Size | Qty | Rate; PaymentCard (Cash | UPI) added to ItemsSection.
+- **S6 Settings:** Drafts section removed (three sections).
+- The `small` (5-inch) notes for S2, S4 and S6 were dropped because they described layouts that changed; re-run `/size-check` to restore them.
+- The S2, S3, S4 and S6 `_tree.md` files still describe the old layouts.

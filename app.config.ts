@@ -1,13 +1,27 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 // Single source for the version: also shown in-app under Settings, so a build on a
 // phone can be identified. Bump versionCode on every build you hand out.
+import { withAndroidManifest } from 'expo/config-plugins';
 import appVersion from './app-version.json';
+
+// Android 11+: the app may only start WhatsApp if the manifest declares it under <queries>.
+const withWhatsAppQueries: (c: ExpoConfig) => ExpoConfig = c => withAndroidManifest(c, cfg => {
+  const m = cfg.modResults.manifest as { queries?: { package?: { $: { 'android:name': string } }[] }[] };
+  const queries = m.queries?.[0] ?? {};
+  queries.package = [
+    ...(queries.package ?? []),
+    { $: { 'android:name': 'com.whatsapp' } },
+    { $: { 'android:name': 'com.whatsapp.w4b' } },
+  ];
+  m.queries = [queries];
+  return cfg;
+});
 
 // INTERNET stays available in dev (Metro needs it, plan §12); it is stripped
 // only from preview/production builds via blockedPermissions.
 const isReleaseLike = !!process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== 'development';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext): ExpoConfig => withWhatsAppQueries({
   ...config,
   name: 'Invoice ERP',
   slug: 'invoice-erp',

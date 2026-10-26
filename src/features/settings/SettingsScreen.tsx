@@ -12,7 +12,7 @@ import { useTheme } from '../../shell/providers';
 import { useBackIntercept, useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
-  Button, Card, EmptyState, IconButton, Input, ListItem, SectionTitle, TopAppBar, initials, type IconName,
+  Button, Card, EmptyState, Input, ListItem, SectionTitle, TopAppBar, type IconName,
 } from '../../ui/components';
 import { useNavInset } from '../../ui/navMetrics';
 import { Screen } from '../../ui/Screen';
@@ -20,21 +20,18 @@ import { Columns } from '../../ui/Columns';
 import { useSnackbar } from '../../ui/Snackbar';
 import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
-import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getSettings, updateSettings } from '../../data/settingsRepo';
-import { listDrafts, deleteDraft } from '../../data/draftsRepo';
 import { exportDbBackup, listBackups, restoreDbBackup } from '../../data/backupRepo';
 import { recentAudit } from '../../data/auditRepo';
 import { shareFile } from '../../export/pdf';
-import type { Draft, Settings } from '../../data/types';
+import type { Settings } from '../../data/types';
 import appVersion from '../../../app-version.json';
 
-type Section = 'company' | 'drafts' | 'backup' | 'activity';
+type Section = 'company' | 'backup' | 'activity';
 
-// S6.1 — the four sections, in order: key · label · hint · Feather icon.
+// S6.1 — the three sections, in order: key · label · hint · Feather icon.
 const SECTIONS: Array<{ key: Section; label: string; hint: string; icon: IconName }> = [
   { key: 'company', label: 'Company', hint: 'Business details, bank, invoice numbering', icon: 'briefcase' },
-  { key: 'drafts', label: 'Drafts', hint: 'Autosaved invoices not yet issued', icon: 'file' },
   { key: 'backup', label: 'Backup & restore', hint: 'Encrypted database export and import', icon: 'upload-cloud' },
   { key: 'activity', label: 'Activity log', hint: 'Recent changes made in the app', icon: 'clock' },
 ];
@@ -68,7 +65,6 @@ function useSettings() {
   const [section, setSection] = useState<Section>('company');
   const [openOnPhone, setOpenOnPhone] = useState<Section | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [backups, setBackups] = useState<Backup[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -81,7 +77,6 @@ function useSettings() {
 
   const load = useCallback(async () => {
     setSettings(await getSettings());
-    setDrafts(await listDrafts());
     setBackups(await listBackups());
     setAudit(await recentAudit(S6.auditRows));
   }, []);
@@ -156,22 +151,10 @@ function useSettings() {
     }
   };
 
-  const removeDraft = useCallback((d: Draft) => {
-    alert('Delete draft?', d.draft_no, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: () => { void deleteDraft(d.id).then(() => { void load(); snack('Draft deleted'); }); },
-      },
-    ]);
-  }, [load, snack]);
-
-  const openDraft = useCallback((d: Draft) => nav.openCreate({ draftId: d.id }), [nav]);
-
   return {
     section, setSection, openOnPhone, setOpenOnPhone,
-    settings, drafts, backups, audit, busy,
-    setField, saveCompany, exportBackup, importBackup, removeDraft, openDraft,
+    settings, backups, audit, busy,
+    setField, saveCompany, exportBackup, importBackup,
   };
 }
 type SettingsState = ReturnType<typeof useSettings>;
@@ -223,7 +206,7 @@ function Header({ s, theme, open }: { s: Loaded; theme: Theme; open?: (typeof SE
   return (
     <TopAppBar
       title={open ? open.label : 'Settings'}
-      subtitle={open ? undefined : 'Company, drafts, backup'}
+      subtitle={open ? undefined : 'Company, backup'}
       theme={theme}
       large={!open}
       onBack={open ? () => s.setOpenOnPhone(null) : undefined}
@@ -284,7 +267,6 @@ function SectionListPane({ s, theme }: { s: Loaded; theme: Theme }) {
 function SectionBody({ s, theme, section }: { s: Loaded; theme: Theme; section: Section }) {
   switch (section) {
     case 'company': return <CompanyForm s={s} theme={theme} />;
-    case 'drafts': return <DraftsPane s={s} theme={theme} />;
     case 'backup': return <BackupPane s={s} theme={theme} />;
     case 'activity': return <ActivityPane s={s} theme={theme} />;
   }
@@ -368,44 +350,6 @@ function NumberingCard({ s, theme }: { s: Loaded; theme: Theme }) {
     </Card>
   );
 }
-
-// S6.3 — Drafts: "Drafts (n)" title on lg+ (the header says it on one pane), then a list card
-// of DraftRows or "No drafts".
-function DraftsPane({ s, theme }: { s: Loaded; theme: Theme }) {
-  const bp = useBreakpoint();
-  return (
-    <View>
-      {bp.panes === 1 ? null : <SectionTitle title={`Drafts (${s.drafts.length})`} theme={theme} />}
-      <Card theme={theme} list>
-        {s.drafts.length === 0
-          ? <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />
-          : s.drafts.map((d, i) => (
-            <DraftRow key={d.id} d={d} alt={i % 2 === 1} last={i === s.drafts.length - 1}
-              onOpen={s.openDraft} onDelete={s.removeDraft} theme={theme} />
-          ))}
-      </Card>
-    </View>
-  );
-}
-
-// S6.3 row — avatar · party · "draft no · n lines · ₹total · date" · trash (confirm). Tap opens S4 with the draft.
-const DraftRow = React.memo(function DraftRow({ d, alt, last, onOpen, onDelete, theme }: {
-  d: Draft; alt: boolean; last: boolean; onOpen: (d: Draft) => void; onDelete: (d: Draft) => void; theme: Theme;
-}) {
-  return (
-    <ListItem
-      theme={theme}
-      flush
-      leadingText={initials(d.party_name)}
-      leadingAlt={alt}
-      divider={!last}
-      title={d.party_name || '(no customer)'}
-      subtitle={`${d.draft_no} · ${d.items_count} lines · ₹${formatPaise(d.total_paise)} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
-      onPress={() => onOpen(d)}
-      trailing={<IconButton icon="trash-2" label={`Delete draft ${d.draft_no}`} theme={theme} onPress={() => onDelete(d)} />}
-    />
-  );
-});
 
 // S6.4 — Backup & restore: the info card with Export | Restore, then "Recent backups" when there are any.
 function BackupPane({ s, theme }: { s: Loaded; theme: Theme }) {
