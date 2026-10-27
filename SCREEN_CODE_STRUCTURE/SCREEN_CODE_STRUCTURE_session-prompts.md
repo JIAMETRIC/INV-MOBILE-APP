@@ -540,3 +540,19 @@ Task:
 Cell:  Qty (row - Input Description)
 Task: "Quantity Control: Add (+) and (−) symbols to increase or decrease item quantities"
 ```
+
+## Prompt (S1 Dashboard: 3D pie chart for the three tiles)
+
+```
+Source of truth: "src/features/invoices/DashboardScreen.tsx"
+Screen: S1 · Dashboard
+
+Task:
+add Like a 3d Pichart for all three tiles
+```
+
+## Prompt (S1 pie: answer to "What should the 3D pie show?")
+
+```
+Stock split (Recommended)
+```

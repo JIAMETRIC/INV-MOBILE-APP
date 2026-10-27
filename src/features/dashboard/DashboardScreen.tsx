@@ -3,7 +3,7 @@
 //   fyLabel()             "FY 2026–27 overview"
 //   useDashboard()        all state and data (no JSX)
 //   DashboardScreen()     the screen, built on <Screen>
-//   Header … StatTile     one function per region, in the order they appear on screen
+//   Header … StockPieCard one function per region, in the order they appear on screen
 // IDs (S1.0 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -11,10 +11,11 @@ import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { Screen, useMainInset } from '../../ui/Screen';
+import { PieChart3D } from '../../ui/PieChart3D';
 import {
   Badge, Card, FAB, IconChip, TopAppBar, type IconName,
 } from '../../ui/components';
-import { font, layout, space, type, maxReadWidth } from '../../ui/tokens';
+import { font, layout, radius, space, type, maxReadWidth } from '../../ui/tokens';
 import { formatPaise } from '../../data/money';
 import { getKpis } from '../../data/dashboardRepo';
 import { getStockTotals } from '../../data/productsRepo';
@@ -38,6 +39,11 @@ const S1 = {
   tileLabelHeight: 36, // S1.2: two-line label floor, so the three values line up
   figureMinScale: 0.6, // S1.1 / S1.2: how far a figure may shrink to fit on one line
   readShare: 0.9, // the scroll content's max width: max(720, 90 % of the window)
+  pieWidth: 128, // S1.6: the 3D pie's width
+  pieWidthXs: 96, // S1.6: under 360 dp (xs), so the legend labels keep about 134 dp
+  pieTilt: 0.55, // S1.6: top height / width (how far the disc leans back)
+  pieDepth: 16, // S1.6: side wall height
+  swatch: 10, // S1.6: legend colour dot
 } as const;
 
 type Kpi = { label: string; value: string; icon: IconName };
@@ -63,7 +69,7 @@ function useDashboard() {
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
 
   const tiles: Kpi[] = STOCK_TILES.map(t => ({ label: t.label, icon: t.icon, value: String(Math.round(stock[t.key])) }));
-  return { kpis, tiles };
+  return { kpis, tiles, stock };
 }
 type Dashboard = ReturnType<typeof useDashboard>;
 
@@ -94,7 +100,7 @@ function Header({ theme }: { theme: Theme }) {
 // Main
 // ---------------------------------------------------------------------------
 
-// S1.1 + S1.2 — the one scroller: the hero card, then the row of three stat tiles.
+// S1.1, S1.2, S1.6 — the one scroller: the hero card, the row of three stat tiles, the stock pie.
 function DashboardMain({ d, theme }: { d: Dashboard; theme: Theme }) {
   const bp = useBreakpoint();
   const bottomInset = useMainInset();
@@ -107,6 +113,7 @@ function DashboardMain({ d, theme }: { d: Dashboard; theme: Theme }) {
     >
       <HeroCard d={d} theme={theme} />
       <StatTilesRow d={d} theme={theme} />
+      <StockPieCard d={d} theme={theme} />
     </ScrollView>
   );
 }
@@ -154,6 +161,49 @@ function StatTile({ kpi, theme }: { kpi: Kpi; theme: Theme }) {
       <Text style={[type.figure, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={S1.figureMinScale}>
         {kpi.value}
       </Text>
+    </Card>
+  );
+}
+
+// S1.6 — "Stock split": a 3D pie of Actual Stock cut into Sold (blue) and Balance (grey),
+// beside its legend; Actual is the whole, under a divider. Oversold (Balance < 0) leaves
+// the pie all Sold and adds a red "Oversold by N".
+function StockPieCard({ d, theme }: { d: Dashboard; theme: Theme }) {
+  const bp = useBreakpoint();
+  const sold = Math.max(0, Math.round(d.stock.soldQty));
+  const balance = Math.round(d.stock.avlQty);
+  const actual = Math.round(d.stock.stockQty);
+  const rows = [
+    { label: 'Products Sold', value: sold, color: theme.accent },
+    { label: 'Balance Stock', value: balance, color: theme.textMuted },
+  ];
+  return (
+    <Card theme={theme} style={{ gap: space[3] }}>
+      <Text style={[type.overline, { color: theme.textMuted }]}>Stock split</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: layout.gap }}>
+        <PieChart3D
+          slices={rows.map(r => ({ value: Math.max(0, r.value), color: r.color }))}
+          width={bp.bp === 'xs' ? S1.pieWidthXs : S1.pieWidth} tilt={S1.pieTilt} depth={S1.pieDepth} emptyColor={theme.divider}
+          label={`Stock split: ${sold} sold, ${balance} balance, ${actual} actual stock`}
+        />
+        <View style={{ flex: 1, minWidth: 0, gap: space[2] }}>
+          {rows.map(r => (
+            <View key={r.label} style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
+              <View style={{ width: S1.swatch, height: S1.swatch, borderRadius: radius.pill, backgroundColor: r.color }} />
+              <Text style={[type.labelMedium, { fontFamily: font.regular, color: theme.textMuted, flex: 1 }]} numberOfLines={1}>{r.label}</Text>
+              <Text style={[type.number, { color: theme.text }]}>{r.value}</Text>
+            </View>
+          ))}
+          <View style={{ height: 1, backgroundColor: theme.divider }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
+            <Text style={[type.labelMedium, { color: theme.text, flex: 1 }]} numberOfLines={1}>Actual Stock</Text>
+            <Text style={[type.number, { color: theme.text }]}>{actual}</Text>
+          </View>
+          {balance < 0 ? (
+            <Text style={[type.labelMedium, { color: theme.error }]}>Oversold by {-balance}</Text>
+          ) : null}
+        </View>
+      </View>
     </Card>
   );
 }

@@ -543,3 +543,16 @@ Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (
 | 360 dp (`wm density 480`) | the row stacks; the stepper is full width, − left, + right |
 | Rate field hugging its left edge right after typing | Android keeps the typing scroll; re-opening the step shows the normal 16 padding. Not caused by this change |
 | Tablets | not checked (`/size-check` not run) |
+
+## 2026-10-27: S1 Dashboard, Stock split 3D pie (S1.6)
+
+New: `src/ui/PieChart3D.tsx` (C17), `chartShade` in `src/ui/tokens.ts`, dependency `react-native-svg` 15.16.0. `src/features/dashboard/DashboardScreen.tsx`: `useDashboard()` also returns `stock`; `StockPieCard` after `StatTilesRow`; `S1.pieWidth` / `pieWidthXs` / `pieTilt` / `pieDepth` / `swatch`. Docs: `scripts/screen-map.py` (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` (S1 wireframe, S1.6, C17), `DashboardScreen_S1_tree.md`, `README.md` (UI row).
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors (one fix: `parts[0]` possibly undefined under `noUncheckedIndexedAccess`) |
+| Debug APK rebuilt (new native module), 411 dp, real data (Sold 2, Balance −2, Actual 0) | the disc is all blue with a darker blue wall; legend 2 / −2 / 0 and red "Oversold by 2" |
+| Same, with sample values Sold 3 / Balance 5 / Actual 8 put in for one screenshot, then reverted | blue wedge 135° (3 / 8), grey the rest, each wall shaded; 1px white slice edges |
+| Dark mode (`cmd uimode night yes`) | card dark glass, Balance dot light grey, red note lighter red; reset afterwards |
+| 320 dp (`wm density 540`) | with a 128 pie the legend labels cut off; with 96 they fit; scrolled to the end the card clears the FAB |
+| Tablets | not checked |

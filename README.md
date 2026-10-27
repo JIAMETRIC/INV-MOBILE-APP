@@ -33,7 +33,7 @@ it from here. It does not depend on the `digital-invoice` desktop workspace.
 | Database | `expo-sqlite` with SQLCipher; key in Android Keystore via `expo-secure-store` |
 | Money | Integer paise everywhere; ISO-8601 dates |
 | Documents | PDF via `expo-print` HTML template; XLSX via the in-house `src/export/xlsxWriter.ts` (no exceljs) |
-| UI | **Flat Glass · Brand Blue** design kit (`design/DESIGN.md`, rules in `CLAUDE.md`) built as components in `src/ui/`: 5-colour theme + glass recipes in `tokens.ts`, flat headers, glass cards, floating bottom nav / rail, segmented controls, Feather line icons, light and dark (Sign In) themes, Android Back handling |
+| UI | **Flat Glass · Brand Blue** design kit (`design/DESIGN.md`, rules in `CLAUDE.md`) built as components in `src/ui/`: 5-colour theme + glass recipes in `tokens.ts`, flat headers, glass cards, floating bottom nav / rail, segmented controls, Feather line icons, a 3D pie chart (`react-native-svg`), light and dark (Sign In) themes, Android Back handling |
 | Fonts | Inter for text (4 weights) and Bebas Neue for displayed numbers, both SIL OFL 1.1, via `@expo-google-fonts/*` + `expo-font`; the invoice PDF embeds subsets generated into `src/export/pdfFonts.ts` |
 | Layout | 6 breakpoints: bottom tabs on phones, rail + 2–3 panes on tablets |
 | Packaging | Local Gradle (no cloud needed); optional EAS profiles in `eas.json` |

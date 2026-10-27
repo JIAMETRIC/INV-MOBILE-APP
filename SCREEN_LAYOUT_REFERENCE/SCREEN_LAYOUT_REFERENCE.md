@@ -143,6 +143,13 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 │ Sold    ││ Stock   ││ Stock   │
 │ 3       ││ 12      ││ 15      │
 └─────────┘└─────────┘└─────────┘
+┌─────────────────────────────┐
+│ STOCK SPLIT                 │ S1.6 stock pie card
+│  (3D pie)   ● Sold        3 │       Actual = whole disc,
+│  Sold|Bal   ● Balance    12 │       Sold blue · Balance grey
+│             ─────────────── │
+│             Actual       15 │       (+ red "Oversold by N")
+└─────────────────────────────┘
                [+ New invoice]   S1.5 FAB (52, radius 12, blue)
 ┌─────────────────────────────┐
 │ [■]   [ ]    [ ]    [ ]     │ S0.4.2 floating bottom nav
@@ -161,6 +168,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S1.2.a | "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; = SOLD in S5) · `shopping-cart` | | `STOCK_TILES` |
 | S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | `STOCK_TILES` |
 | S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | `STOCK_TILES` |
+| S1.6 | Stock split | glass card, gap 12: overline "Stock split" · row (gap 16): `PieChart3D` (C17) width 128 (96 at xs), tilt 0.55, depth 16, slices Sold `theme.accent` · Balance `theme.textMuted` (negatives drawn as 0; all zero → `theme.divider` disc), then the legend (`flex: 1`): dot 10 + label 13/400 `#666` + value `type.number` (Bebas 16) for Sold and Balance, divider, "Actual Stock" 13/500 + value; Balance < 0 adds "Oversold by N" in `theme.error` | `S1.pieWidth`, `S1.pieWidthXs`, `S1.pieTilt`, `S1.pieDepth`, `S1.swatch` | `StockPieCard` |
 | S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9); the `fab` slot of `<Screen>` | | `DashboardScreen` |
 | — | Scroll container | side padding 20, gap 16, bottom = `useMainInset()` (clears nav + FAB; from `<Screen fab>`), maxWidth max(720, `S1.readShare` 90% width) | | `DashboardMain` |
 
@@ -615,6 +623,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
 | C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
+| C17 | `PieChart3D` | a pie as a tilted disc (react-native-svg): top = ellipse (height = width × `tilt`) cut into slices with 1px white lines; the front half has a `depth`-tall side wall per slice, slice colour under `chartShade` (black 25 %: flat, no gradient). `emptyColor` disc when all values are 0; `accessibilityRole="image"` + `label` | S1.6 | PieChart3D.tsx |
 | C16 | `Screen` | the Three-Slot scaffold: `header` · `below` (stepper) · Main (children, `flex: 1`) · `footer` (in the flex column, padded by the gesture inset, rises with the keyboard) · `fab` (floats over Main); `overlay` = no bottom nav underneath. `useMainInset()` = what Main's scroller pads at the bottom (nav inset or 32 in an overlay, + FAB clearance); `useFabClearance()` = 52 + 16 when a `fab` is set, else 0 | S2, S4 | Screen.tsx:23 |
 
 ### Design tokens (`src/ui/tokens.ts`)

@@ -258,3 +258,15 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Buttons 40 wide with 4 dp `hitSlop` on the outer side only | 44 + 44 left no room for "100" in the ≈ 109 dp Qty cell at 411 dp; outward hitSlop keeps the 44 × 48 target (rule 7) without overlapping the number. | 44-wide buttons and a narrower number; 36 with hitSlop on both sides (inner slop would catch taps on the number). |
 | `S4.lineWeights` [1, 1, 1.4] → [1, 1.2, 1.25] | At 411 dp: Size ≈ 91 (unchanged, "Select ⌄" fits), Qty ≈ 109 (fits − 100 +), Rate ≈ 113 (was 129; "1250.00" fits). [1, 1.4, 1.2] was tried first and crushed Size and Rate. | Move Qty to its own row. |
 | Step 1, floor 0, three-decimal rounding; typing still allowed | Quantities are whole pieces here; the old Input's 0 floor and parser are kept. | Floor 1. |
+
+## 2026-10-27 — S1 Dashboard: Stock split 3D pie (S1.6)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| One card under the tiles: the disc is Actual Stock, cut into Sold and Balance (owner's choice) | Balance = Actual − Sold, so the three tile numbers overlap; a slice each would count Actual twice. | Three slices sized by the tile numbers; a small pie in each tile. |
+| Oversold (Balance < 0): the pie is all Sold, the legend keeps the real −N and adds a red "Oversold by N" | A slice can't be negative; red is a real status (CLAUDE.md exception). | Hide the pie when oversold. |
+| New ID S1.6 | S1.3 and S1.4 are retired IDs (Prompt 5); S1.5 is the FAB. | Re-use S1.3. |
+| `react-native-svg` 15.16.0 (via `npx expo install`, the SDK 58 match) and a kit component `PieChart3D` (C17) | Elliptical arcs need a vector layer; it is Expo's standard one. It adds native code, so dev and release builds were rebuilt. | Views with rotate / perspective transforms (no clean slice edges); drawing inside the existing WebView. |
+| Depth = the slice colour under `chartShade` (`alpha(darkColor, 0.25)`, `tokens.ts`) | Rule 3 forbids gradients; a flat see-through dark token gives a darker wall from the five colours. | A second "dark blue" hex (not a token). |
+| Colours: Sold `theme.accent`, Balance `theme.textMuted`, empty `theme.divider` | Theme roles, so dark mode follows (Balance turns light grey on black). | Fixed hexes. |
+| Pie 128 wide, 96 at xs | At 320 dp the 128 pie cut the legend labels ("Products …"). | Stacking the pie over the legend. |

@@ -36,6 +36,10 @@ export const shadow = {
   secondary: '0 8px 16px rgba(20, 71, 108, 0.2)',
 } as const;
 
+// The side wall of a 3D chart: laid over the slice colour, a see-through
+// darkColor, so the depth is flat colour (no gradient, rule 3).
+export const chartShade = alpha(brand.dark, 0.25);
+
 // WhatsApp's brand green and its white text/icon: the WhatsApp share button only.
 export const whatsappGreen = '#25D366';
 export const whatsappWhite = '#ffffff';

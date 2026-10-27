@@ -36,13 +36,14 @@ SCREENS = [
         n("HeroCard", "S1.1", "Card: overline Total billed · FY | Badge N invoices; ₹ figure",
           cells=["overline", "Badge"]),
         n("StatTilesRow", "S1.2", "three equal cells, never stacks", cells=["StatTile a", "StatTile b", "StatTile c"]),
+        n("StockPieCard", "S1.6", "Card: overline Stock split; row: PieChart3D (128, 96 under 360 dp) | legend", cells=["PieChart3D: Sold blue · Balance grey", "legend: Sold · Balance · divider · Actual · Oversold by N (red, when Balance < 0)"]),
       ]),
       n("fab slot", "S1.5", "FAB New invoice → nav.openCreate() (phones)"),
     ],
     tablet=[
       n("Header", "S1.0", "same"),
       n("DashboardMain", "", "same blocks, capped at 90 % of the window; no FAB", kids=[
-        n("HeroCard", "S1.1"), n("StatTilesRow", "S1.2", cells=["a", "b", "c"]),
+        n("HeroCard", "S1.1"), n("StatTilesRow", "S1.2", cells=["a", "b", "c"]), n("StockPieCard", "S1.6"),
       ]),
     ]),
 
