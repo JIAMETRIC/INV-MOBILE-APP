@@ -434,7 +434,7 @@ Screens: S0 shell (`src/shell/App.tsx`) · S1 Dashboard · S2 Invoices · S3 Inv
 | Component | Screens (call sites) |
 | --- | --- |
 | `TopAppBar` | S1 `Header` 90 (large) · S2 135 (large, 2 export actions with `busy`) · S4 `Header` 383 (back; an eye / pencil action when `eye`, passed as `md` at 363) · S5 236 (large; "New product" action off phones, export with `busy`) · S6 `Header` 224 (`large={!open}`, back when a section is `open`) · S0 `App.tsx` 131 and 161 ("Invoice" + back above the hosted S3) |
-| `IconButton` | inside `TopAppBar` (325, 345), `SearchField` (241), `Sheet` (81) · S2 182 (glass calendar, `selected` and `color` when dates are set) · S4 586 (trash per line) · S6 405 (delete draft, as a `ListItem` trailing) |
+| `IconButton` | inside `TopAppBar` (325, 345), `SearchField` (241), `Sheet` (81) · S4 586 (trash per line) · S6 405 (delete draft, as a `ListItem` trailing) |
 | `Button` | S3 (7: Record payment 217, Share PDF 218 tonal or solid with `busy`, Excel 220 outline with `busy`, Edit 296 outline, Void 297 ghost danger, P1 Cancel 316 ghost and Save payment 317) · S4 (5: Add from products 551 ghost, Add free line 558 outline, Save draft 707 outline, Update / Issue invoice 708 solid, Next 794 solid in `TotalBar`) · S5 (5: Delete 465 ghost danger, Restock 466 tonal, Save 467, Back 513 ghost, Add to stock 514) · S6 (3: Save 305, Export 431, Restore 432 outline, all with `busy`). Not on S1 or S2 |
 | `FAB` | S1 81 "New invoice" · S2 109 "New invoice" · S5 220 "Add product"; phones only (`bp.isPhone`) |
 | `Chip` | S4 619 "Ship to address" (icon truck) · S5 421 (quick names), 436 (sizes), 439 "No size" |

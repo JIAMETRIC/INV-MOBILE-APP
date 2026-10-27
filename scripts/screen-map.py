@@ -47,12 +47,11 @@ SCREENS = [
     ]),
 
   dict(key="S2", title="Invoices", file="src/features/invoices/InvoicesScreen.tsx",
-    note="One pane when bp.panes === 1. Under 600 dp of height the two filter blocks (FilterRow, DateRangeRow) move inside InvoiceListCard as the list header (same order on screen). The Draft tab is removed: the list shows issued invoices only, so there is no status SegmentedControl.",
+    note="One pane when bp.panes === 1. Under 600 dp of height the filter row (FilterRow) moves inside InvoiceListCard as the list header (same order on screen). The Draft tab is removed: the list shows issued invoices only, so there is no status SegmentedControl.",
     phone=[
       n("Header", "S2.0", "TopAppBar large: N invoices · Invoices · one action: download = Export all invoices to Excel (every invoice, all details, ignores the filters)"),
       n("ListPane", "", "Main: the column below, sides 20, gap 16", kids=[
-        n("FilterRow", "S2.1 + S2.3", "plain row (not Columns)", cells=["SearchField · flex 1", "IconButton calendar · 44"]),
-        n("DateRangeRow", "S2.3a", "Columns kind=\"input\" · only while the calendar is on", cells=["From", "To"]),
+        n("FilterRow", "S2.1", "plain row (not Columns); the calendar button and date range were removed", cells=["SearchField · full width"]),
         n("InvoiceListCard", "S2.5", "Card with the one FlatList; marginBottom useNavInset(); long lists pad useFabClearance()", kids=[
           n("InvoiceRow × n", "S2.5.r", "React.memo; onPress from useCallback", cells=["avatar", "party · no · date", "₹ total / StatusGlyph"]),
         ]),
@@ -62,7 +61,7 @@ SCREENS = [
     tablet=[
       n("Header", "S2.0", "same"),
       n("panes", "", "View row", columns=True, kids=[
-        n("ListPane", "", "flex 1 · the same rows", kids=[n("FilterRow"), n("DateRangeRow"), n("InvoiceListCard", "", "selected row tinted")]),
+        n("ListPane", "", "flex 1 · the same rows", kids=[n("FilterRow"), n("InvoiceListCard", "", "selected row tinted")]),
         n("DetailPane", "S2.7", "S2.detailWidth: 50 % (2 panes) · 42 % (3 panes)", kids=[n("InvoiceDetail", "S3", "hosted; its own file")]),
         n("ActivityPane", "S2.8", "26 %, xxl only, with a row selected", dashed=True),
       ]),

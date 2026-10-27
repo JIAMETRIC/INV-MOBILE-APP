@@ -508,3 +508,15 @@ Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (
 - **S6 Settings:** Drafts section removed (three sections).
 - The `small` (5-inch) notes for S2, S4 and S6 were dropped because they described layouts that changed; re-run `/size-check` to restore them.
 - The S2, S3, S4 and S6 `_tree.md` files still describe the old layouts.
+
+## 2026-10-27: S2 FilterRow, calendar button removed
+
+`src/features/invoices/InvoicesScreen.tsx`: `FilterRow` is now only the `SearchField` (full width). Removed with it, since nothing else could open them: `DateRangeRow` (S2.3a), the `dateOpen` / `from` / `to` state, `datesSet`, `S2.filterGap`, `S2.dateRowPull`, and the `Columns`, `Input` and `IconButton` imports. `filtered` now means "search text is set". Docs: `scripts/screen-map.py` (then `screen-map.html` regenerated), `scripts/size-tour.py` (the date-range step), `SCREEN_LAYOUT_REFERENCE.md` (S2 wireframe, S2.3 / S2.3a rows, C15 users), `InvoicesScreen_S2_tree.md`, `SharedComponents_C1-C4_tree.md`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Release APK (`gradlew assembleRelease`, `JAVA_HOME` = Android Studio `jbr`), `adb install -r` on `Medium_Phone_API_37.0` | installed over the existing release build; data kept (2 invoices) |
+| S2 on the phone (411 dp) | search field spans the row under the header; no calendar button; list card, FAB and nav as before |
+| Tablets / landscape | not checked |
+

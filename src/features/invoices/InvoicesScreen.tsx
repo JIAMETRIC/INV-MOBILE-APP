@@ -11,9 +11,8 @@ import { useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { useNavInset } from '../../ui/navMetrics';
 import { Screen, useFabClearance } from '../../ui/Screen';
-import { Columns } from '../../ui/Columns';
 import {
-  Card, EmptyState, FAB, IconButton, Input, ListItem, MoneyText, SearchField, StatusGlyph,
+  Card, EmptyState, FAB, ListItem, MoneyText, SearchField, StatusGlyph,
   TopAppBar, initials,
 } from '../../ui/components';
 import { alert } from '../../ui/alert';
@@ -29,8 +28,6 @@ import type { Invoice } from '../../data/types';
 // Every number that is specific to this screen. Shared spacing comes from
 // tokens.ts (layout.side 20, layout.gap 16, layout.grid 12).
 const S2 = {
-  filterGap: 10, // S2.1: between the search field and the calendar button
-  dateRowPull: -space[4], // S2.3a: pulls the list card up under the date inputs' bottom gap
   longList: 6, // S2.5: more rows than this on a phone -> keep the last one clear of the FAB (useFabClearance)
   detailWidth: { 2: '50%', 3: '42%' } as const, // S2.7: detail pane width by pane count
   activityWidth: '26%', // S2.8: activity pane width
@@ -39,22 +36,17 @@ const S2 = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// State and data: filters, the rows they produce, the two exports.
+// State and data: the search filter, the rows it produces, the Excel export.
 // ---------------------------------------------------------------------------
 function useInvoiceList() {
   const nav = useNav();
   const [rows, setRows] = useState<Invoice[]>([]);
   const [search, setSearch] = useState('');
-  const [dateOpen, setDateOpen] = useState(false);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setRows(await listInvoices({
-      search: search.trim(), from: from || undefined, to: to || undefined, limit: 500,
-    }));
-  }, [search, from, to]);
+    setRows(await listInvoices({ search: search.trim(), limit: 500 }));
+  }, [search]);
 
   useEffect(() => { void load(); }, [load, nav.refreshKey]);
 
@@ -68,10 +60,7 @@ function useInvoiceList() {
   return {
     rows, count: rows.length,
     search, setSearch,
-    dateOpen, toggleDates: () => setDateOpen(o => !o),
-    from, setFrom, to, setTo,
-    datesSet: !!from || !!to,
-    filtered: !!search || !!from || !!to,
+    filtered: !!search,
     selected: rows.find(r => r.id === nav.selectedInvoiceId) ?? null,
     busy, runExport,
   };
@@ -129,16 +118,11 @@ function Header({ list, theme }: { list: InvoiceList; theme: Theme }) {
   );
 }
 
-// S2.1–S2.5 — the column under the header: filters, then the list card (the FAB, S2.6, is a <Screen> slot).
+// S2.1–S2.5 — the column under the header: the search row, then the list card (the FAB, S2.6, is a <Screen> slot).
 function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
   const bp = useBreakpoint();
   const navInset = useNavInset();
-  const filters = (
-    <>
-      <FilterRow list={list} theme={theme} />
-      {list.dateOpen ? <DateRangeRow list={list} theme={theme} /> : null}
-    </>
-  );
+  const filters = <FilterRow list={list} theme={theme} />;
   // Short screens (a phone in landscape): the fixed filters left the list card no height,
   // so they scroll with the list as its header and the card fills the pane instead.
   if (bp.height < S2.shortScreen) {
@@ -157,28 +141,12 @@ function ListPane({ list, theme }: { list: InvoiceList; theme: Theme }) {
   );
 }
 
-// S2.1 + S2.3 — one row: search field (grows) | calendar button (44).
+// S2.1 — one row: the search field, full width.
 function FilterRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
   return (
-    <View style={{ flexDirection: 'row', gap: S2.filterGap, paddingTop: space[1] }}>
+    <View style={{ flexDirection: 'row', paddingTop: space[1] }}>
       <SearchField value={list.search} onChange={list.setSearch} placeholder="Search invoice no or customer" theme={theme} style={{ flex: 1 }} />
-      <IconButton glass icon="calendar" label={list.datesSet ? 'Date range (set)' : 'Date range'}
-        selected={list.dateOpen || list.datesSet} color={list.datesSet ? theme.accent : undefined}
-        onPress={list.toggleDates} theme={theme} />
     </View>
-  );
-}
-
-// S2.3a — one row, two equal columns: From | To (YYYY-MM-DD). Shown while the calendar button is on.
-// Columns kind="input": the two cells stay side by side while each is at least 128 wide (true at every phone width).
-function DateRangeRow({ list, theme }: { list: InvoiceList; theme: Theme }) {
-  return (
-    <Columns kind="input" style={{ marginBottom: S2.dateRowPull }}>
-      <Input label="From" value={list.from} onChange={list.setFrom} placeholder="YYYY-MM-DD"
-        theme={theme} tabular keyboardType="numeric" maxLength={10} />
-      <Input label="To" value={list.to} onChange={list.setTo} placeholder="YYYY-MM-DD"
-        theme={theme} tabular keyboardType="numeric" maxLength={10} />
-    </Columns>
   );
 }
 

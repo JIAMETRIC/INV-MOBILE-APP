@@ -185,9 +185,8 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 ```
  1 invoice                [⬇] [▤]   S2.0 flat header + 2 glass export buttons
  Invoices
-[🔍 Search invoice no or party] [📅]  S2.1 search field + S2.3 date-range button
+[🔍 Search invoice no or customer      ]  S2.1 search field (full width)
 ( All | Issued | Partial | Paid | Void )  S2.2 segmented control
-[From YYYY-MM-DD] [To YYYY-MM-DD]   S2.3a date fields (only when 📅 is on)
 ┌─────────────────────────────┐
 │ (AS) Party       ₹1,200.00  │ S2.5 list card: hugs its rows,
 │      PRE-003 · date [Paid]  │      scrolls once it fills the space
@@ -214,8 +213,8 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S2.0 | Header | `Header`: `TopAppBar large`, caption "N invoice(s)", title "Invoices"; glass icon buttons `download` = Export list to Excel (current filtered rows), `book` = Export consolidated register | `Header` |
 | S2.1 | Search | `FilterRow`: `SearchField` (50 tall, glass) "Search invoice no or party", flex 1 | `FilterRow` |
 | S2.2 | Status filter | `SegmentedControl` over `STATUSES` (All, Issued, Partial, Paid, Void), inside `ListPane` | `STATUSES`, `ListPane` |
-| S2.3 | Date-range button | `FilterRow`: glass `IconButton` `calendar`; tinted when open or when a date is set | `FilterRow` |
-| S2.3a | Date fields | `DateRangeRow`: 2 columns (gap 12): From, To, `YYYY-MM-DD`, numeric, max 10 | `DateRangeRow` |
+| S2.3 | Date-range button | removed 2026-10-27 (S2 has no date filter) | — |
+| S2.3a | Date fields | removed 2026-10-27 with S2.3 | — |
 | S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + status). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
 | S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | `InvoiceListCard` |
 | S2.6 | FAB | phone only, "New invoice"; the `fab` slot of `<Screen>` in `InvoicesScreen()`; the list card clears it with `useFabClearance()` | `InvoicesScreen` |
@@ -615,7 +614,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C12 | `StatusGlyph` / `Badge` | kit badge: pill, padding 4 × 10, 12/600, tinted fill; status adds a Feather glyph (circle, clock, pie-chart, check-circle, x-circle) | lists, S3 | components.tsx:282 / 299 |
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
-| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S2.3a, S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
+| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
 | C16 | `Screen` | the Three-Slot scaffold: `header` · `below` (stepper) · Main (children, `flex: 1`) · `footer` (in the flex column, padded by the gesture inset, rises with the keyboard) · `fab` (floats over Main); `overlay` = no bottom nav underneath. `useMainInset()` = what Main's scroller pads at the bottom (nav inset or 32 in an overlay, + FAB clearance); `useFabClearance()` = 52 + 16 when a `fab` is set, else 0 | S2, S4 | Screen.tsx:23 |
 
 ### Design tokens (`src/ui/tokens.ts`)

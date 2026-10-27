@@ -233,3 +233,12 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | A new size-check profile `phone5`: 720 × 1280 px at 320 dpi = 360 × 640 dp (sm) | A 5-inch 16:9 phone is as wide as `sm` but 160 dp shorter than the `sm` profile (360 × 800); the height is what changes what fits above the footer, FAB and nav. Older 5-inch phones (480 × 854 at 240 dpi = 320 × 569 dp) are the existing `xs` profile. | Re-use `sm`. |
 | The map gets one line per screen under the phone column, `small`, with what the 5-inch check showed, not a third wireframe column | The blocks are the same at every phone size (the method's one-pane layout); what differs is how much fits above the fold, which is one sentence per screen. A third column would repeat the left one. | A separate "5-inch" tab per screen. |
 | The same line goes into section 8 of each tree file, with the Prompt number | Section 8 is where sizes live; the map and the tree file say the same thing. | Map only. |
+
+## 2026-10-27 — S2 FilterRow: calendar button removed
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Remove the calendar `IconButton` and also `DateRangeRow` (S2.3a), the `from` / `to` / `dateOpen` state and `S2.filterGap` / `S2.dateRowPull` | The button was the only way to open the date row; without it the row and its state could never be reached. | Keep `DateRangeRow` and its state as dead code. |
+| `FilterRow` stays a function with one cell (the search field, `flex: 1`) | The owner points at blocks by function name; the row still exists on screen. | Inline the `SearchField` in `ListPane`. |
+| `listInvoices` keeps its optional `from` / `to` parameters | Data-layer API; S2 simply stops passing them. | Remove them from the repo function too. |
+

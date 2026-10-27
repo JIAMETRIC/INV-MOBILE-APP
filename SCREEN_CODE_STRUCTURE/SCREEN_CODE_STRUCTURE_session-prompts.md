@@ -508,3 +508,15 @@ Strictly from the folder and file: ".\SCREEN_CODE_STRUCTURE\screen-map.html": Cr
 ```
 update the /screen-map to the latest Screens (with Clear infos)
 ```
+
+## Prompt (S2 FilterRow: remove the calendar button)
+
+```
+Source of truth: "src/features/invoices/InvoicesScreen.tsx"
+Screen: S2 · Invoices
+Function: FilterRow
+
+Task:
+Cell:  IconButton calendar · 44
+Task: Remove "IconButton calendar · 44"
+```
