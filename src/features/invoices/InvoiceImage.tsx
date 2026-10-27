@@ -13,21 +13,25 @@ const t = light;
 const rule = { height: 1, backgroundColor: t.divider, marginVertical: space[3] };
 
 export function InvoiceImage({ inv, lines, settings }: { inv: Invoice; lines: InvoiceLine[]; settings: Settings | null }) {
-  const from = [settings?.address, settings?.city, settings?.pincode].filter(Boolean).join(', ');
   const contact = [settings?.contact, settings?.email].filter(Boolean).join(' · ');
   const billTo = [inv.party_address, inv.party_city, inv.party_pincode].filter(Boolean).join(', ');
   const billContact = [inv.party_mobile, inv.party_email].filter(Boolean).join(' · ');
 
+  // Top row, three columns: business (left) | payment mode, Cash or UPI (middle) | invoice no and date (right).
+  // The outer two share the width equally so the middle one sits on the centre line.
   return (
     <View style={{ width: IMAGE_WIDTH, padding: space[5], backgroundColor: t.paper, gap: space[1] }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space[3] }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[type.heading, { color: t.text }]}>{settings?.name || 'Invoice'}</Text>
           {settings?.subtitle ? <Text style={[type.bodyMedium, { color: t.textMuted }]}>{settings.subtitle}</Text> : null}
-          {from ? <Text style={[type.caption, { color: t.textMuted }]}>{from}</Text> : null}
           {contact ? <Text style={[type.caption, { color: t.textMuted }]}>{contact}</Text> : null}
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <Text style={[type.overline, { color: t.textMuted }]}>Payment</Text>
+          <Text style={[type.label, { color: t.text }]}>{inv.payment_mode || 'Cash'}</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: 'flex-end', gap: 2 }}>
           <Text style={[type.overline, { color: t.textMuted }]}>Invoice</Text>
           <Text style={[type.label, { color: t.text }]}>{inv.invoice_no}</Text>
           <Text style={[type.caption, { color: t.textMuted }]}>{formatDateDisplay(inv.invoice_date)}</Text>

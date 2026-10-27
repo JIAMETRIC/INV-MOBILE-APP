@@ -520,3 +520,11 @@ Task:
 Cell:  IconButton calendar · 44
 Task: Remove "IconButton calendar · 44"
 ```
+
+## Prompt (WhatsApp share image: address out, Cash/UPI top middle)
+
+```
+Remove : “Tirupur, 641 607”
+
+in Top Middle: show "Cash/UPI" whatever Selected
+```

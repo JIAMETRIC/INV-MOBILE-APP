@@ -82,7 +82,7 @@ SCREENS = [
         n("EditDeleteRow", "S3.6", "row, gap 12", cells=["Edit (blue)", "Delete (red)"]),
       ]),
       n("PaymentSheet", "P1", "Sheet: outstanding line · Input Amount · SegmentedControl PAY_MODES · Cancel | Save payment. Not reachable now (Record payment button removed; s.askPayment has no caller)", dashed=True),
-      n("InvoiceImage", "", "off screen (left -IMAGE_WIDTH * 2), captured by the WhatsApp share", dashed=True),
+      n("InvoiceImage", "", "off screen (left -IMAGE_WIDTH * 2), captured by the WhatsApp share; top row: business | Payment (Cash or UPI) | invoice no · date; no business address", dashed=True),
     ],
     tablet=[
       n("host: S2 DetailPane", "S2.7", "InvoiceDetail inside the pane, under S2's header", dashed=True),

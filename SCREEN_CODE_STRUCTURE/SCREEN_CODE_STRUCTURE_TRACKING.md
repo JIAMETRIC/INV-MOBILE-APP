@@ -242,3 +242,10 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | `FilterRow` stays a function with one cell (the search field, `flex: 1`) | The owner points at blocks by function name; the row still exists on screen. | Inline the `SearchField` in `ListPane`. |
 | `listInvoices` keeps its optional `from` / `to` parameters | Data-layer API; S2 simply stops passing them. | Remove them from the repo function too. |
 
+## 2026-10-27 — WhatsApp share image: top row
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Drop the business address line (Settings address, city, pincode) from `InvoiceImage`; keep the name, subtitle and contact lines | The owner asked to remove "Tirupur, 641 607", which is that line. Settings still stores the address; the PDF is unchanged. | Clear the address in Settings. |
+| Top row becomes three columns: business (`flex: 1`) · Payment (auto, centred) · invoice no and date (`flex: 1`, right) | Equal outer columns put the payment block on the image's centre line whatever the business name's length. | `justifyContent: 'space-between'` alone (the middle drifts with the outer widths). |
+| The middle shows an overline "Payment" over `inv.payment_mode` (falls back to "Cash") | Same overline-over-value pattern as the "Invoice" block on the right; the value is what was picked in the S4 Payment card (schema v8). | The bare word "Cash" / "UPI". |

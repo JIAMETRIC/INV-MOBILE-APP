@@ -520,3 +520,13 @@ Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (
 | S2 on the phone (411 dp) | search field spans the row under the header; no calendar button; list card, FAB and nav as before |
 | Tablets / landscape | not checked |
 
+## 2026-10-27: WhatsApp share image, address out and Cash/UPI in the top middle
+
+`src/features/invoices/InvoiceImage.tsx`: the `from` line (Settings address, city, pincode) is gone; the top row has a centred middle column, overline "Payment" over `inv.payment_mode`. `scripts/screen-map.py` InvoiceImage note updated, `screen-map.html` regenerated.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Debug build on `Medium_Phone_API_37.0` (Metro), WhatsApp tapped on INV-002 and INV-001; the PNG copied out of the app cache with `run-as` (WhatsApp is not installed, so the share stops after the capture) | both images: no "Tirupur, 641 607"; "PAYMENT / UPI" centred between the business name and the invoice block |
+| Saved mode | both invoices are UPI in their Edit → Items → Payment card, so "UPI" is right; a Cash invoice was not captured (none exists) |
+| Release build | rebuilt and reinstalled afterwards |
