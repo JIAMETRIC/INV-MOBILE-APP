@@ -249,3 +249,12 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Drop the business address line (Settings address, city, pincode) from `InvoiceImage`; keep the name, subtitle and contact lines | The owner asked to remove "Tirupur, 641 607", which is that line. Settings still stores the address; the PDF is unchanged. | Clear the address in Settings. |
 | Top row becomes three columns: business (`flex: 1`) · Payment (auto, centred) · invoice no and date (`flex: 1`, right) | Equal outer columns put the payment block on the image's centre line whatever the business name's length. | `justifyContent: 'space-between'` alone (the middle drifts with the outer widths). |
 | The middle shows an overline "Payment" over `inv.payment_mode` (falls back to "Cash") | Same overline-over-value pattern as the "Invoice" block on the right; the value is what was picked in the S4 Payment card (schema v8). | The bare word "Cash" / "UPI". |
+
+## 2026-10-27 — S4 LineItemCard: Qty stepper
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| A kit component `StepperInput` (C4, `src/ui/components.tsx`): − and + inside one 50-tall field with Input's frame, the number typeable in the middle | Reusable (S5 stock quantities could use it); one field reads as one value, as in the Input it replaces. | Two separate `IconButton`s beside an `Input` (three cells in one Columns cell). |
+| Buttons 40 wide with 4 dp `hitSlop` on the outer side only | 44 + 44 left no room for "100" in the ≈ 109 dp Qty cell at 411 dp; outward hitSlop keeps the 44 × 48 target (rule 7) without overlapping the number. | 44-wide buttons and a narrower number; 36 with hitSlop on both sides (inner slop would catch taps on the number). |
+| `S4.lineWeights` [1, 1, 1.4] → [1, 1.2, 1.25] | At 411 dp: Size ≈ 91 (unchanged, "Select ⌄" fits), Qty ≈ 109 (fits − 100 +), Rate ≈ 113 (was 129; "1250.00" fits). [1, 1.4, 1.2] was tried first and crushed Size and Rate. | Move Qty to its own row. |
+| Step 1, floor 0, three-decimal rounding; typing still allowed | Quantities are whole pieces here; the old Input's 0 floor and parser are kept. | Floor 1. |

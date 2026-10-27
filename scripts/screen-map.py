@@ -106,7 +106,7 @@ SCREENS = [
           n("LineItemCard × n", "S4.B.3", "Card per line", kids=[
             n("row", "", "", cells=["overline Item n · From products / Free line", "IconButton trash (red)"]),
             n("Input Description"),
-            n("row", "", "Columns kind=\"input\" weights S4.lineWeights [1, 1, 1.4]", cells=["Size (Dropdown)", "Qty", "Rate (₹)"]),
+            n("row", "", "Columns kind=\"input\" weights S4.lineWeights [1, 1.2, 1.25]; stacks under 96 dp per cell (360 dp phones)", cells=["Size (Dropdown)", "Qty: StepperInput − n +", "Rate (₹)"]),
             n("row", "", "space-between", cells=["Amount", "MoneyText"]),
           ]),
           n("Button Add free line", "S4.B.4", "alignSelf start"),

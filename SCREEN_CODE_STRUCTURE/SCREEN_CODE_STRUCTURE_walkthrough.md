@@ -530,3 +530,16 @@ Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (
 | Debug build on `Medium_Phone_API_37.0` (Metro), WhatsApp tapped on INV-002 and INV-001; the PNG copied out of the app cache with `run-as` (WhatsApp is not installed, so the share stops after the capture) | both images: no "Tirupur, 641 607"; "PAYMENT / UPI" centred between the business name and the invoice block |
 | Saved mode | both invoices are UPI in their Edit → Items → Payment card, so "UPI" is right; a Cash invoice was not captured (none exists) |
 | Release build | rebuilt and reinstalled afterwards |
+
+## 2026-10-27: S4 LineItemCard, Qty − / + stepper
+
+`src/ui/components.tsx`: new `StepperInput`. `src/features/invoices/CreateInvoiceScreen.tsx`: Qty `Input` → `StepperInput`; `S4.lineWeights` [1, 1.2, 1.25]. Docs: `scripts/screen-map.py` (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` (S4.B.3, C4), `CreateInvoiceScreen_S4_tree.md`, `SharedComponents_C1-C4_tree.md`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Debug build + Metro, phone 411 dp, New invoice → Items → Add free line (not saved) | row Size \| Qty \| Rate = 91 · 109 · 113 dp; + three times and − once: 1 → 3, Amount ₹750 at rate 250; typed qty 100 × rate 1250 = ₹1,25,000.00; "100" fits between the buttons |
+| First weights tried, [1, 1.4, 1.2] | Size 84 ("Select" touched its chevron), Rate 104: rejected |
+| 360 dp (`wm density 480`) | the row stacks; the stepper is full width, − left, + right |
+| Rate field hugging its left edge right after typing | Android keeps the typing scroll; re-opening the step shows the normal 16 padding. Not caused by this change |
+| Tablets | not checked (`/size-check` not run) |

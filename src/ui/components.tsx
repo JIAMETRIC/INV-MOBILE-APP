@@ -189,6 +189,57 @@ export function Input({
   );
 }
 
+// Number field with − and + buttons inside it (quantities). Same frame as Input:
+// label above, 50 tall, radius 14, focus ring. The buttons are 40 wide plus 4 of
+// hitSlop on their outer side (a 44 target that never overlaps the number), blue
+// icons; − goes grey and stops at `min`. The number can still be typed.
+export function StepperInput({ label, value, onChange, theme, min = 0, step = 1 }: {
+  label: string; value: number; onChange: (v: number) => void; theme: Theme; min?: number; step?: number;
+}) {
+  const [focused, setFocused] = useState(false);
+  const set = (v: number) => onChange(Math.max(min, Math.round(v * 1000) / 1000));
+  const atMin = value <= min;
+  const button = (icon: 'minus' | 'plus', name: string, delta: number, disabled: boolean) => (
+    <Pressable
+      onPress={() => set(value + delta)}
+      hitSlop={icon === 'minus' ? { left: 4 } : { right: 4 }}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`${name} ${label.toLowerCase()}`}
+      accessibilityState={{ disabled }}
+      android_ripple={ripple(theme, true)}
+      style={({ pressed }) => [{ width: touch.min - 4, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+        pressScale(pressed, motion.pressScaleSmall), pressedDim(pressed)]}
+    >
+      <Feather name={icon} size={18} color={disabled ? theme.textDisabled : theme.accent} />
+    </Pressable>
+  );
+  return (
+    <View style={{ marginBottom: space[4] }}>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[2] }]}>{label}</Text>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', height: touch.input,
+        borderWidth: 1, borderColor: focused ? theme.focus : theme.inputBorder, borderRadius: radius.control,
+        backgroundColor: theme.inputFill, boxShadow: focused ? theme.focusRing : undefined,
+      }}>
+        {button('minus', 'Decrease', -step, atMin)}
+        <TextInput
+          value={String(value)}
+          onChangeText={v => set(Number(v.replace(/[^0-9.]/g, '')) || 0)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          keyboardType="decimal-pad"
+          accessibilityLabel={label}
+          cursorColor={theme.focus}
+          selectionColor={theme.primaryTint}
+          style={[type.numberField, { flex: 1, minWidth: 0, padding: 0, textAlign: 'center', color: theme.text }]}
+        />
+        {button('plus', 'Increase', step, false)}
+      </View>
+    </View>
+  );
+}
+
 // Rupee field bound to integer paise. It keeps the typed text, so "1" is not
 // re-rendered as "1.00" mid-keystroke, and resyncs only when the value changes from outside.
 export function MoneyInput({ valuePaise, onChangePaise, ...rest }: Omit<InputProps, 'value' | 'onChange' | 'keyboardType' | 'tabular'> & {

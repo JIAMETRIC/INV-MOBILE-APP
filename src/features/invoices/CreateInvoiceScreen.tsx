@@ -19,7 +19,7 @@ import { useBreakpoint } from '../../ui/useBreakpoint';
 import { Screen, useMainInset } from '../../ui/Screen';
 import {
   Badge, Button, Card, Chip, IconButton, Input, ListItem, MoneyInput, MoneyText, SearchField, SectionTitle,
-  SegmentedControl, TopAppBar, TotalRow, EmptyState,
+  SegmentedControl, StepperInput, TopAppBar, TotalRow, EmptyState,
 } from '../../ui/components';
 import { Columns } from '../../ui/Columns';
 import { Dropdown } from '../../ui/Dropdown';
@@ -53,7 +53,7 @@ const S4 = {
   pageSizeControl: 180, // S4.E: width of the A4 / Letter control
   previewMinHeight: 400, // S4.E: the printed page frame
   lineSizes: ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'], // S4.B.3: the Size dropdown
-  lineWeights: [1, 1, 1.4], // S4.B.3: Size | Qty | Rate column weights
+  lineWeights: [1, 1.2, 1.25], // S4.B.3: Size | Qty | Rate column weights; at 411 dp ≈ 91 | 109 | 113, Qty fits − n +
   lineMinCell: 96, // S4.B.3: a Size | Qty | Rate cell narrower than this stacks the row
   inputPull: -space[4], // last input in a card: pulls the card's bottom padding up under the field
 } as const;
@@ -523,7 +523,7 @@ function EmptyItemsCard({ xl, theme }: { xl: boolean; theme: Theme }) {
 }
 
 // S4.B.3 — one line-item card: "ITEM n · FROM PRODUCTS / FREE LINE" + trash ·
-// Description · Qty | Rate (1 : 1.4) · "Amount … ₹value".
+// Description · Size | Qty (− n +) | Rate · "Amount … ₹value".
 function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: number; theme: Theme }) {
   return (
     <Card theme={theme} style={{ backgroundColor: theme.sheet }}>
@@ -539,9 +539,7 @@ function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: n
       <Columns kind="input" minCell={S4.lineMinCell} weights={[...S4.lineWeights]}>
         <Dropdown label="Size" value={line.size} options={[...S4.lineSizes]} theme={theme}
           onChange={v => f.updateLine(index, { size: v })} />
-        <Input label="Qty" value={String(line.qty)}
-          onChange={v => f.updateLine(index, { qty: Math.max(0, Number(v.replace(/[^0-9.]/g, '')) || 0) })}
-          theme={theme} keyboardType="decimal-pad" tabular />
+        <StepperInput label="Qty" value={line.qty} onChange={v => f.updateLine(index, { qty: v })} theme={theme} />
         <MoneyInput label="Rate (₹)" valuePaise={line.unit_paise}
           onChangePaise={p => f.updateLine(index, { unit_paise: p })} theme={theme} />
       </Columns>

@@ -113,7 +113,7 @@ P2  CatalogSheet (line 801): Sheet wide, title "Add from products"
 | `catalogNarrowBelow` | 300 | S4.L3 | under this panel width product names take two lines (`narrowCatalog`) |
 | `pageSizeControl` | 180 | S4.E | width of the A4 / Letter control |
 | `previewMinHeight` | 400 | S4.E | the printed page frame |
-| `qtyRateWeights` | `[1, 1.4]` | S4.B.3 | Qty : Rate column weights |
+| `lineWeights` | `[1, 1.2, 1.25]` | S4.B.3 | Size : Qty : Rate column weights (≈ 91 · 109 · 113 dp at 411); Qty is wider for its − and + buttons |
 | `inputPull` | `-space[4]` (−16) | S4.A, S4.B.7 | the last input in a card pulls the card's bottom padding up under the field |
 
 ## 5. Rows and columns
@@ -124,7 +124,7 @@ P2  CatalogSheet (line 801): Sheet wide, title "Add from products"
 | S4.A row 4 Mobile \| Email | `MobileEmailRow` | 2 | `Columns kind="input"`, same rule |
 | S4.A row 5 Invoice date \| Due date | `DatesRow` | 2 | `Columns kind="input"`, same rule; `style marginBottom: S4.inputPull` |
 | S4.B.3 header | `LineItemCard` | 2: overline (`flex: 1`) · trash `IconButton` | plain row; never stacks |
-| S4.B.3 Qty \| Rate | `LineItemCard` | 2 | `Columns kind="input" weights={[1, 1.4]}`: stacks under 128 dp per cell |
+| S4.B.3 Size \| Qty \| Rate | `LineItemCard` | 3: `Dropdown` · `StepperInput` (− n +) · `MoneyInput` | `Columns kind="input" minCell={S4.lineMinCell} weights={S4.lineWeights}`: stacks under 96 dp per cell (360 dp phones stack, 411 is a row) |
 | S4.B.3 amount | `LineItemCard` | 2: "Amount" · `MoneyText` | space-between; never stacks |
 | S4.B.5 Discount % \| chip | `AdjustmentsCard` | 2: `Input` (`flex: 1`) · `Chip` (`flex: 1`, `marginBottom` 16) | a plain row, gap 12, `alignItems: 'flex-end'`; never stacks. The one two-cell row in the file that is not `Columns`; its comment gives no reason |
 | S4.D item rows | `ReviewSection` | 3: description (`flex: 1`, 2 lines) · "qty × rate" · amount | plain row, gap 12, divider between rows; never stacks (text only) |
@@ -177,7 +177,7 @@ Not memoised on purpose: `LineItemCard` (a handful of cards in a `ScrollView`, n
 | the order of the Bill-to fields | the five lines inside `BillToCard`, lines 485-492 |
 | the "Add from products" button or where it hides | `ItemsSection`, lines 549-553 (`xl`) |
 | the empty-items text (two variants) | `EmptyItemsCard`, line 570 |
-| what a line-item card shows, the Qty : Rate ratio | `LineItemCard`, lines 578-603; `S4.qtyRateWeights` |
+| what a line-item card shows, the Size : Qty : Rate ratio, the Qty step | `LineItemCard`; `S4.lineWeights`; `StepperInput` `step` / `min` |
 | the discount clamp (0–100) or the shipping chip | `AdjustmentsCard`, lines 612-622 |
 | the shipping fields | `ShippingFields`, lines 634-646 |
 | the totals rows | `TotalsCard`, lines 649-661 (also used by `ReviewSection`) |

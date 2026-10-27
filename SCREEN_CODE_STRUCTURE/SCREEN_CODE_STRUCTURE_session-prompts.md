@@ -528,3 +528,15 @@ Remove : “Tirupur, 641 607”
 
 in Top Middle: show "Cash/UPI" whatever Selected
 ```
+
+## Prompt (S4 LineItemCard: Qty − / + buttons)
+
+```
+Source of truth: "src/features/invoices/CreateInvoiceScreen.tsx"
+Screen: S4 · Create / Edit invoice
+Function: LineItemCard × n
+
+Task:
+Cell:  Qty (row - Input Description)
+Task: "Quantity Control: Add (+) and (−) symbols to increase or decrease item quantities"
+```

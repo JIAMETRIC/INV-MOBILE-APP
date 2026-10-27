@@ -327,7 +327,7 @@ There are **three different layouts** built from the same blocks:
 | S4.B | **Items** (`ItemsSection`) | | `ItemsSection` |
 | S4.B.1 | Items title | "Items (n)" + "Add from products" ghost button (hidden at xl, where S4.L3 shows the catalog panel) | `ItemsSection` |
 | S4.B.2 | Empty card | "No items yet" | `EmptyItemsCard` |
-| S4.B.3 | Line-item card | header row "ITEM n · FROM PRODUCTS / FREE LINE" + trash IconButton · Description (full) · **Qty \| Rate (₹)** as `Columns` weights **1 : 1.4** (`S4.qtyRateWeights`) · footer row "Amount" … ₹value | `LineItemCard` |
+| S4.B.3 | Line-item card | header row "ITEM n · FROM PRODUCTS / FREE LINE" + trash IconButton · Description (full) · **Size \| Qty \| Rate (₹)** as `Columns` weights **1 : 1.2 : 1.25** (`S4.lineWeights`); Qty is a `StepperInput` (− n +) · footer row "Amount" … ₹value | `LineItemCard` |
 | S4.B.4 | "Add free line" | outline button, left-aligned | inside `ItemsSection` |
 | S4.B.5 | Adjustments | "Adjustments" title · row: Discount % (flex 1, clamped 0–100) \| "Ship to address" chip (flex 1) | `AdjustmentsCard` |
 | S4.B.6 | Shipping fields | only when the chip is on: Consignee (full) · Address (full) · `CityPincodeRow`; all printed in D1.2 | `ShippingFields` |
@@ -600,7 +600,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C1 | `TopAppBar` | flat header on the screen background (no gradient), top padding = status bar + 8, sides 20. `large`: caption 14 `#666` above an H2 title (24/600), glass action buttons right. Otherwise: glass back button (`chevron-left`) · centred title 16/600 + caption · glass actions | all screens | components.tsx:319 |
 | C2 | `Button` | `solid` = kit primary button (52 tall, radius 12, blue, white 16/600, `shadow.secondary`); `tonal` / `outline` = glass button (50 tall, glass fill, white border, `shadow.primary`, 15/500 black); `ghost` = text link (link colour, 14/600). `danger` = red. Press scale 0.98 | everywhere | components.tsx:39 |
 | C3 | `IconButton` | 44×44. `glass` = kit icon button (radius 12, glass fill, white border, `shadow.primary`, black 20px icon); default = ghost button (radius 10, `#666` icon) | headers, row actions, sheet close | components.tsx:92 |
-| C4 | `Input` / `MoneyInput` | label 13/500 `#666` above (gap 8); field 50 tall, radius 12, padding 16, 15/400; focus = blue border + focus ring; `helper`, `error`, `tabular` (Inter, tabular digits) | forms | components.tsx:138 / 192 |
+| C4 | `Input` / `MoneyInput` / `StepperInput` | label 13/500 `#666` above (gap 8); field 50 tall, radius 12, padding 16, 15/400; focus = blue border + focus ring; `helper`, `error`, `tabular` (Inter, tabular digits). `StepperInput`: the same frame with − and + buttons inside (40 wide + 4 hitSlop outward = 44 target, blue icons, − grey at `min`), number typeable | forms | components.tsx:138 / 192 |
 | C5 | `SearchField` | 50 tall, radius 12, glass icon-button recipe, search glyph, clear button | S2, S4, S5 | components.tsx:218 |
 | C6 | `Card` | kit glass card: 55% white, 1px white border, radius 16, padding 16, `theme.cardShadow`. `small` = tile shadow; `list` = 8 × 16 padding for `flush` rows | all screens | components.tsx:375 |
 | C6a | `IconChip` | 36×36, radius 10, blue tint, blue 18px icon | stat tiles, list rows | components.tsx:396 |
