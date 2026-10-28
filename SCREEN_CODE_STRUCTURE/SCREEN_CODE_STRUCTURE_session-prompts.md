@@ -562,3 +562,9 @@ Stock split (Recommended)
 ```
 Give .apk Build: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp
 ```
+
+## Prompt (invoice Share: WhatsApp / Save to phone; WhatsApp "not installed" on a phone that has it)
+
+```
+the Invoice sharing Whatsapp is not wokring better i will have two step export as on the "Products" Screen Export Excel it gives two one is whatsapp and another one Save Phone modify same like this for invoice share (check the whatspp error: the phone already having Whatspp Installed)
+```

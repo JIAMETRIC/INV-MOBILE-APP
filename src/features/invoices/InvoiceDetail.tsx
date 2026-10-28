@@ -10,13 +10,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
+import { File, Paths } from 'expo-file-system';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
 import { Button, Card, Input, MoneyText, SectionTitle, SegmentedControl, StatusGlyph, TotalRow } from '../../ui/components';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
-import { layout, space, type, maxReadWidth, whatsappGreen, whatsappWhite } from '../../ui/tokens';
+import { layout, space, type, maxReadWidth } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
 import { formatPaise, formatDateDisplay } from '../../data/money';
 import { deleteInvoice, getInvoice, getLines } from '../../data/invoicesRepo';
@@ -50,7 +51,7 @@ function useInvoiceDetail(invoiceId: number) {
   const [inv, setInv] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [paid, setPaid] = useState(0);
-  const [busy, setBusy] = useState<'whatsapp' | null>(null);
+  const [busy, setBusy] = useState<'share' | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const imageRef = useRef<React.ComponentRef<typeof View>>(null);
   const [payOpen, setPayOpen] = useState(false);
@@ -120,12 +121,18 @@ function useInvoiceDetail(invoiceId: number) {
     snack(`₹${formatPaise(amountPaise)} recorded (${payMode})`);
   };
 
-  // WhatsApp: the invoice picture, captured off screen, goes straight to WhatsApp.
+  // Share: the invoice picture, captured off screen and renamed "<invoice no>.png", then
+  // the same two-way choice as the Excel exports: WhatsApp or Save to phone.
   const share = () => {
     if (!inv) return;
-    setBusy('whatsapp');
+    setBusy('share');
     void captureRef(imageRef, { format: 'png', quality: 1, result: 'tmpfile' })
-      .then(uri => shareFile(uri, 'whatsapp'))
+      .then(uri => {
+        const named = new File(Paths.cache, `${inv.invoice_no.replace(/[^\w.-]+/g, '_')}.png`);
+        if (named.exists) named.delete();
+        new File(uri).move(named);
+        return shareFile(named.uri);
+      })
       .catch(e => alert('Share failed', e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(null));
   };
@@ -164,7 +171,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
     <>
       <DetailMain s={s} theme={theme} />
       <PaymentSheet s={s} theme={theme} />
-      {/* The invoice picture for the Image and WhatsApp shares: laid out off screen, captured on tap. */}
+      {/* The invoice picture for the Share button: laid out off screen, captured on tap. */}
       <View pointerEvents="none" style={{ position: 'absolute', left: -IMAGE_WIDTH * 2, top: 0 }}>
         <View ref={d.imageRef} collapsable={false}>
           <InvoiceImage inv={s.inv} lines={s.lines} settings={s.settings} />
@@ -178,7 +185,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
 // Main
 // ---------------------------------------------------------------------------
 
-// S3 — the one scroller, capped at the reading width: header row, bill-to (with the WhatsApp button), items, totals, Edit / Delete.
+// S3 — the one scroller, capped at the reading width: header row, bill-to (with the Share button), items, totals, Edit / Delete.
 function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <ScrollView contentContainerStyle={{
@@ -219,10 +226,9 @@ function BillToCard({ s, theme }: { s: Loaded; theme: Theme }) {
       <Text style={[type.heading, { color: theme.text }]}>{s.inv.party_name || '(no customer)'}</Text>
       {s.party ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.party}</Text> : null}
       {s.contact ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.contact}</Text> : null}
-      <Button label="WhatsApp" icon="message-circle" iconColor={whatsappWhite} theme={theme}
-        style={{ alignSelf: 'flex-start', marginTop: space[2], backgroundColor: whatsappGreen }}
-        labelStyle={{ color: whatsappWhite }}
-        busy={s.busy === 'whatsapp'} onPress={() => s.share()} />
+      <Button label="Share" icon="share-2" theme={theme}
+        style={{ alignSelf: 'flex-start', marginTop: space[2] }}
+        busy={s.busy === 'share'} onPress={() => s.share()} />
     </Card>
   );
 }

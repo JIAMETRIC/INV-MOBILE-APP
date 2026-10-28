@@ -40,10 +40,6 @@ export const shadow = {
 // darkColor, so the depth is flat colour (no gradient, rule 3).
 export const chartShade = alpha(brand.dark, 0.25);
 
-// WhatsApp's brand green and its white text/icon: the WhatsApp share button only.
-export const whatsappGreen = '#25D366';
-export const whatsappWhite = '#ffffff';
-
 // Real status colours (DESIGN.md §11 allows green/red "only for real status").
 const status = {
   green: '#2e7d32', greenDark: '#66bb6a',

@@ -270,3 +270,12 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | Depth = the slice colour under `chartShade` (`alpha(darkColor, 0.25)`, `tokens.ts`) | Rule 3 forbids gradients; a flat see-through dark token gives a darker wall from the five colours. | A second "dark blue" hex (not a token). |
 | Colours: Sold `theme.accent`, Balance `theme.textMuted`, empty `theme.divider` | Theme roles, so dark mode follows (Balance turns light grey on black). | Fixed hexes. |
 | Pie 128 wide, 96 at xs | At 320 dp the 128 pie cut the legend labels ("Products …"). | Stacking the pie over the legend. |
+
+## 2026-10-28 — Sharing: a native WhatsApp intent; invoice Share asks WhatsApp / Save to phone
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Local Expo module `modules/whatsapp-share` (Kotlin): `installedPackage(list)` + `share(contentUri, mime, package)` = `ACTION_SEND`, `setPackage`, `EXTRA_STREAM` as a `Uri`, `ClipData`, `FLAG_GRANT_READ_URI_PERMISSION` | The old `expo-intent-launcher` call could not work reliably: it passes extras as **strings** (WhatsApp wants a `Uri`), the read grant only covers data / ClipData (not extras), and it needed a hard-coded screen `com.whatsapp.ContactPicker`, which differs between WhatsApp versions. Its `catch` turned every one of those errors into "WhatsApp is not installed". `setPackage` lets Android pick WhatsApp's own share screen in any version. Local modules are autolinked, so it survives prebuild and works on EAS. | `expo-sharing` (the system share sheet: every app, not WhatsApp directly); fixing the className per WhatsApp version. |
+| "Not installed" only from a real `getPackageInfo` check (WhatsApp, then WhatsApp Business; both already in `<queries>`); any other failure shows Android's own message | The owner's phone has WhatsApp and still saw "not installed": the message was a guess. | Keep one catch-all message. |
+| S3 button: "WhatsApp" (green) → "Share" (kit solid blue, `share-2`), and it calls `shareFile(uri)` with no target: the same WhatsApp / Save to phone / Cancel dialog as the Excel exports | Owner asked for the Products-style two-step choice. The button no longer means only WhatsApp, so WhatsApp green would mislead; `whatsappGreen` / `whatsappWhite` tokens removed (unused). | Keep the green button with a second "Save" button. |
+| The captured PNG is moved to cache as `<invoice no>.png` before sharing | "Save to phone" copies the file's own name; it was `ReactNative-snapshot-image….png`. | Rename in `saveToDevice`. |

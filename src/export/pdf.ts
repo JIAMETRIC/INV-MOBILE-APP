@@ -1,6 +1,6 @@
 import { Alert, Platform } from 'react-native';
 import { getContentUriAsync } from 'expo-file-system/legacy';
-import { startActivityAsync } from 'expo-intent-launcher';
+import WhatsAppShare from '../../modules/whatsapp-share';
 import { Directory, File, Paths } from 'expo-file-system';
 
 export const isWeb = Platform.OS === 'web';
@@ -54,24 +54,14 @@ function askTarget(): Promise<ShareTarget | null> {
   });
 }
 
+// WhatsApp, else WhatsApp Business. "Not installed" only when neither package is on the phone;
+// any other failure keeps Android's own message.
 async function sendToWhatsApp(uri: string): Promise<void> {
+  const packageName = WhatsAppShare.installedPackage(WHATSAPP_PACKAGES);
+  if (!packageName) throw new Error('WhatsApp is not installed on this phone');
   const ext = uri.split('.').pop()?.toLowerCase() ?? '';
   const content = await getContentUriAsync(uri);
-  for (const packageName of WHATSAPP_PACKAGES) {
-    try {
-      await startActivityAsync('android.intent.action.SEND', {
-        type: MIME[ext] ?? 'application/octet-stream',
-        packageName,
-        className: 'com.whatsapp.ContactPicker', // WhatsApp's own share screen; without a className the phone shows every app
-        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-        extra: { 'android.intent.extra.STREAM': content },
-      });
-      return;
-    } catch {
-      // not installed: try the next WhatsApp package
-    }
-  }
-  throw new Error('WhatsApp is not installed on this phone');
+  await WhatsAppShare.share(content, MIME[ext] ?? 'application/octet-stream', packageName);
 }
 
 async function saveToDevice(uri: string): Promise<void> {

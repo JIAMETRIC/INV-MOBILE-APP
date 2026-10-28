@@ -560,3 +560,20 @@ New: `src/ui/PieChart3D.tsx` (C17), `chartShade` in `src/ui/tokens.ts`, dependen
 ## 2026-10-27: Expo cloud APK, build 3
 
 `eas build --platform android --profile preview --non-interactive` from commit `29f4d02` (uploads 3.5 MB; `.easignore` keeps `/android` out, so EAS prebuilds all ABIs). Remote keystore `XunsAMGKSH`, the same as build 2. Build `97fce4d7-1229-47b4-98df-4ca5aa366ccd`: FINISHED, version 1.0.1 / versionCode 3 (from `app-version.json`, already 3). Page: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp/builds/97fce4d7-1229-47b4-98df-4ca5aa366ccd. Not installed on a phone yet; not downloaded into `release/`. README row added.
+
+## 2026-10-28: sharing fixed (native WhatsApp intent) and invoice Share asks WhatsApp / Save to phone
+
+New `modules/whatsapp-share/` (`expo-module.config.json`, `android/build.gradle`, `WhatsAppShareModule.kt`, `index.ts`). `src/export/pdf.ts`: `sendToWhatsApp` uses it (no `expo-intent-launcher`). `src/features/invoices/InvoiceDetail.tsx`: Share button, `<invoice no>.png`, `shareFile(uri)`. `src/ui/tokens.ts`: WhatsApp colours removed. `scripts/screen-map.py` (+ `screen-map.html`).
+
+Root cause read from `node_modules/expo-intent-launcher/android/.../IntentLauncherModule.kt`: `packageName` is used only together with `className`; extras go through `putExtras(Bundle)` as strings; `FLAG_GRANT_READ_URI_PERMISSION` was added but there was no data / ClipData for it to apply to. `sendToWhatsApp` caught every exception and threw "WhatsApp is not installed".
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Local release APK (EAS key), `verify_apk.py` | RESULT OK; build output lists `whatsapp-share (1.0.0)` among the autolinked modules |
+| Emulator (no WhatsApp): Products → export → WHATSAPP | "WhatsApp is not installed on this phone": now from a real package check, and true here |
+| Stand-in test: package list temporarily `com.google.android.apps.messaging` (+ its `<queries>` entry), Products → export → WHATSAPP | Messages opened straight on its own share screen ("Select recipients"), no chooser |
+| Same stand-in, test invoice INV-001 (created on the emulator) → Share | dialog "Share file: WHATSAPP · SAVE TO PHONE · CANCEL"; WHATSAPP → Messages; its log: `attachments=[Attachment(type=image/png, uri=content://com.jiametric.invoiceerp.FileSystemFileProvider/cached_expo_files/INV-001.png)]`, then dropped as `ATTACHMENTS_NOT_SUPPORTED` because the emulator has MMS off (`MmsEnabled=false`). The file arrives as a real Uri attachment with the right name |
+| Stand-in reverted (`WHATSAPP_PACKAGES = ['com.whatsapp', 'com.whatsapp.w4b']`, manifest restored), rebuilt, reinstalled | RESULT OK |
+| On the owner's phone with WhatsApp | **not tested** (no WhatsApp on the emulator) |
+| Save to phone | not re-tested (unchanged code; the folder picker is the system's) |

@@ -69,12 +69,12 @@ SCREENS = [
     ]),
 
   dict(key="S3", title="Invoice detail · Issued", file="src/features/invoices/InvoiceDetail.tsx",
-    note="An embeddable Main: no Screen wrapper, no header or footer of its own. One pane: the shell's Invoice back bar hosts it (App.tsx); lg+: S2's DetailPane. The only action buttons are WhatsApp (inside BillToCard) and Edit / Delete (EditDeleteRow). The old ActionRow is removed; no button opens the payment sheet now.",
+    note="An embeddable Main: no Screen wrapper, no header or footer of its own. One pane: the shell's Invoice back bar hosts it (App.tsx); lg+: S2's DetailPane. The only action buttons are Share (inside BillToCard) and Edit / Delete (EditDeleteRow). The old ActionRow is removed; no button opens the payment sheet now.",
     phone=[
       n("host: TopAppBar Invoice", "S0", "back = nav.closeOverlay (App.tsx, not this file)", dashed=True),
       n("DetailMain", "", "Main: one ScrollView, maxWidth 720, bottom S3.bottomPad", kids=[
         n("HeaderRow", "S3.1", "row, space-between", cells=["invoice_no / date · due", "StatusGlyph (Issued)"]),
-        n("BillToCard", "S3.2", "Bill to · party · address · Ph contact; last child = WhatsApp Button (solid, fill #25D366, white icon and label, alignSelf start) → s.share('whatsapp')", cells=["overline Bill to", "party name", "address", "contact", "Button WhatsApp"]),
+        n("BillToCard", "S3.2", "Bill to · party · address · Ph contact; last child = Share Button (solid blue, share-2 icon, alignSelf start) → s.share(): saves <invoice no>.png, then asks WhatsApp / Save to phone", cells=["overline Bill to", "party name", "address", "contact", "Button Share"]),
         n("ItemsCard", "S3.4", "Items (n)", kids=[
           n("ItemsHeader", "S3.4.h", "flex from S3.itemColumns", cells=["ITEM 2.6", "QTY 0.8", "RATE 1.3", "AMOUNT 1.3"]),
           n("LineRow × n", "S3.4.r", "React.memo; the same S3.itemColumns", cells=["description", "qty", "rate", "amount"]),
@@ -83,11 +83,11 @@ SCREENS = [
         n("EditDeleteRow", "S3.6", "row, gap 12", cells=["Edit (blue)", "Delete (red)"]),
       ]),
       n("PaymentSheet", "P1", "Sheet: outstanding line · Input Amount · SegmentedControl PAY_MODES · Cancel | Save payment. Not reachable now (Record payment button removed; s.askPayment has no caller)", dashed=True),
-      n("InvoiceImage", "", "off screen (left -IMAGE_WIDTH * 2), captured by the WhatsApp share; top row: business | Payment (Cash or UPI) | invoice no · date; no business address", dashed=True),
+      n("InvoiceImage", "", "off screen (left -IMAGE_WIDTH * 2), captured by the Share button; top row: business | Payment (Cash or UPI) | invoice no · date; no business address", dashed=True),
     ],
     tablet=[
       n("host: S2 DetailPane", "S2.7", "InvoiceDetail inside the pane, under S2's header", dashed=True),
-      n("DetailMain", "", "the same blocks", kids=[n("HeaderRow", "S3.1"), n("BillToCard", "S3.2", "incl. WhatsApp button"), n("ItemsCard", "S3.4"), n("TotalsCard", "S3.5"), n("EditDeleteRow", "S3.6")]),
+      n("DetailMain", "", "the same blocks", kids=[n("HeaderRow", "S3.1"), n("BillToCard", "S3.2", "incl. Share button"), n("ItemsCard", "S3.4"), n("TotalsCard", "S3.5"), n("EditDeleteRow", "S3.6")]),
       n("PaymentSheet", "P1", "centred dialog on tablets (Sheet, C10)", dashed=True),
     ]),
 
