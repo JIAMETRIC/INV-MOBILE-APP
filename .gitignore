@@ -16,6 +16,9 @@ expo-env.d.ts
 *.p8
 *.p12
 *.key
+# EAS signing key downloaded for local phone builds (`eas credentials` -> Download)
+credentials.json
+/credentials/
 *.mobileprovision
 
 # Metro

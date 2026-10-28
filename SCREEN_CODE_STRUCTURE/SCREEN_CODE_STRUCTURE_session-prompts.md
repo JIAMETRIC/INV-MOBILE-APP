@@ -556,3 +556,9 @@ add Like a 3d Pichart for all three tiles
 ```
 Stock split (Recommended)
 ```
+
+## Prompt (Expo APK build)
+
+```
+Give .apk Build: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp
+```

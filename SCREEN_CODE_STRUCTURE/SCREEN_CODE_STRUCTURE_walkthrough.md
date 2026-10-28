@@ -556,3 +556,7 @@ New: `src/ui/PieChart3D.tsx` (C17), `chartShade` in `src/ui/tokens.ts`, dependen
 | Dark mode (`cmd uimode night yes`) | card dark glass, Balance dot light grey, red note lighter red; reset afterwards |
 | 320 dp (`wm density 540`) | with a 128 pie the legend labels cut off; with 96 they fit; scrolled to the end the card clears the FAB |
 | Tablets | not checked |
+
+## 2026-10-27: Expo cloud APK, build 3
+
+`eas build --platform android --profile preview --non-interactive` from commit `29f4d02` (uploads 3.5 MB; `.easignore` keeps `/android` out, so EAS prebuilds all ABIs). Remote keystore `XunsAMGKSH`, the same as build 2. Build `97fce4d7-1229-47b4-98df-4ca5aa366ccd`: FINISHED, version 1.0.1 / versionCode 3 (from `app-version.json`, already 3). Page: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp/builds/97fce4d7-1229-47b4-98df-4ca5aa366ccd. Not installed on a phone yet; not downloaded into `release/`. README row added.
