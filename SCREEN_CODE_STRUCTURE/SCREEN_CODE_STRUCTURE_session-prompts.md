@@ -568,3 +568,58 @@ Give .apk Build: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp
 ```
 the Invoice sharing Whatsapp is not wokring better i will have two step export as on the "Products" Screen Export Excel it gives two one is whatsapp and another one Save Phone modify same like this for invoice share (check the whatspp error: the phone already having Whatspp Installed)
 ```
+
+## Prompt (screen map: the invoice image)
+
+```
+I want Modify the inovice image UI: give me map
+```
+
+## Prompt (D3 invoice image: border, blue bands — preview first)
+
+```
+Before applying just show me the image Preview
+
+and Overall invoice gets Border and Border radius
+
+D3.1
+
+D3.4.1–5
+
+D3.5
+
+Must get background color of App Blue and Fonts Must go to #ffffff and it variants
+```
+
+## Prompt (D3: blue only on the Total area and the top header)
+
+```
+only this area and Top header must get Background color
+```
+(with a screenshot of the Total + "Rupees One Hundred Only" band)
+
+## Prompt (D3: approve)
+
+```
+Apply it
+```
+
+## Prompt (S3 Bill to: show Payment Cash / UPI beside Share)
+
+```
+Give "Payment" option UPI/cash based on the method selected
+```
+(with a screenshot of S3, the empty space right of the Share button marked)
+
+## Prompt (S1 Dashboard: Payments graph, UPI vs Cash)
+
+```
+Add one more graph for Payments How much Collected for UPI or CASH
+```
+(with a screenshot of the Dashboard, the space under Stock split marked)
+
+## Prompt (during the above)
+
+```
+do; Local_build_apk
+```

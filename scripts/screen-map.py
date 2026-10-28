@@ -10,6 +10,7 @@ Edit:   the SCREENS data below (one entry per screen; nodes nest).
         A node is a dict: fn · id · what · cells (list of cell labels) · kids (list of nodes)
         · columns (true when the kids sit side by side) · dashed (an optional part).
         A screen may carry `small`: one line on what a 5-inch phone (360 x 640 dp) shows, from a size check.
+        A document (D3) may rename the two columns with `phone_label` / `tablet_label`.
 Source of truth for the data: the tree file of each screen
 (SCREEN_CODE_STRUCTURE/<Screen>_<ID>_tree.md, sections 1 and 3).
 """
@@ -36,14 +37,15 @@ SCREENS = [
         n("HeroCard", "S1.1", "Card: overline Total billed · FY | Badge N invoices; ₹ figure",
           cells=["overline", "Badge"]),
         n("StatTilesRow", "S1.2", "three equal cells, never stacks", cells=["StatTile a", "StatTile b", "StatTile c"]),
-        n("StockPieCard", "S1.6", "Card: overline Stock split; row: PieChart3D (128, 96 under 360 dp) | legend", cells=["PieChart3D: Sold blue · Balance grey", "legend: Sold · Balance · divider · Actual · Oversold by N (red, when Balance < 0)"]),
+        n("StockPieCard", "S1.6", "PieLegendCard: overline Stock split; row: PieChart3D (128, 96 under 360 dp) | legend", cells=["PieChart3D: Sold blue · Balance grey", "legend: Sold · Balance · divider · Actual · Oversold by N (red, when Balance < 0)"]),
+        n("PaymentsPieCard", "S1.7", "PieLegendCard: overline Payments · FY; getPaymentSplit() = the hero's invoices split by invoices.payment_mode", cells=["PieChart3D: UPI blue · Cash grey (₹ weights)", "legend: UPI (n) ₹ · Cash (n) ₹ · divider · Total ₹ (= Total billed)"]),
       ]),
       n("fab slot", "S1.5", "FAB New invoice → nav.openCreate() (phones)"),
     ],
     tablet=[
       n("Header", "S1.0", "same"),
       n("DashboardMain", "", "same blocks, capped at 90 % of the window; no FAB", kids=[
-        n("HeroCard", "S1.1"), n("StatTilesRow", "S1.2", cells=["a", "b", "c"]), n("StockPieCard", "S1.6"),
+        n("HeroCard", "S1.1"), n("StatTilesRow", "S1.2", cells=["a", "b", "c"]), n("StockPieCard", "S1.6"), n("PaymentsPieCard", "S1.7"),
       ]),
     ]),
 
@@ -74,7 +76,7 @@ SCREENS = [
       n("host: TopAppBar Invoice", "S0", "back = nav.closeOverlay (App.tsx, not this file)", dashed=True),
       n("DetailMain", "", "Main: one ScrollView, maxWidth 720, bottom S3.bottomPad", kids=[
         n("HeaderRow", "S3.1", "row, space-between", cells=["invoice_no / date · due", "StatusGlyph (Issued)"]),
-        n("BillToCard", "S3.2", "Bill to · party · address · Ph contact; last child = Share Button (solid blue, share-2 icon, alignSelf start) → s.share(): saves <invoice no>.png, then asks WhatsApp / Save to phone", cells=["overline Bill to", "party name", "address", "contact", "Button Share"]),
+        n("BillToCard", "S3.2", "Bill to · party · address · Ph contact; last row = Share Button (solid blue, share-2) → s.share(): saves <invoice no>.png, then asks WhatsApp / Save to phone | Payment block (right): overline Payment + inv.payment_mode, Cash or UPI as chosen in S4", cells=["overline Bill to", "party name", "address", "contact", "row: Button Share | PAYMENT Cash / UPI"]),
         n("ItemsCard", "S3.4", "Items (n)", kids=[
           n("ItemsHeader", "S3.4.h", "flex from S3.itemColumns", cells=["ITEM 2.6", "QTY 0.8", "RATE 1.3", "AMOUNT 1.3"]),
           n("LineRow × n", "S3.4.r", "React.memo; the same S3.itemColumns", cells=["description", "qty", "rate", "amount"]),
@@ -196,6 +198,46 @@ SCREENS = [
         n("SectionScroll", "", "maxWidth S6.paneMaxWidth 720", kids=[n("SectionBody(section)", "S6.2, S6.4, S6.5")]),
       ]),
     ]),
+  dict(key="D3", title="Invoice image (Share)", file="src/features/invoices/InvoiceImage.tsx",
+    note="The picture the S3 Share button sends (WhatsApp or Save to phone): one function, InvoiceImage, drawn off screen at a fixed 390 wide and captured as <invoice no>.png, so it is the same on every phone and tablet. Its regions are inline (no sub-functions yet), so point at them by ID: \"D3.3, Rate column\". White page in every theme (the light palette), 1px App Blue border, radius 16; the top row and the Total band are App Blue with white text.",
+    phone_label="The picture · 390 wide, blue border, radius 16",
+    tablet_label="Where it comes from",
+    phone=[
+      n("InvoiceImage", "D3", "View: width IMAGE_WIDTH 390, paper, borderWidth 1 accent, borderRadius radius.card 16, overflow hidden; bands below pad 20", kids=[
+        n("top row", "D3.1", "BLUE band (accent), padding 20, white text (accentOn, labels 80 % white); row, gap 12; outer columns flex 1 so the middle sits on the centre line",
+          cells=["business · flex 1: settings.name (heading 600, 'Invoice' if empty) · subtitle · contact · email",
+                 "payment · centred: PAYMENT (overline) · Cash or UPI (label 14/500)",
+                 "invoice · flex 1, right: INVOICE (overline) · invoice no (label) · date (caption)"]),
+        n("bill to", "D3.2", "white body (padding 20, gap 4) starts here; stacked lines",
+          cells=["BILL TO (overline)", "party name (label)", "address, city, pincode (caption, if any)", "mobile · email (caption, if any)"]),
+        n("rule", "", "1px divider"),
+        n("items table", "D3.3", "header row + one row per line; gap 8 between columns", kids=[
+          n("header row", "D3.3.h", "overline #666",
+            cells=["Item · flex 1", "Size · 44", "Qty · 40 right", "Rate · 70 right", "Amount · 80 right"]),
+          n("line row × n", "D3.3.r", "padding 4 above and below; text caption, numbers Bebas (type.number)",
+            cells=["description · 2 lines max", "size or —", "qty", "unit rate", "line amount"]),
+        ]),
+        n("rule", "", "1px divider"),
+        n("totals", "D3.4.1–3", "still in the white body: label (bodyMedium #666) left · value (Bebas) right", kids=[
+          n("Subtotal", "D3.4.1", "", cells=["Subtotal", "gross"]),
+          n("Discount (n%)", "D3.4.2", "only when discount > 0", cells=["Discount (n%)", "-amount"], dashed=True),
+          n("Round off", "D3.4.3", "", cells=["Round off", "round off"]),
+        ]),
+        n("Total band", "D3.4.4–5", "BLUE band (accent), padding 16 × 20, white text", kids=[
+          n("Total", "D3.4.4", "", cells=["Total (heading 600, white)", "₹ total (figure, Bebas 28, white)"]),
+          n("amount in words", "D3.4.5", "caption italic, 80 % white: \"Rupees … Only\""),
+        ]),
+        n("UPI footer", "D3.5", "white, padding 16 × 20; only when Settings has a UPI ID: \"UPI: <id>\" (caption #666)", dashed=True),
+      ]),
+    ],
+    tablet=[
+      n("S3 Share button", "S3.2", "InvoiceDetail BillToCard → s.share()", dashed=True),
+      n("off-screen host", "", "InvoiceDetail: View at left -IMAGE_WIDTH × 2, pointerEvents none, ref imageRef", dashed=True, kids=[
+        n("InvoiceImage", "D3", "inv · lines · settings"),
+      ]),
+      n("capture", "", "captureRef(imageRef) → PNG tmpfile → moved to cache as <invoice no>.png"),
+      n("shareFile(uri)", "", "src/export/pdf.ts: Share file dialog", cells=["WhatsApp → modules/whatsapp-share", "Save to phone → folder picker", "Cancel"]),
+    ]),
 ]
 
 # ---------------------------------------------------------------------------
@@ -291,7 +333,7 @@ def page():
     <p class="caption">{esc(s["note"])}</p>
     <p class="caption">Point at a piece as <code>Function</code> + cell: "DateRangeRow, first column". Blue blocks hold other blocks; dashed blocks are optional or belong to another file.</p>
   </div>
-  <div class="two">{device("Phone · one pane (xs, sm, md)", s["phone"], s.get("small", ""))}{device("Tablet · panes (lg+)", s["tablet"])}</div>
+  <div class="two">{device(s.get("phone_label", "Phone · one pane (xs, sm, md)"), s["phone"], s.get("small", ""))}{device(s.get("tablet_label", "Tablet · panes (lg+)"), s["tablet"])}</div>
 </section>''')
     return f'''<title>Screen Map</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -226,9 +226,15 @@ function BillToCard({ s, theme }: { s: Loaded; theme: Theme }) {
       <Text style={[type.heading, { color: theme.text }]}>{s.inv.party_name || '(no customer)'}</Text>
       {s.party ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.party}</Text> : null}
       {s.contact ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.contact}</Text> : null}
-      <Button label="Share" icon="share-2" theme={theme}
-        style={{ alignSelf: 'flex-start', marginTop: space[2] }}
-        busy={s.busy === 'share'} onPress={() => s.share()} />
+      {/* S3.2 last row: Share (left) | the payment method chosen in S4, Cash or UPI (right). */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3], marginTop: space[2] }}>
+        <Button label="Share" icon="share-2" theme={theme}
+          busy={s.busy === 'share'} onPress={() => s.share()} />
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <Text style={[type.overline, { color: theme.textMuted }]}>Payment</Text>
+          <Text style={[type.label, { color: theme.text }]}>{s.inv.payment_mode || 'Cash'}</Text>
+        </View>
+      </View>
     </Card>
   );
 }

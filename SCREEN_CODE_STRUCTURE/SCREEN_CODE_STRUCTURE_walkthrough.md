@@ -577,3 +577,42 @@ Root cause read from `node_modules/expo-intent-launcher/android/.../IntentLaunch
 | Stand-in reverted (`WHATSAPP_PACKAGES = ['com.whatsapp', 'com.whatsapp.w4b']`, manifest restored), rebuilt, reinstalled | RESULT OK |
 | On the owner's phone with WhatsApp | **not tested** (no WhatsApp on the emulator) |
 | Save to phone | not re-tested (unchanged code; the folder picker is the system's) |
+
+## 2026-10-28: screen map, new D3 tab (invoice image)
+
+`scripts/screen-map.py`: new entry D3 "Invoice image (Share)" from `src/features/invoices/InvoiceImage.tsx`. One function with inline regions, so the blocks are named by region with IDs D3.1 top row, D3.2 bill to, D3.3 items table (D3.3.h header · D3.3.r rows), D3.4 totals (D3.4.1–D3.4.5), D3.5 UPI footer; right column = where it comes from (S3 Share → off-screen host → capture → `shareFile`). The renderer now takes optional `phone_label` / `tablet_label` (D3 is not a screen). `SCREEN_LAYOUT_REFERENCE.md`: D3 row in the app map and a D3 section (wireframe + table), so every map ID exists there. `screen-map.html` regenerated (7 tabs) and republished to the Screen Map artifact (https://claude.ai/artifact/2eSJt98Zy4PqVMXvF4QwKe, version 3; it was still the 2026-10-23 version). D3 tab checked in the browser pane.
+
+## 2026-10-28: D3 invoice image, blue header and Total band
+
+`src/features/invoices/InvoiceImage.tsx`: root = 1px `accent` border, `radius.card`, `overflow: hidden`; D3.1 in a blue band (padding 20, white / 80 % white text); white body (padding 20, gap 4) with D3.2, D3.3 and D3.4.1–3; D3.4.4–5 in a blue band (padding 16 × 20); D3.5 white footer. Docs: `scripts/screen-map.py` D3 entry (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` D3 section.
+
+| Check | Result |
+| --- | --- |
+| Debug build with the EAS key (`assembleDebug`) installed over the release build; Metro on 8081 | first launch: red "loadJSBundleFromAssets" screen because the "nearby devices" (local network, API 37) prompt had been declined; `pm grant … ACCESS_LOCAL_NETWORK` on the emulator, then it loaded from Metro |
+| Preview 1 (blue on D3.1, D3.4.1–5, D3.5), captured from `cache/INV-001.png` | sent to the owner; code restored |
+| Preview 2 (blue on D3.1 and D3.4.4–5 only) | sent; approved ("Apply it") |
+| Applied; `npm run typecheck` | no errors |
+| Final capture vs the approved preview | byte-identical PNG (same hash) |
+| Release APK (`assembleRelease`), `verify_apk.py` | RESULT OK, signature MATCH; installed on the emulator |
+
+## 2026-10-28: S3 Bill to, Payment (Cash / UPI) beside Share
+
+`src/features/invoices/InvoiceDetail.tsx` `BillToCard`: the Share button and a right-aligned Payment block (overline "Payment", `inv.payment_mode`, falls back to "Cash") share the last row (space-between). Read-only: the method is chosen in S4's Payment card (Edit). Docs: `scripts/screen-map.py` S3.2 (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` S3.2.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Release APK built and installed on the emulator; INV-001 (Cash) opened | "PAYMENT / Cash" at the right of the Share button, in the space the owner marked; rest of S3 unchanged |
+| A UPI invoice | not opened (same field as the share image's Payment, which showed UPI for INV-001/002 earlier) |
+
+## 2026-10-28: S1 Dashboard, Payments · FY pie (S1.7)
+
+`src/data/dashboardRepo.ts`: `getPaymentSplit()`. `src/features/dashboard/DashboardScreen.tsx`: `useDashboard()` loads it; `PaymentsPieCard` after `StockPieCard`; both now render `PieLegendCard`. Docs: `scripts/screen-map.py` (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` (S1 wireframe, S1.7, C17 users), `DashboardScreen_S1_tree.md`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Emulator test data: INV-001 Cash ₹100 + a new INV-002 "UpiCustomer" UPI ₹250 | Payments card: UPI (1) ₹250.00 · Cash (1) ₹100.00 · Total ₹350.00 = Total billed ₹350.00; blue slice 250 / 350 |
+| Stock split after the refactor | unchanged (all zero, grey disc) |
+| 320 dp | "Total collected" cut → renamed "Total"; after the rebuild nothing is cut |
+| Local-Build-apk (owner: "do; Local_build_apk"): `assembleRelease`, `verify_apk.py` | RESULT OK (arm64-v8a + x86_64, offline, signature MATCH); installed on the emulator |

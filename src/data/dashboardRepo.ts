@@ -26,6 +26,27 @@ export async function getKpis(): Promise<Kpis> {
   return row ?? { invoiceCount: 0, billedPaise: 0 };
 }
 
+export interface PaymentSplit {
+  upiPaise: number; upiCount: number;
+  cashPaise: number; cashCount: number;
+}
+
+// The same invoices as getKpis (this FY, issued / partial / paid), split by the payment
+// mode chosen on each invoice: 'UPI', and everything else as Cash (the column's default).
+export async function getPaymentSplit(): Promise<PaymentSplit> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<PaymentSplit>(
+    `SELECT COALESCE(SUM(CASE WHEN payment_mode = 'UPI' THEN total_paise END),0) upiPaise,
+            COALESCE(SUM(CASE WHEN payment_mode = 'UPI' THEN 1 END),0) upiCount,
+            COALESCE(SUM(CASE WHEN payment_mode = 'UPI' THEN 0 ELSE total_paise END),0) cashPaise,
+            COALESCE(SUM(CASE WHEN payment_mode = 'UPI' THEN 0 ELSE 1 END),0) cashCount
+     FROM invoices
+     WHERE status IN ('issued','partial','paid') AND invoice_date >= ?`,
+    currentFyStart(),
+  );
+  return row ?? { upiPaise: 0, upiCount: 0, cashPaise: 0, cashCount: 0 };
+}
+
 export async function recentInvoices(limit = 5): Promise<Invoice[]> {
   const db = await getDb();
   return db.getAllAsync<Invoice>(

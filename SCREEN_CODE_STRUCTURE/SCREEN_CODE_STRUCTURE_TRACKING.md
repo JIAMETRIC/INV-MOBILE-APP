@@ -279,3 +279,22 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | "Not installed" only from a real `getPackageInfo` check (WhatsApp, then WhatsApp Business; both already in `<queries>`); any other failure shows Android's own message | The owner's phone has WhatsApp and still saw "not installed": the message was a guess. | Keep one catch-all message. |
 | S3 button: "WhatsApp" (green) → "Share" (kit solid blue, `share-2`), and it calls `shareFile(uri)` with no target: the same WhatsApp / Save to phone / Cancel dialog as the Excel exports | Owner asked for the Products-style two-step choice. The button no longer means only WhatsApp, so WhatsApp green would mislead; `whatsappGreen` / `whatsappWhite` tokens removed (unused). | Keep the green button with a second "Save" button. |
 | The captured PNG is moved to cache as `<invoice no>.png` before sharing | "Save to phone" copies the file's own name; it was `ReactNative-snapshot-image….png`. | Rename in `saveToDevice`. |
+
+## 2026-10-28 — D3 invoice image: blue header and Total band
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Previews were real captures of the app's PNG (debug build + Metro on the emulator, `run-as` copy of `cache/INV-001.png`), with the code restored after each | The owner asked to see the image before applying; a capture shows exactly what WhatsApp gets (fonts, Bebas numbers, corners). | An HTML mock-up. |
+| First preview: blue on D3.1, D3.4.1–5 and D3.5; owner narrowed it to the top header and the Total + words area | Owner's choice after seeing it. | — |
+| Colours from the light theme: band `accent` (#2596be), text `accentOn` (#ffffff), secondary text `alpha(accentOn, 0.8)` | No new hex values (CLAUDE.md "only these five tokens" + see-through variants). White on #2596be is ~3.4:1, fine for the large Total and the 600 heading; the small labels are below AA, as the owner already accepted for blue buttons (CLAUDE.md exceptions). | `linkColor` #1a6f8e for more contrast (not App Blue). |
+| 1px `accent` border, `radius.card` 16, `overflow: hidden`; the root lost its padding, each part pads itself | Full-bleed bands need the padding on the parts. The PNG corners outside the radius are transparent. | A white frame around a rounded card. |
+| The emulator's test company got sample values (Sample Traders, 9876543210, `sampletraders@upi`) | To show D3.5 and the business block in the preview; emulator test data only. | — |
+
+## 2026-10-28 — S1 Dashboard: Payments · FY pie (S1.7)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Money per mode = `SUM(total_paise)` of the hero's invoices (this FY, issued / partial / paid) grouped by `invoices.payment_mode`; anything not 'UPI' counts as Cash | The mode is chosen on each invoice at sale (S4 Payment card); same scope as Total billed, so UPI + Cash = the hero figure. 'Cash' is the column default (older rows). | The `payments` table (P1): nothing opens P1 now, so it is empty or stale. |
+| One shared `PieLegendCard` for S1.6 and S1.7 | The two cards are the same layout; one function keeps them identical. | A copy of the S1.6 JSX. |
+| Legend labels "UPI (n)" / "Cash (n)" with ₹ values; total label "Total" | At 320 dp "Total collected" was cut ("Total collec…"). | Smaller amounts without paise. |
+| UPI blue (`accent`), Cash grey (`textMuted`) | Same roles as S1.6 (first slice blue, second grey); dark mode follows. | — |

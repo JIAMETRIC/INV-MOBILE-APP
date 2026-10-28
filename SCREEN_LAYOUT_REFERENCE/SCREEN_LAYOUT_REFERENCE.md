@@ -40,6 +40,7 @@ App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
 | P3 | Product editor / Restock sheet | inside `ProductsScreen.tsx` | S5 row tap or FAB (phone, md) |
 | D1 | Invoice PDF / print layout | `src/export/pdfTemplate.ts` | S3 "Share PDF", S4 preview |
 | D2 | Excel exports | `src/export/xlsx.ts` | S2, S3, S5 export buttons |
+| D3 | Invoice image (Share) | `src/features/invoices/InvoiceImage.tsx` | S3 "Share" (WhatsApp / Save to phone) |
 
 ### Breakpoints (`src/ui/useBreakpoint.ts`)
 
@@ -150,6 +151,13 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 │             ─────────────── │
 │             Actual       15 │       (+ red "Oversold by N")
 └─────────────────────────────┘
+┌─────────────────────────────┐
+│ PAYMENTS · FY               │ S1.7 payments pie card
+│  (3D pie)   ● UPI (1) ₹250  │       same card as S1.6 (PieLegendCard)
+│  UPI|Cash   ● Cash (1) ₹100 │       UPI blue · Cash grey
+│             ─────────────── │
+│             Total     ₹350  │       = Total billed (S1.1)
+└─────────────────────────────┘
                [+ New invoice]   S1.5 FAB (52, radius 12, blue)
 ┌─────────────────────────────┐
 │ [■]   [ ]    [ ]    [ ]     │ S0.4.2 floating bottom nav
@@ -169,6 +177,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | `STOCK_TILES` |
 | S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | `STOCK_TILES` |
 | S1.6 | Stock split | glass card, gap 12: overline "Stock split" · row (gap 16): `PieChart3D` (C17) width 128 (96 at xs), tilt 0.55, depth 16, slices Sold `theme.accent` · Balance `theme.textMuted` (negatives drawn as 0; all zero → `theme.divider` disc), then the legend (`flex: 1`): dot 10 + label 13/400 `#666` + value `type.number` (Bebas 16) for Sold and Balance, divider, "Actual Stock" 13/500 + value; Balance < 0 adds "Oversold by N" in `theme.error` | `S1.pieWidth`, `S1.pieWidthXs`, `S1.pieTilt`, `S1.pieDepth`, `S1.swatch` | `StockPieCard` |
+| S1.7 | Payments · FY | the S1.6 card (`PieLegendCard`) for money: `getPaymentSplit()` (`dashboardRepo.ts`) = the hero's invoices (this FY, issued / partial / paid) split by `invoices.payment_mode`: 'UPI', everything else Cash. Pie weights = ₹; legend "UPI (n)" / "Cash (n)" with `₹` amounts (`type.number`), divider, "Total" (= S1.1 Total billed). UPI `theme.accent`, Cash `theme.textMuted` | `S1.pieWidth`, `S1.pieWidthXs`, `S1.pieTilt`, `S1.pieDepth`, `S1.swatch` | `PaymentsPieCard`, `PieLegendCard` |
 | S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9); the `fab` slot of `<Screen>` | | `DashboardScreen` |
 | — | Scroll container | side padding 20, gap 16, bottom = `useMainInset()` (clears nav + FAB; from `<Screen fab>`), maxWidth max(720, `S1.readShare` 90% width) | | `DashboardMain` |
 
@@ -282,7 +291,7 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 | --- | --- | --- | --- |
 | S3.0 | Loading | centred spinner until the invoice loads | `InvoiceDetail` |
 | S3.1 | Header row | left column: invoice_no (title) + date · due; right: StatusGlyph | `HeaderRow` |
-| S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`) | `BillToCard` |
+| S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`); last row (space-between, gap 12): Share button (left) · Payment block (right, right-aligned: overline "Payment", `inv.payment_mode` Cash / UPI in `type.label`, read-only; changed with Edit → Items → Payment) | `BillToCard` |
 | S3.3 | Primary actions | wrap row, gap 12 (`layout.grid`): **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | `ActionRow` |
 | S3.4 | Items table | SectionTitle "Items (n)"; `ItemsHeader` Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3** (`S3.itemColumns`, read by the header and the rows), numbers right-aligned; each `LineRow` (memo) padded 12, bottom border; description up to 2 lines | `ItemsCard`, `ItemsHeader`, `LineRow` |
 | S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | `TotalsCard` |
@@ -589,6 +598,41 @@ Page A4 210×297mm or Letter 216×279mm · padding 10mm × 9mm · Inter 9.5px (e
 
 PDF generation and sharing: `src/export/pdf.ts` (`exportInvoicePdfAndShare`, `shareFile`).
 
+## D3 — Invoice image (`src/features/invoices/InvoiceImage.tsx`)
+
+**File:** `src/features/invoices/InvoiceImage.tsx` · `InvoiceImage({ inv, lines, settings })`, one function (regions inline). Drawn off screen by S3 (`InvoiceDetail`) at `IMAGE_WIDTH` 390, captured with `react-native-view-shot` as `<invoice no>.png`, then the Share dialog (WhatsApp / Save to phone). Light palette in every theme: white page, black text, `#666` labels; numbers in Bebas Neue. 1px App Blue border, radius 16 (`radius.card`); D3.1 and D3.4.4–5 are App Blue bands with white text (`accentOn`, labels at 80 %).
+
+```
+╭──────────────────────────────────────────────╮ 1px blue border, radius 16
+│▓Business name▓▓▓▓▓PAYMENT▓▓▓▓▓▓▓▓▓▓INVOICE▓▓▓│ D3.1 BLUE band, white text:
+│▓subtitle▓▓▓▓▓▓▓▓▓▓UPI▓▓▓▓▓▓▓▓▓▓▓▓▓▓INV-002▓▓▓│      flex 1 | centred | flex 1
+│▓contact · email▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓26 Oct 26▓│
+├──────────────────────────────────────────────┤
+│ BILL TO                                      │ D3.2 bill to
+│ Jia                                          │
+│ address · mobile · email                     │
+├──────────────────────────────────────────────┤
+│ ITEM          SIZE   QTY    RATE     AMOUNT  │ D3.3.h header (44 / 40 / 70 / 80)
+│ Polo T-Shirt  M        1  250.00     250.00  │ D3.3.r one row per line
+├──────────────────────────────────────────────┤
+│ Subtotal                             250.00  │ D3.4.1
+│ Discount (n%)                        -x.xx   │ D3.4.2 (only if > 0)
+│ Round off                              0.00  │ D3.4.3
+│▓Total▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓₹250.00▓▓▓│ D3.4.4 BLUE band (heading · Bebas 28, white)
+│▓Rupees Two Hundred Fifty Only▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│ D3.4.5 (italic, 80 % white)
+│ UPI: name@bank                               │ D3.5 white (only if Settings has a UPI ID)
+╰──────────────────────────────────────────────╯
+```
+
+| ID | Section | Spec |
+| --- | --- | --- |
+| D3 | Page | `View` width 390, background `paper`, 1px `accent` border, `radius.card` 16, `overflow: hidden`; three parts: blue D3.1 band · white body (padding 20, gap 4: D3.2 to D3.4.3, dividers 1px `divider`, margin 12) · blue Total band · white UPI footer |
+| D3.1 | Top row (blue band, padding 20, white text) | business (`flex: 1`): `settings.name` heading (or "Invoice"), subtitle, contact · email · payment (centred): overline "Payment", `inv.payment_mode` (Cash / UPI) · invoice (`flex: 1`, right): overline "Invoice", invoice no, date |
+| D3.2 | Bill to | overline, party name (label), address / city / pincode, mobile · email (captions, each only if set) |
+| D3.3 | Items table | header row (overline) and one row per line, gap 8: Item `flex: 1` (2 lines max) · Size 44 · Qty 40 · Rate 70 · Amount 80 (right-aligned, Bebas) |
+| D3.4 | Totals | D3.4.1–3 in the white body: Subtotal · Discount (only if > 0) · Round off. D3.4.4–5 in a blue band (padding 16 × 20): Total (heading + `type.figure`, white) · amount in words (italic, 80 % white) |
+| D3.5 | UPI footer | white, padding 16 × 20: "UPI: <id>" (caption `#666`), only when `settings.upi_id` is set |
+
 ## D2 — Excel exports (`src/export/xlsx.ts`)
 
 | ID | Export | Sheet → columns (width) | Triggered from |
@@ -623,7 +667,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
 | C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
-| C17 | `PieChart3D` | a pie as a tilted disc (react-native-svg): top = ellipse (height = width × `tilt`) cut into slices with 1px white lines; the front half has a `depth`-tall side wall per slice, slice colour under `chartShade` (black 25 %: flat, no gradient). `emptyColor` disc when all values are 0; `accessibilityRole="image"` + `label` | S1.6 | PieChart3D.tsx |
+| C17 | `PieChart3D` | a pie as a tilted disc (react-native-svg): top = ellipse (height = width × `tilt`) cut into slices with 1px white lines; the front half has a `depth`-tall side wall per slice, slice colour under `chartShade` (black 25 %: flat, no gradient). `emptyColor` disc when all values are 0; `accessibilityRole="image"` + `label` | S1.6, S1.7 | PieChart3D.tsx |
 | C16 | `Screen` | the Three-Slot scaffold: `header` · `below` (stepper) · Main (children, `flex: 1`) · `footer` (in the flex column, padded by the gesture inset, rises with the keyboard) · `fab` (floats over Main); `overlay` = no bottom nav underneath. `useMainInset()` = what Main's scroller pads at the bottom (nav inset or 32 in an overlay, + FAB clearance); `useFabClearance()` = 52 + 16 when a `fab` is set, else 0 | S2, S4 | Screen.tsx:23 |
 
 ### Design tokens (`src/ui/tokens.ts`)
