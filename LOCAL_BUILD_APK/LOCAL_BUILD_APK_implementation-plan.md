@@ -56,6 +56,8 @@ credentials.json
 
 Check: `git check-ignore -v credentials.json credentials/android/keystore.jks` names both.
 
+If the app has local Expo modules (`modules/<name>/android`), Gradle writes their build output inside them: also ignore `modules/*/android/build/` and `modules/*/android/.cxx/`, or a `git add modules` commits ~130 generated files.
+
 ## 3. Gradle signs with that key (`android/app/build.gradle`)
 
 Replace the template's `signingConfigs { … }` and the `signingConfig` lines of `buildTypes` with `templates/signing.gradle.txt` (keep the template's other `release` lines). It reads `../credentials.json` at build time; without the file it falls back to the debug key, so emulator builds keep working on a fresh checkout. Debug **and** release get the EAS key, so the two can replace each other on any device.
