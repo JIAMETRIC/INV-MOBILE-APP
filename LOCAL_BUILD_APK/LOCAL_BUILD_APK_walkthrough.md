@@ -35,3 +35,16 @@ Owner ran `npx eas-cli credentials -p android` → `preview` → Download (in te
 | `adb install -r` of the same APK again | Success: from now on local and EAS builds update the emulator in place |
 
 Still open: installing on the owner's phone (holds EAS build 3).
+
+## 2026-10-29: build 4 (PIN lock, UPI / CASH pill)
+
+Code at `020c390` (S7 app lock + `expo-local-authentication`, S2 payment pill). `versionCode` 3 → 4 in `app-version.json` and `android/app/build.gradle` (version stays 1.0.1), so Settings shows "build 4" and the phone (EAS build 3) accepts it as an update.
+
+| Check | Result |
+| --- | --- |
+| `gradlew.bat assembleRelease -x lintVitalAnalyzeRelease -x lintVitalRelease` | BUILD SUCCESSFUL in 58 s |
+| `verify_apk.py` | 1.0.1 / versionCode 4; arm64-v8a, x86_64; INTERNET and ACCESS_NETWORK_STATE not requested; APK cert = keystore cert `cd7a17f8…9b9aa969` → MATCH; installed versionCode 3 on the emulator; RESULT OK |
+| `adb install -r` on emulator-5554 | Success; `dumpsys`: versionCode 4; relaunch shows the S7 lock with the emulator's existing PIN (data and PIN kept) |
+| Copy | `release/InvoiceERP-1.0.1-build4-local.apk` (58.9 MB, git-ignored) |
+
+Still open: install on the owner's phone (holds EAS build 3; same key, so `adb install -r` or opening the APK on the phone updates in place). Fingerprint unlock is first testable there.
