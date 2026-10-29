@@ -53,7 +53,7 @@ InvoicesScreen()                                                        line 99
 │              ├─ ListItem flush: initials avatar (leadingAlt on odd rows),
 │              │   party name or "(no party)", "no · date"; divider except
 │              │   the last row; selected tint (tablets only)
-│              └─ trailing column: ₹ total (MoneyText small) over StatusGlyph  264
+│              └─ trailing column: ₹ total (MoneyText small) over PaymentBadge (UPI solid App Blue · CASH grey)  218
 │
 └─ fab slot (phones)    S2.6  FAB "New invoice" → nav.openCreate()             109
 
@@ -84,7 +84,7 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 | --- | --- | --- | --- |
 | S2.1 filter row | `FilterRow` | 1: search field | the field takes the full width (`flex: 1`), `paddingTop` 4. The calendar button (S2.3) was removed 2026-10-27 |
 | S2.2 status tabs | `SegmentedControl` inside `ListPane` | 5 tabs | one line; the kit control (C8a) lays out its own tabs (they truncate at 320 dp, see § 8) |
-| S2.5 row trailing | `InvoiceRow` | amount over status pill | a column (`alignItems: 'flex-end'`, gap 4) in `ListItem`'s `trailing` slot, not a row |
+| S2.5 row trailing | `InvoiceRow` | amount over payment pill (`PaymentBadge`: UPI / CASH, was `StatusGlyph` until 2026-10-29) | a column (`alignItems: 'flex-end'`, gap 4) in `ListItem`'s `trailing` slot, not a row |
 | lg+ panes | `InvoicesScreen()` | 2 or 3 panes | **not `Columns`**: pane widths are percentages from `S2` and `ListPane` takes the rest with `flex: 1` (the method's rule for panes) |
 
 ## 6. State and actions (`useInvoiceList()`)

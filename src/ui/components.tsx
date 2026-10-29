@@ -350,9 +350,12 @@ export function StatusGlyph({ status, theme }: { status: InvoiceStatus; theme: T
 }
 
 export function Badge({ label, tone, theme }: {
-  label: string; tone: keyof Theme['tone'] | 'error'; theme: Theme;
+  label: string; tone: keyof Theme['tone'] | 'error' | 'accent'; theme: Theme;
 }) {
-  const t = tone === 'error' ? { bg: theme.errorContainer, fg: theme.onErrorContainer } : theme.tone[tone];
+  // 'accent' = solid App Blue with white text (the blue-button exception in CLAUDE.md).
+  const t = tone === 'error' ? { bg: theme.errorContainer, fg: theme.onErrorContainer }
+    : tone === 'accent' ? { bg: theme.accent, fg: theme.accentOn }
+    : theme.tone[tone];
   return (
     <View style={{
       backgroundColor: t.bg, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: space[1],

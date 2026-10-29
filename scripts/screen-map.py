@@ -56,7 +56,7 @@ SCREENS = [
       n("ListPane", "", "Main: the column below, sides 20, gap 16", kids=[
         n("FilterRow", "S2.1", "plain row (not Columns); the calendar button and date range were removed", cells=["SearchField · full width"]),
         n("InvoiceListCard", "S2.5", "Card with the one FlatList; marginBottom useNavInset(); long lists pad useFabClearance()", kids=[
-          n("InvoiceRow × n", "S2.5.r", "React.memo; onPress from useCallback", cells=["avatar", "party · no · date", "₹ total / StatusGlyph"]),
+          n("InvoiceRow × n", "S2.5.r", "React.memo; onPress from useCallback", cells=["avatar", "party · no · date", "₹ total / PaymentBadge (UPI · CASH)"]),
         ]),
       ]),
       n("fab slot", "S2.6", "FAB New invoice (phones)"),

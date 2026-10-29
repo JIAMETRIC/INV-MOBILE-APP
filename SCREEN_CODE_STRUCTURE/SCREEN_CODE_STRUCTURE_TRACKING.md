@@ -298,3 +298,12 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | One shared `PieLegendCard` for S1.6 and S1.7 | The two cards are the same layout; one function keeps them identical. | A copy of the S1.6 JSX. |
 | Legend labels "UPI (n)" / "Cash (n)" with ₹ values; total label "Total" | At 320 dp "Total collected" was cut ("Total collec…"). | Smaller amounts without paise. |
 | UPI blue (`accent`), Cash grey (`textMuted`) | Same roles as S1.6 (first slice blue, second grey); dark mode follows. | — |
+
+## 2026-10-29 — S2 InvoiceRow: payment pill (UPI / CASH) replaces StatusGlyph
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| The trailing pill shows `invoices.payment_mode` as "UPI" or "CASH" (anything not 'UPI' is CASH) | Owner's request; same rule as S1.7 and the share image ('Cash' is the column default for older rows). `listInvoices` is `SELECT *`, so no query change. | Keeping the status and adding a second pill (more height per row). |
+| New local `PaymentBadge` in `InvoicesScreen.tsx` on the kit `Badge` (C12): UPI tone `info` (blue tint), CASH tone `neutral` (grey) | Same colours as the Dashboard Payments pie; no new hex values; the badge is already the kit pill (4 × 10, 12/600, radius 999). Wrapped in a View with an accessibility label "Payment UPI/Cash". | A shared component in `components.tsx` (only one user so far). |
+| `StatusGlyph` stays in `components.tsx` | S3 header (S3.1) still uses it. | — |
+| Follow-up (owner: "UPI must have app Blue background Color"): UPI pill is solid `accent` #2596be with `accentOn` white text; kit `Badge` gains tone `'accent'` | Owner's choice. White on #2596be at 12/600 is below AA, the same exception the owner accepted for blue buttons (CLAUDE.md). `accent` is #2596be in light and dark. | Tone `info` (14% blue tint, black text), the first version. |

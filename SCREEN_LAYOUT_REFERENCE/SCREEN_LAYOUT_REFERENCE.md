@@ -232,7 +232,7 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S2.2 | Status filter | `SegmentedControl` over `STATUSES` (All, Issued, Partial, Paid, Void), inside `ListPane` | `STATUSES`, `ListPane` |
 | S2.3 | Date-range button | removed 2026-10-27 (S2 has no date filter) | — |
 | S2.3a | Date fields | removed 2026-10-27 with S2.3 | — |
-| S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + status). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
+| S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + payment pill UPI / CASH). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
 | S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | `InvoiceListCard` |
 | S2.6 | FAB | phone only, "New invoice"; the `fab` slot of `<Screen>` in `InvoicesScreen()`; the list card clears it with `useFabClearance()` | `InvoicesScreen` |
 | S2.7 | Detail pane | `DetailPane`: lg+; width `S2.detailWidth` 50%, or 42% when the activity pane shows (xxl); left divider; renders S3 | `DetailPane` |

@@ -616,3 +616,16 @@ Root cause read from `node_modules/expo-intent-launcher/android/.../IntentLaunch
 | Stock split after the refactor | unchanged (all zero, grey disc) |
 | 320 dp | "Total collected" cut → renamed "Total"; after the rebuild nothing is cut |
 | Local-Build-apk (owner: "do; Local_build_apk"): `assembleRelease`, `verify_apk.py` | RESULT OK (arm64-v8a + x86_64, offline, signature MATCH); installed on the emulator |
+
+## 2026-10-29: S2 InvoiceRow, payment pill UPI / CASH (replaces StatusGlyph)
+
+`src/features/invoices/InvoicesScreen.tsx`: `InvoiceRow`'s trailing column renders `PaymentBadge` (new, after `InvoiceRow`) instead of `StatusGlyph`; `PaymentBadge` = kit `Badge` "UPI" tone `info` / "CASH" tone `neutral`, a11y label "Payment UPI|Cash". Import: `Badge` in, `StatusGlyph` out. Docs: `scripts/screen-map.py` S2.5.r (+ `screen-map.html`), `InvoicesScreen_S2_tree.md`, `SCREEN_LAYOUT_REFERENCE.md` S2.5.
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` | no errors |
+| `assembleRelease` (local Gradle), `adb install -r` on emulator-5554 (data kept) | BUILD SUCCESSFUL; Success |
+| S2 on the 411 dp phone | INV-002 UpiCustomer ₹250.00 over a blue "UPI" pill; INV-001 TestCustomer ₹100.00 over a grey "CASH" pill; pills right-aligned under the amount, row height unchanged |
+| Dashboard after the install | 2 invoices · ₹350.00; Payments UPI (1) ₹250 · Cash (1) ₹100 (unchanged) |
+| Tablet / dark mode | not checked |
+| Follow-up: UPI pill solid App Blue (`Badge` tone `'accent'` in `src/ui/components.tsx`) | tsc no errors; rebuilt + `adb install -r`; S2 shows a solid #2596be "UPI" pill with white text, CASH unchanged grey |

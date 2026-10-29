@@ -12,7 +12,7 @@ import { useBreakpoint } from '../../ui/useBreakpoint';
 import { useNavInset } from '../../ui/navMetrics';
 import { Screen, useFabClearance } from '../../ui/Screen';
 import {
-  Card, EmptyState, FAB, ListItem, MoneyText, SearchField, StatusGlyph,
+  Badge, Card, EmptyState, FAB, ListItem, MoneyText, SearchField,
   TopAppBar, initials,
 } from '../../ui/components';
 import { alert } from '../../ui/alert';
@@ -196,7 +196,7 @@ function InvoiceListCard({ list, theme, navInset, fill, header }: {
   );
 }
 
-// S2.5 row — avatar (initials) · party name · "invoice no · date" · ₹ total over the status pill.
+// S2.5 row — avatar (initials) · party name · "invoice no · date" · ₹ total over the payment pill (UPI / CASH).
 // Memoised: a row re-renders only when its own props change (rule 5).
 const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, selected, onPress, theme }: {
   item: Invoice; alt: boolean; last: boolean; selected: boolean; onPress: (id: number) => void; theme: Theme;
@@ -215,12 +215,22 @@ const InvoiceRow = React.memo(function InvoiceRow({ item, alt, last, selected, o
       trailing={(
         <View style={{ alignItems: 'flex-end', gap: space[1] }}>
           <MoneyText paiseText={`₹${formatPaise(item.total_paise)}`} theme={theme} small />
-          <StatusGlyph status={item.status} theme={theme} />
+          <PaymentBadge mode={item.payment_mode} theme={theme} />
         </View>
       )}
     />
   );
 });
+
+// S2.5 row, trailing pill — the payment mode chosen in S4: UPI (solid App Blue, white text) or CASH (grey).
+function PaymentBadge({ mode, theme }: { mode: string; theme: Theme }) {
+  const upi = mode === 'UPI';
+  return (
+    <View accessibilityLabel={`Payment ${upi ? 'UPI' : 'Cash'}`}>
+      <Badge label={upi ? 'UPI' : 'CASH'} tone={upi ? 'accent' : 'neutral'} theme={theme} />
+    </View>
+  );
+}
 
 // S2.7 — tablet only: the selected invoice (S3) or a placeholder, behind a left divider.
 function DetailPane({ selected, width, theme }: { selected: Invoice | null; width: string; theme: Theme }) {

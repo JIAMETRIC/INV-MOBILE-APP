@@ -623,3 +623,21 @@ Add one more graph for Payments How much Collected for UPI or CASH
 ```
 do; Local_build_apk
 ```
+
+## Prompt (S2 Invoices: row pill shows UPI / CASH)
+
+```
+Source of truth: "src/features/invoices/InvoicesScreen.tsx"
+Screen: S2 · Invoices
+Function: InvoiceListCard - InvoiceRow × n
+
+Task:
+Cell:  StatusGlyph
+Task: Replace "StatusGlyph" with payment status option UPI or CASH
+```
+
+## Prompt (during the above)
+
+```
+UPI must have app Blue background Color
+```
