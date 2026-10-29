@@ -19,6 +19,7 @@ Every screen, section, row, column and function in the app, each with a **stable
 ```
 App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
    └─ Root: loading screen → error screen → ready
+        └─ LockProvider (S7 PIN screen over everything until unlocked; the shell stays mounted under it)
         └─ NavProvider (tab + overlay state, Android Back)
              └─ SnackbarProvider
                   └─ Shell
@@ -35,6 +36,7 @@ App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
 | S4 | Create / Edit invoice | `src/features/invoices/CreateInvoiceScreen.tsx` | FAB / Rail **+** / "Edit" in S3 / a draft in S6 |
 | S5 | Products | `src/features/products/ProductsScreen.tsx` | tab **Products** |
 | S6 | Settings | `src/features/settings/SettingsScreen.tsx` | tab **Settings** |
+| S7 | Sign in (app lock: PIN, fingerprint, recovery code) | `src/features/auth/AuthScreen.tsx`, `src/auth/` | app start; back after 5 min away; S6.6 Lock now / Change PIN / New recovery code |
 | P1 | Record-payment sheet | inside `InvoiceDetail.tsx` | S3 "Record payment" |
 | P2 | Add-from-products (catalog) sheet | `CatalogSheet` in `CreateInvoiceScreen.tsx` | S4 "Add from products" |
 | P3 | Product editor / Restock sheet | inside `ProductsScreen.tsx` | S5 row tap or FAB (phone, md) |
@@ -67,7 +69,7 @@ App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
 | --- | --- | --- | --- |
 | S0.1.1 | Loading | centred column: spinner, "Invoice ERP" (title), "Unlocking database…" | App.tsx:55-64 |
 | S0.1.2 | Error | centred column: alert icon (40), "Cannot open the database", error text | App.tsx:65-74 |
-| S0.1.3 | Ready | NavProvider → SnackbarProvider → Shell | App.tsx:76-83 |
+| S0.1.3 | Ready | LockProvider (S7) → NavProvider → SnackbarProvider → Shell | App.tsx:93-103 |
 
 Start-up work: `getDb()` → `syncNextSeq()` → ready → `ensureDailyBackup()` in the background (App.tsx:41-53).
 
@@ -505,7 +507,7 @@ md: table, but the editor opens as P3 (dialog)
 
 **File:** `src/features/settings/SettingsScreen.tsx`
 
-Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **backup**, **activity**.
+Sections are defined in `SECTIONS`: **company**, **security** (S6.6, since 2026-10-29), **backup**, **activity**. (Drafts, S6.3, is no longer in the list.)
 
 ### Phone: list, then drill-in
 
@@ -545,6 +547,7 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 | S6.3 | **Drafts** | `DraftsPane`: "Drafts (n)" (lg+) · Card list of `DraftRow` (memo): title party · subtitle `draft_no · n lines · ₹total · date` · trailing trash (confirm). Tap → S4 with `draftId`. Empty: "No drafts" | `DraftsPane`, `DraftRow` |
 | S6.4 | **Backup & restore** | `BackupPane`: info text · `ExportRestoreRow` (Export \| Restore, 1:1) · `RecentBackups`: archive icon · file name · `kind · KB · date` | `BackupPane` |
 | S6.5 | **Activity log** | `ActivityPane`: ListItem: `action — entity_type entity_id` · date (latest `S6.auditRows` 50) | `ActivityPane` |
+| S6.6 | **Security** | `SecurityPane`: "App lock" card (when it locks, `LOCK.relockAfterMs` 5 min) · list card: Fingerprint / face unlock (`Switch`, greyed when nothing is enrolled) · Change PIN › · New recovery code › · **Lock now** (solid). The PIN screens are S7 | `SecurityPane` |
 
 ### Functions
 
@@ -558,6 +561,62 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 | `exportBackup()` | `exportDbBackup` → share | in `useSettings` |
 | `importBackup()` | pick a file → confirm → `restoreDbBackup` (takes a safety copy first) | in `useSettings` |
 | `removeDraft(d)` / `openDraft(d)` | confirm → `deleteDraft` / S4 with the draft | in `useSettings` |
+| `toggleBio(on)` | S6.6: on asks for a fingerprint first, then `lock.setBio` → snackbar | in `useSettings` |
+
+---
+
+## S7 — Sign in (app lock)
+
+**Files:** `src/features/auth/AuthScreen.tsx` (screen), `src/auth/LockProvider.tsx` (when it shows), `src/auth/authStore.ts` (PIN / recovery hashes, lockout, fingerprint switch in expo-secure-store), `src/auth/biometrics.ts` (expo-local-authentication).
+
+Always the dark Sign In recipe (`design/screens/04-sign-in`), in light and dark mode. Shown as an absolute cover over the shell, which stays mounted (state survives a lock) and is hidden from screen readers while covered.
+
+### Wireframe (phone, PIN steps)
+
+```
+┌──────────────────────────────┐  black (#000), top 88, sides 24, gap 28
+│            [🔒]              │  S7.0 logo 64, radius 16, App Blue, white lock 30, shadow.secondary
+│        Welcome back          │       H1 28/600 white
+│ Enter your PIN to open …     │       15 #ebeaea
+│ ┌──────────────────────────┐ │
+│ │       ○ ○ ○ ○            │ │  S7.1 dark-glass card, radius 18, padding 24: dots 14 (blue when typed)
+│ │  [ Continue ] (create)   │ │       Continue only on "create"
+│ │  Wrong PIN. (red)        │ │       message line, 2 lines kept so the keys never move
+│ └──────────────────────────┘ │
+│      (1)   (2)   (3)         │  S7.2 keypad: round dark glass 72 (60 under 700 tall), Inter 300 28
+│      (4)   (5)   (6)         │
+│      (7)   (8)   (9)         │
+│      [fp]  (0)   [⌫]         │       fingerprint only when on and enrolled; ⌫ ghost
+│ Forgot PIN? Use recovery code│  S7.3 footer links (14 #ebeaea, link 600 white), pinned to the bottom
+└──────────────────────────────┘
+Short landscape phone (< 600 tall): [header (no logo) + card + footer] | keypad 60.
+Tablets: the same column, max width 400, centred.
+```
+
+### Steps (`useAuthFlow`)
+
+| Flow (`LockProvider` gate) | Steps |
+| --- | --- |
+| `setup` (no PIN yet) | create → confirm → code (recovery code shown once) → bio (only if a fingerprint is enrolled) → app |
+| `unlock` (app start, back after `LOCK.relockAfterMs`, Lock now) | enter (fingerprint prompt opens by itself when on) → app; "Use recovery code" → recover → create → confirm → code → app |
+| `change` (S6.6 Change PIN) | enter current → create → confirm → app. Cancel / Back returns |
+| `new-code` (S6.6 New recovery code) | enter current → code → app. Cancel / Back returns |
+
+### Sections
+
+| ID | Region | Content | Function |
+| --- | --- | --- | --- |
+| S7.0 | Header | logo · title · line under it (`TEXT[step]`; `VERIFY_TEXT` for change / new-code) | `Header` |
+| S7.1 | Step card | `PinEntry` (dots + Continue) · `RecoveryEntry` (Input + Continue) · `RecoveryCode` (code + "I have written it down") · `BioOffer` (Turn on · Not now) · `Message` | `StepCard` |
+| S7.2 | Keypad | 3 × 4, `KeypadKey` × 12 | `Keypad`, `KeypadKey` |
+| S7.3 | Footer | Forgot PIN? Use recovery code · Back to PIN · Cancel | `Footer` |
+
+### Rules
+
+- PIN 4–6 digits (`PIN`); unlock and confirm check as soon as enough digits are in; create moves on at 6 or on Continue.
+- 5 wrong tries in a row (PIN or recovery code) → wait 30 s, then 1 min, 2 min … up to 15 min (`LOCKOUT`); the counter survives restarts and resets on success.
+- Recovery code: 12 characters from 32 (no I, O, 0, 1), shown as `ABCD-EFGH-JKLM`; typing is case- and dash-insensitive. Using it lets you set a new PIN and issues a new code.
+- Android Back: recover → PIN; change / new-code → cancel; otherwise the app closes (never reveals the shell).
 
 ---
 

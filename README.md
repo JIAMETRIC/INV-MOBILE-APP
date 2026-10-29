@@ -2,7 +2,9 @@
 
 Offline, local-only invoicing app for a garment business: invoices with party snapshot,
 products by name × size with live Sold / Available stock and a restock ledger, payments,
-PDF + Excel export, and SQLCipher-encrypted storage with on-device backups. Android only.
+PDF + Excel export, and SQLCipher-encrypted storage with on-device backups. The app opens behind
+a PIN lock (4–6 digits, optional fingerprint / face unlock, a recovery code for a forgotten PIN).
+Android only.
 
 This folder is **self-contained**: copy it anywhere, open it in your editor, and build or run
 it from here. It does not depend on the `digital-invoice` desktop workspace.
@@ -32,6 +34,7 @@ it from here. It does not depend on the `digital-invoice` desktop workspace.
 | Framework | React Native 0.88 + Expo SDK 58 (CNG, `expo-dev-client`) |
 | Language | TypeScript strict (`noUncheckedIndexedAccess`) |
 | Database | `expo-sqlite` with SQLCipher; key in Android Keystore via `expo-secure-store` |
+| App lock | PIN + recovery code as salted SHA-256 in `expo-secure-store` (`expo-crypto`), fingerprint / face via `expo-local-authentication`; S7 screen in `src/features/auth/`, logic in `src/auth/` |
 | Money | Integer paise everywhere; ISO-8601 dates |
 | Documents | PDF via `expo-print` HTML template; XLSX via the in-house `src/export/xlsxWriter.ts` (no exceljs) |
 | UI | **Flat Glass · Brand Blue** design kit (`design/DESIGN.md`, rules in `CLAUDE.md`) built as components in `src/ui/`: 5-colour theme + glass recipes in `tokens.ts`, flat headers, glass cards, floating bottom nav / rail, segmented controls, Feather line icons, a 3D pie chart (`react-native-svg`), light and dark (Sign In) themes, Android Back handling |
@@ -161,8 +164,9 @@ outside the project**: without them phones can never be updated again. Both are 
 INV-MOBILE-APP/
 ├── src/
 │   ├── shell/        App root, navigation + Back stack (useBackIntercept), theme provider
+│   ├── auth/         app lock: LockProvider (when the PIN screen shows), authStore (secure storage), biometrics
 │   ├── ui/           M3 kit: tokens, components, Nav (bar/rail), Sheet, Snackbar, breakpoints
-│   ├── features/     dashboard · invoices (list, detail, create) · products · settings
+│   ├── features/     auth (S7 sign in) · dashboard · invoices (list, detail, create) · products · settings
 │   ├── data/         SQLCipher DB, schema v4 + migrations, repos, integer-paise money core
 │   └── export/       PDF template + share, XLSX writer
 ├── scripts/          test runners, copy-project.ps1, clean-native-caches.ps1
@@ -177,6 +181,7 @@ INV-MOBILE-APP/
 │   (the portable version for a new app is the user-level skill `~/.claude/skills/responsive-screens/`: rules + the layout helpers + the size-tour script)
 ├── .claude/skills/size-check/  /size-check: screenshot every screen at phone and tablet sizes (scripts/size-tour.py)
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
+├── AUTH_AND_LOCK/           the PIN lock: rationale, storage keys, flows, test log (TRACKING · walkthrough · session-prompts)
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)
 ├── SCREEN_LAYOUT_REFERENCE/ per-screen layout map with IDs for edit prompts (+ TRACKING · walkthrough · session-prompts)
 ├── SCREEN_CODE_STRUCTURE/   one *_tree.md per screen / overlay / document / component in the Three-Slot format: slots, reading order, tree, S-numbers, rows and columns, state, "where to change what", sizes (+ TRACKING · walkthrough · session-prompts)
@@ -189,7 +194,8 @@ INV-MOBILE-APP/
 
 None. The app is offline by design and needs no `.env` variables. The database key is created
 on first launch and stored in the Android Keystore. It never leaves the device, so backups only
-restore on the same device or install.
+restore on the same device or install. The app-lock PIN is set by the owner on first open; only
+its salted hash is stored (secure storage, never in the repo or in backups).
 
 ## Documentation
 
@@ -198,7 +204,8 @@ restore on the same device or install.
 - [`MOBILE_APP_CONVERSION/MOBILE_APP_CONVERSION_session-prompts.md`](MOBILE_APP_CONVERSION/MOBILE_APP_CONVERSION_session-prompts.md): prompt history
 - [`SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md): every screen's sections, rows, columns and functions with stable IDs (S1.2, S4.B.3 …) to quote in edit prompts
 - [`SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_TRACKING.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_TRACKING.md) · [`_walkthrough.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_walkthrough.md) · [`_session-prompts.md`](SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE_session-prompts.md)
-- [`SCREEN_CODE_STRUCTURE/`](SCREEN_CODE_STRUCTURE/): tree files for S0–S6, P1–P3, D1–D2 and C1–C4 (`AppShell_S0_tree.md` … `SharedComponents_C1-C4_tree.md`), each in the Three-Slot format (the three slots, the file in reading order, the tree with IDs and line numbers, the S-numbers, rows and columns, state and actions, "where to change what", sizes checked); restructure decisions in [`SCREEN_CODE_STRUCTURE_TRACKING.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md) · [`_walkthrough.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md) · [`_session-prompts.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_session-prompts.md)
+- [`AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md): the PIN lock (S7, S6.6): why local, storage keys, lockout, recovery code, flows · [`_walkthrough.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_walkthrough.md) · [`_session-prompts.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_session-prompts.md)
+- [`SCREEN_CODE_STRUCTURE/`](SCREEN_CODE_STRUCTURE/): tree files for S0–S7, P1–P3, D1–D2 and C1–C4 (`AppShell_S0_tree.md` … `SharedComponents_C1-C4_tree.md`), each in the Three-Slot format (the three slots, the file in reading order, the tree with IDs and line numbers, the S-numbers, rows and columns, state and actions, "where to change what", sizes checked); restructure decisions in [`SCREEN_CODE_STRUCTURE_TRACKING.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md) · [`_walkthrough.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md) · [`_session-prompts.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_session-prompts.md)
 - [`LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md): local Gradle APKs signed with the EAS key (phone + emulator), the `/local-build-apk` skill · [`_walkthrough.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_walkthrough.md) · [`_session-prompts.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_session-prompts.md)
 - [`THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md`](THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md): `brand` root colours in `src/ui/tokens.ts`, theme roles, how to rebrand · [`_walkthrough.md`](THEME_AND_COLORS/THEME_AND_COLORS_walkthrough.md) · [`_session-prompts.md`](THEME_AND_COLORS/THEME_AND_COLORS_session-prompts.md)
 - [`CLAUDE.md`](CLAUDE.md) and [`design/DESIGN.md`](design/DESIGN.md): the Flat Glass · Brand Blue design system every screen follows; reference screens in [`design/screens/`](design/screens/)

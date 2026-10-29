@@ -5,7 +5,7 @@
 //   Header … ActivityPane         one function per region, in the order they appear on screen
 // IDs (S6.1, S6.2.1 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Switch, Text, View } from 'react-native';
 import { alert } from '../../ui/alert';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../../shell/providers';
@@ -24,14 +24,17 @@ import { getSettings, updateSettings } from '../../data/settingsRepo';
 import { exportDbBackup, listBackups, restoreDbBackup } from '../../data/backupRepo';
 import { recentAudit } from '../../data/auditRepo';
 import { shareFile } from '../../export/pdf';
+import { LOCK, useLock } from '../../auth/LockProvider';
+import { bioUnlock } from '../../auth/biometrics';
 import type { Settings } from '../../data/types';
 import appVersion from '../../../app-version.json';
 
-type Section = 'company' | 'backup' | 'activity';
+type Section = 'company' | 'security' | 'backup' | 'activity';
 
-// S6.1 — the three sections, in order: key · label · hint · Feather icon.
+// S6.1 — the four sections, in order: key · label · hint · Feather icon.
 const SECTIONS: Array<{ key: Section; label: string; hint: string; icon: IconName }> = [
   { key: 'company', label: 'Company', hint: 'Business details, bank, invoice numbering', icon: 'briefcase' },
+  { key: 'security', label: 'Security', hint: 'PIN, fingerprint, recovery code, lock', icon: 'lock' },
   { key: 'backup', label: 'Backup & restore', hint: 'Encrypted database export and import', icon: 'upload-cloud' },
   { key: 'activity', label: 'Activity log', hint: 'Recent changes made in the app', icon: 'clock' },
 ];
@@ -68,6 +71,7 @@ function useSettings() {
   const [backups, setBackups] = useState<Backup[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(false);
+  const lock = useLock();
 
   // One pane (phones, md): system Back returns to the section list before leaving Settings.
   useBackIntercept(() => {
@@ -151,10 +155,17 @@ function useSettings() {
     }
   };
 
+  // S6.6: turning fingerprint unlock on asks for a fingerprint first, so it is known to work.
+  const toggleBio = async (on: boolean) => {
+    if (on && !(await bioUnlock('Confirm your fingerprint'))) return;
+    await lock.setBio(on);
+    snack(on ? 'Fingerprint unlock on' : 'Fingerprint unlock off');
+  };
+
   return {
     section, setSection, openOnPhone, setOpenOnPhone,
-    settings, backups, audit, busy,
-    setField, saveCompany, exportBackup, importBackup,
+    settings, backups, audit, busy, lock,
+    setField, saveCompany, exportBackup, importBackup, toggleBio,
   };
 }
 type SettingsState = ReturnType<typeof useSettings>;
@@ -206,7 +217,7 @@ function Header({ s, theme, open }: { s: Loaded; theme: Theme; open?: (typeof SE
   return (
     <TopAppBar
       title={open ? open.label : 'Settings'}
-      subtitle={open ? undefined : 'Company, backup'}
+      subtitle={open ? undefined : 'Company, security, backup'}
       theme={theme}
       large={!open}
       onBack={open ? () => s.setOpenOnPhone(null) : undefined}
@@ -267,6 +278,7 @@ function SectionListPane({ s, theme }: { s: Loaded; theme: Theme }) {
 function SectionBody({ s, theme, section }: { s: Loaded; theme: Theme; section: Section }) {
   switch (section) {
     case 'company': return <CompanyForm s={s} theme={theme} />;
+    case 'security': return <SecurityPane s={s} theme={theme} />;
     case 'backup': return <BackupPane s={s} theme={theme} />;
     case 'activity': return <ActivityPane s={s} theme={theme} />;
   }
@@ -348,6 +360,43 @@ function NumberingCard({ s, theme }: { s: Loaded; theme: Theme }) {
         </FieldRow>
       </View>
     </Card>
+  );
+}
+
+// S6.6 — Security: when the app locks, then a list card (fingerprint switch · Change PIN ·
+// New recovery code), then Lock now. The PIN screens themselves are S7.
+function SecurityPane({ s, theme }: { s: Loaded; theme: Theme }) {
+  const { bio } = s.lock;
+  const minutes = LOCK.relockAfterMs / 60_000;
+  return (
+    <View style={{ gap: layout.gap }}>
+      <Card theme={theme} style={{ gap: space[4] }}>
+        <SectionTitle title="App lock" theme={theme} />
+        <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: -space[3] }]}>
+          The app asks for your PIN when it opens and after {minutes} minutes in the background.
+        </Text>
+      </Card>
+      <Card theme={theme} list>
+        <ListItem theme={theme} flush leadingIcon="smartphone"
+          title="Fingerprint / face unlock"
+          subtitle={bio.available ? 'Unlock without typing the PIN' : 'Add a fingerprint in Android Settings to use this'}
+          trailing={(
+            <Switch
+              value={bio.available && bio.enabled}
+              disabled={!bio.available}
+              onValueChange={on => void s.toggleBio(on)}
+              accessibilityLabel="Fingerprint or face unlock"
+              trackColor={{ true: theme.accent, false: theme.outline }}
+              thumbColor={theme.accentOn}
+            />
+          )} />
+        <ListItem theme={theme} flush leadingIcon="key" title="Change PIN" subtitle="Enter the current PIN, then a new one"
+          chevron onPress={s.lock.changePin} />
+        <ListItem theme={theme} flush leadingIcon="file-text" title="New recovery code" subtitle="The old code stops working"
+          chevron divider={false} onPress={s.lock.showNewCode} />
+      </Card>
+      <Button label="Lock now" icon="lock" theme={theme} onPress={s.lock.lockNow} />
+    </View>
   );
 }
 

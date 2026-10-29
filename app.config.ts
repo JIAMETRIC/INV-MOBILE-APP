@@ -56,6 +56,8 @@ export default ({ config }: ConfigContext): ExpoConfig => withWhatsAppQueries({
   plugins: [
     ['expo-sqlite', { useSQLCipher: true }],
     'expo-secure-store',
+    // S7 fingerprint / face unlock (Android: USE_BIOMETRIC comes from the module's manifest).
+    ['expo-local-authentication', { faceIDPermission: 'Allow Invoice ERP to use Face ID to unlock the app.' }],
   ],
   experiments: { typedRoutes: false },
   // expo-sqlite web driver (wa-sqlite worker) needs crossOriginIsolated.

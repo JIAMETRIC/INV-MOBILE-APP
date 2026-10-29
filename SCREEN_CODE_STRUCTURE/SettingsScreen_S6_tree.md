@@ -183,3 +183,7 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 | lg 800 · xl 961 · xxl 1280 | master-detail: the 300-dp list with the tinted selected row and the version line, the section in the pane capped at 720 with its two-column rows side by side | Prompt 52 (lg), Prompt 30 (lg, xl, xxl: as designed) |
 
 Open findings (not applied): none.
+
+## 2026-10-29 addendum: S6.6 Security
+
+`SecurityPane` (SettingsScreen.tsx, line 368) is a fourth section, between Company and Backup in `SECTIONS`: an "App lock" card, a list card (Fingerprint / face unlock `Switch` · Change PIN › · New recovery code ›) and a solid **Lock now**. `useSettings()` gains `lock = useLock()` and `toggleBio(on)`. The header caption is now "Company, security, backup". The PIN screens are S7: see `AuthScreen_S7_tree.md`. (Line numbers above are from 2026-10-23 and have moved.)

@@ -173,9 +173,9 @@ SCREENS = [
   dict(key="S6", title="Settings", file="src/features/settings/SettingsScreen.tsx",
     note="One pane: the section list, or the open section under a back header. lg+: list 300 | section capped at 720. No footer: Save is the last row of CompanyForm.",
     phone=[
-      n("Header", "S6.0", "TopAppBar large: Settings · Company, backup; section open → its label + back"),
+      n("Header", "S6.0", "TopAppBar large: Settings · Company, security, backup; section open → its label + back"),
       n("SectionScroll", "", "Main: one ScrollView; bottom = useNavInset()", kids=[
-        n("SectionList", "S6.1", "Card list: ListItem × 3 + VERSION_LABEL", cells=["Company", "Backup & restore", "Activity log"]),
+        n("SectionList", "S6.1", "Card list: ListItem × 4 + VERSION_LABEL", cells=["Company", "Security", "Backup & restore", "Activity log"]),
         n("SectionBody (switch)", "", "one of:", kids=[
           n("CompanyForm", "S6.2", "", kids=[
             n("BusinessCard", "S6.2.1", "FieldRow × 2 = Columns kind=\"input\"", cells=["City | Pincode", "PAN | Contact"]),
@@ -188,6 +188,10 @@ SCREENS = [
             n("RecentBackups", "", "when any", dashed=True),
           ], dashed=True),
           n("ActivityPane", "S6.5", "Card list: ListItem × n", dashed=True),
+          n("SecurityPane", "S6.6", "App lock card · list card · Lock now (opens S7)", kids=[
+            n("list card", "", "ListItem × 3", cells=["Fingerprint / face unlock · Switch", "Change PIN ›", "New recovery code ›"]),
+            n("Button Lock now", "", "→ lock.lockNow()"),
+          ], dashed=True),
         ]),
       ]),
     ],
@@ -195,7 +199,28 @@ SCREENS = [
       n("Header", "S6.0", "large, no back"),
       n("panes", "", "View row, gap 16", columns=True, kids=[
         n("SectionListPane", "", "width S6.listWidth 300", kids=[n("SectionList", "S6.1", "selected row tinted"), n("VERSION_LABEL")]),
-        n("SectionScroll", "", "maxWidth S6.paneMaxWidth 720", kids=[n("SectionBody(section)", "S6.2, S6.4, S6.5")]),
+        n("SectionScroll", "", "maxWidth S6.paneMaxWidth 720", kids=[n("SectionBody(section)", "S6.2, S6.4, S6.5, S6.6")]),
+      ]),
+    ]),
+  dict(key="S7", title="Sign in (app lock)", file="src/features/auth/AuthScreen.tsx",
+    note="Always the dark Sign In recipe. A cover over the shell (LockProvider), which stays mounted. Steps: enter · recover · create · confirm · code · bio; the card's content changes per step, the keypad only on enter / create / confirm.",
+    phone=[
+      n("Header", "S7.0", "logo 64 (App Blue, lock) · H1 title · 15 #ebeaea line", cells=["TEXT[step]"]),
+      n("StepCard", "S7.1", "dark glass, radius 18, padding 24; one of:", kids=[
+        n("PinEntry", "", "dots 14 × len (6 on create) · Continue on create"),
+        n("RecoveryEntry", "", "Input Recovery code · Continue", dashed=True),
+        n("RecoveryCode", "", "code H1 · note · I have written it down", dashed=True),
+        n("BioOffer", "", "fingerprint 40 · Turn on · Not now", dashed=True),
+        n("Message", "", "red error / lockout countdown; 2 lines kept on PIN steps"),
+      ]),
+      n("Keypad", "S7.2", "3 × 4 KeypadKey, round 72 (60 under 700 tall)", cells=["1 2 3", "4 5 6", "7 8 9", "fp · 0 · ⌫"]),
+      n("Footer", "S7.3", "links pinned to the bottom", cells=["Forgot PIN? Use recovery code", "Back to PIN", "Cancel"]),
+    ],
+    tablet=[
+      n("column", "", "same as the phone, maxWidth S7.maxWidth 400, centred"),
+      n("short landscape phone", "", "row", columns=True, kids=[
+        n("left", "", "Header (no logo) · StepCard · Footer"),
+        n("Keypad", "S7.2", "keys 60"),
       ]),
     ]),
   dict(key="D3", title="Invoice image (Share)", file="src/features/invoices/InvoiceImage.tsx",

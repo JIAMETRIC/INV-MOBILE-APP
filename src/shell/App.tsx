@@ -27,6 +27,7 @@ import { ProductsScreen } from '../features/products/ProductsScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { TopAppBar } from '../ui/components';
 import { SnackbarProvider } from '../ui/Snackbar';
+import { LockProvider } from '../auth/LockProvider';
 
 export default function App() {
   return (
@@ -90,12 +91,15 @@ function Root() {
   }
 
   return (
-    <NavProvider isPhone={bp.isPhone}>
-      {/* Phones: clear the floating nav and the 52 FAB above it (16 gaps), so snackbars never cover them. */}
-      <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_HEIGHT + 52 + 2 * 16 + 8 : 0}>
-        <Shell />
-      </SnackbarProvider>
-    </NavProvider>
+    // S7: the PIN screen covers the shell until it is unlocked (src/auth/LockProvider.tsx).
+    <LockProvider>
+      <NavProvider isPhone={bp.isPhone}>
+        {/* Phones: clear the floating nav and the 52 FAB above it (16 gaps), so snackbars never cover them. */}
+        <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_HEIGHT + 52 + 2 * 16 + 8 : 0}>
+          <Shell />
+        </SnackbarProvider>
+      </NavProvider>
+    </LockProvider>
   );
 }
 
