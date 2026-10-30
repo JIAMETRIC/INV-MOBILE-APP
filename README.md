@@ -42,6 +42,7 @@ it from here. It does not depend on the `digital-invoice` desktop workspace.
 | Fonts | Inter for text (4 weights) and Bebas Neue for displayed numbers, both SIL OFL 1.1, via `@expo-google-fonts/*` + `expo-font`; the invoice PDF embeds subsets generated into `src/export/pdfFonts.ts` |
 | Layout | 6 breakpoints: bottom tabs on phones, rail + 2–3 panes on tablets |
 | Packaging | Local Gradle (no cloud needed); optional EAS profiles in `eas.json` |
+| Desktop host | Electron 44 + `better-sqlite3-multiple-ciphers` (SQLCipher 4 format, key protected by Windows DPAPI), own package in `desktop/` (`desktop/package.json`), NSIS installer via electron-builder |
 
 ---
 
@@ -115,8 +116,12 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | `npm run test:money` | Money core / amount-in-words unit tests |
 | `npm run test:integration` | Headless SQLite harness over the real data layer, incl. the v9 sync triggers and a v8 → v9 upgrade from `scripts/fixtures/schema-v8.sql` |
 | `npm run test:sync` | LAN sync end to end: the real desktop host on a local port and three simulated phones (pairing, offline work, conflicts, deletes, convergence) |
-| `npm run host:start` | Build and run the desktop host in a terminal (data in `%APPDATA%\InvoiceERP`, port 7420). Add `-- --pair` to print a one-time pairing link, `-- --data <dir> --port <n>` to change them. Windows asks once to allow it on private networks; to allow it ahead of time (admin PowerShell): `New-NetFirewallRule -DisplayName "Invoice ERP host" -Direction Inbound -Protocol TCP -LocalPort 7420 -Profile Private -Action Allow` |
+| `npm run host:start` | Build and run the desktop host in a terminal (unencrypted, data in `%APPDATA%\InvoiceERP-terminal`, port 7420; for development and tests). Add `-- --pair` to print a one-time pairing link, `-- --data <dir> --port <n>` to change them. Windows asks once to allow it on private networks; to allow it ahead of time (admin PowerShell): `New-NetFirewallRule -DisplayName "Invoice ERP host" -Direction Inbound -Protocol TCP -LocalPort 7420 -Profile Private -Action Allow` |
 | `npm run host:build` | Compile the host only (`desktop/dist/`, git-ignored) |
+| `cd desktop && npm install` | Once: the desktop app's own dependencies (Electron, encrypted SQLite, QR codes) in `desktop/node_modules`, kept apart from the phone app's |
+| `cd desktop && npm start` | Run Invoice ERP Desktop (window + tray; data in `%APPDATA%\InvoiceERP`, encrypted) |
+| `cd desktop && npm run smoke` | Start, check (database and backup encrypted, pairing, status), quit; writes `<data>/smoke.json`. Set `INVOICE_ERP_DATA` to use a scratch folder |
+| `cd desktop && npm run dist` | Windows installer → `desktop/release/InvoiceERP-Desktop-Setup-<version>.exe` (git-ignored). Installs for all users and adds the firewall rule (TCP 7420, private networks, this program only); not code-signed, so Windows SmartScreen asks once |
 | `npm run test:xlsx` | ZIP / OOXML checks on the spreadsheet writer |
 | `python -I scripts/screen-map.py` | regenerate `SCREEN_CODE_STRUCTURE/screen-map.html`, the per-screen function map |
 | `npm run test:columns` | Layout decisions of the `Columns` helper (row / wrap / stack by width) |
@@ -175,6 +180,9 @@ INV-MOBILE-APP/
 │   ├── export/       PDF template + share, XLSX writer
 │   └── sync/         LAN sync shared by phone and desktop: protocol, wire format (uids), phone engine (push / ack / pull)
 ├── desktop/host/     desktop host (Node): master DB via the app's own data code, LAN server, pairing, sealing, conflict rules, backups
+├── desktop/electron/ Electron app: main (window, tray, start with Windows), preload bridge, encrypted DB + DPAPI-protected key
+├── desktop/renderer/ the desktop status page (phones, pairing QR, sync log) in the Flat Glass design; fonts copied from the app at build
+├── desktop/installer/ NSIS include: firewall rule on install, removed on uninstall
 ├── scripts/          test runners (incl. run-sync-tests.mjs), fixtures/schema-v8.sql (migration test), copy-project.ps1, clean-native-caches.ps1
 ├── android/          generated native project (+5 local edits)
 ├── assets/           icons, splash
@@ -214,7 +222,7 @@ its salted hash is stored (secure storage, never in the repo or in backups).
 - [`AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md): the PIN lock (S7, S6.6): why local, storage keys, lockout, recovery code, flows · [`_walkthrough.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_walkthrough.md) · [`_session-prompts.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_session-prompts.md)
 - [`SCREEN_CODE_STRUCTURE/`](SCREEN_CODE_STRUCTURE/): tree files for S0–S7, P1–P3, D1–D2 and C1–C4 (`AppShell_S0_tree.md` … `SharedComponents_C1-C4_tree.md`), each in the Three-Slot format (the three slots, the file in reading order, the tree with IDs and line numbers, the S-numbers, rows and columns, state and actions, "where to change what", sizes checked); restructure decisions in [`SCREEN_CODE_STRUCTURE_TRACKING.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md) · [`_walkthrough.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md) · [`_session-prompts.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_session-prompts.md)
 - [`LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md): local Gradle APKs signed with the EAS key (phone + emulator), the `/local-build-apk` skill · [`_walkthrough.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_walkthrough.md) · [`_session-prompts.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_session-prompts.md)
-- [`LAN_SYNC/LAN_SYNC_TRACKING.md`](LAN_SYNC/LAN_SYNC_TRACKING.md): multi-phone sync over shop Wi-Fi with the Desktop as admin host: decisions D1–D6 (defaults accepted), Phase 1 done (schema v9), Phase 2 host core done (Electron shell to do), Phases 3–6 to do · [`_walkthrough.md`](LAN_SYNC/LAN_SYNC_walkthrough.md) · [`_session-prompts.md`](LAN_SYNC/LAN_SYNC_session-prompts.md)
+- [`LAN_SYNC/LAN_SYNC_TRACKING.md`](LAN_SYNC/LAN_SYNC_TRACKING.md): multi-phone sync over shop Wi-Fi with the Desktop as admin host: decisions D1–D6 (defaults accepted), Phase 1 done (schema v9), Phase 2 done (host + Electron app + installer), Phases 3–6 to do · [`_walkthrough.md`](LAN_SYNC/LAN_SYNC_walkthrough.md) · [`_session-prompts.md`](LAN_SYNC/LAN_SYNC_session-prompts.md)
 - [`THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md`](THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md): `brand` root colours in `src/ui/tokens.ts`, theme roles, how to rebrand · [`_walkthrough.md`](THEME_AND_COLORS/THEME_AND_COLORS_walkthrough.md) · [`_session-prompts.md`](THEME_AND_COLORS/THEME_AND_COLORS_session-prompts.md)
 - [`CLAUDE.md`](CLAUDE.md) and [`design/DESIGN.md`](design/DESIGN.md): the Flat Glass · Brand Blue design system every screen follows; reference screens in [`design/screens/`](design/screens/)
 - [`agents.md`](agents.md): AI-assistant workflow rules for this folder

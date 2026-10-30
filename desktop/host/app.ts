@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type http from 'node:http';
 import { DEFAULT_PORT, type SyncDb } from '../../src/sync/protocol';
-import { installExpoShims, queueDbPath } from './expoShim';
+import { installExpoShims, queueDbPath, setSecureItem, useEngine } from './expoShim';
+import type { SqlEngine } from './nodeSqlite';
 import { ensureHostSchema, type HostInfo } from './hostSchema';
 import { stampChanges } from './hostSync';
 import { createPairing, pairingUri, type Pairing } from './pairing';
@@ -17,6 +18,10 @@ export interface HostOptions {
   port?: number; // 0 = any free port (tests)
   bind?: string; // default all interfaces, so phones on the LAN can connect
   dbFile?: string; // default <dataDir>/host.db
+  // Electron: an encrypting engine and its key (64 hex chars). Without them
+  // the host uses node:sqlite, unencrypted (terminal host and tests).
+  engine?: (path: string) => SqlEngine;
+  dbKeyHex?: string;
 }
 
 export interface Host {
@@ -34,6 +39,8 @@ const DAY_MS = 24 * 60 * 60_000;
 
 export async function startHost(o: HostOptions): Promise<Host> {
   installExpoShims();
+  if (o.engine) useEngine(o.engine);
+  if (o.dbKeyHex) setSecureItem('db_key_v1', o.dbKeyHex); // name used by src/data/dbKey.ts
   fs.mkdirSync(o.dataDir, { recursive: true });
   queueDbPath(o.dbFile ?? path.join(o.dataDir, 'host.db'));
   // Loaded only now, after the shims: dbCore imports expo-sqlite.
@@ -73,7 +80,7 @@ export async function startHost(o: HostOptions): Promise<Host> {
   const backupNow = () => serial(() => dailyBackup(db, o.dataDir));
   await backupNow();
   const timer = setInterval(() => { backupNow().catch(e => console.error('[host] backup', e)); }, DAY_MS / 4);
-  timer.unref();
+  (timer as { unref?: () => void }).unref?.(); // don't keep a terminal host alive for it
 
   return {
     info, port, db, exclusive, backupNow,

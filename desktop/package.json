@@ -1,0 +1,41 @@
+{
+  "name": "invoice-erp-desktop",
+  "productName": "Invoice ERP Desktop",
+  "version": "1.0.1",
+  "description": "Invoice ERP desktop host: master database and LAN sync for the phones",
+  "private": true,
+  "author": "JIAMETRIC",
+  "main": "dist/desktop/electron/main.js",
+  "build": {
+    "appId": "com.jiametric.invoiceerp.desktop",
+    "productName": "Invoice ERP Desktop",
+    "directories": { "output": "release" },
+    "npmRebuild": false,
+    "files": ["dist/**", "renderer/**", "package.json"],
+    "asarUnpack": ["node_modules/better-sqlite3-multiple-ciphers/**"],
+    "win": { "target": "nsis", "icon": "renderer/icon.png" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "installer/firewall.nsh",
+      "artifactName": "InvoiceERP-Desktop-Setup-${version}.${ext}"
+    }
+  },
+  "scripts": {
+    "build": "node scripts/copy-assets.mjs && tsc -p tsconfig.electron.json",
+    "smoke": "npm run build && electron . --smoke",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "better-sqlite3-multiple-ciphers": "13.0.3",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "@types/qrcode": "1.5.6",
+    "electron": "44.9.3",
+    "electron-builder": "26.17.0"
+  }
+}

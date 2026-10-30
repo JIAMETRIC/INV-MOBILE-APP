@@ -137,7 +137,7 @@ Code: `src/data/schema.ts` (`SCHEMA_SQL`, `SYNC_SQL`, `SYNC_TABLES`), migration 
 | --- | --- | --- | --- |
 | **0. Decide** ✅ | Owner answers D1–D6 | — | Defaults accepted (Prompt 2) |
 | **1. Sync-ready data** ✅ 2026-10-30 | Schema v9 + migration (uids, timestamps, tombstones, ledger-based stock, `payment_invoices`); repos write uid/dirty/soft-delete; integration tests extended | M | `npm run test:integration` passes on v9, existing phone DB migrates without loss |
-| **2. Desktop host** 🟡 core done 2026-10-30, Electron shell to do | New `desktop/` folder: Electron + Node server + SQLite (SQLCipher) reusing `src/data`; endpoints `/health`, `/pair`, `/sync/push`, `/sync/pull`; Windows firewall rule; auto-backup | L | Two simulated phones (Node test) push/pull and converge |
+| **2. Desktop host** ✅ 2026-10-30 (core + Electron app + installer) | New `desktop/` folder: Electron + Node server + SQLite (SQLCipher) reusing `src/data`; endpoints `/health`, `/pair`, `/sync/push`, `/sync/pull`; Windows firewall rule; auto-backup | L | Two simulated phones (Node test) push/pull and converge |
 | **3. Desktop admin UI** | Web build of existing screens (S1 Dashboard, S2 Invoices, S3, S5 Products, S6 Settings) + new: **Users**, **Devices & pairing QR**, **Sync log**, filter "by user" | L | Admin sees every phone's invoices and stock in one place |
 | **4. Phone sync client** | Settings → **Sync** section (pair by QR via `expo-camera`, status, Sync now, unpair); sync engine; header sync dot (synced / pending / offline); INTERNET permission + cleartext LAN config; encryption | M | Phone pairs, bills offline, catches up when back on Wi-Fi |
 | **5. Users & roles** | Per-user PIN sign-in (extends the S7 lock), `created_by` on invoices, permission checks on phone and enforced on the host | M | Phone user can't change prices; host rejects a forged push |
@@ -226,10 +226,32 @@ Runs on plain Node today (`npm run host:start`); the Electron window and install
 
 **Changed from Phase 1:** product uids are name-based **only for the 12 seeded catalog names** (`productSeedSql`, and the v8 → v9 upgrade for those names), so every device seeds the same catalog under the same uids. Products made later get random uids. A first version derived every product's uid from its name; the sync test showed that a renamed product and a new product with its old name then share a uid, so a restock could land on the wrong product.
 
-**Not done yet in Phase 2:**
-- **Electron shell and Windows installer** (needs `electron` and `better-sqlite3-multiple-ciphers`, a large download, and a native rebuild).
-- **Encryption at rest on the desktop:** the host DB is plain SQLite under node:sqlite (`PRAGMA key` is ignored). It comes with SQLCipher in the Electron step.
-- **Firewall rule:** Windows prompts on first run; the README has the one-line PowerShell rule. The installer will add it.
+### Phase 2 as built: Electron app and installer (2026-10-30, Prompt 8)
+
+Own npm package in `desktop/` (its `node_modules` stay out of the phone app and EAS builds). Pinned: `electron` 44.9.3 (44.7.2 had advisory GHSA-jr5w-w6x2-84p9, fixed after 44.9.0), `electron-builder` 26.17.0, `better-sqlite3-multiple-ciphers` 13.0.3, `qrcode` 1.5.4. `npm audit`: 0.
+
+| File | Role |
+| --- | --- |
+| `desktop/electron/main.ts` | Single instance; `startHost()` with the encrypted engine; window (1100×780, min 380×560, sandboxed, no navigation); closing the window hides it, the tray keeps the host running (tray: Open, Quit); `--hidden` when started with Windows; `--smoke` build check; IPC for the page |
+| `desktop/electron/preload.ts` | `window.host`: `status`, `pair`, `setBlocked`, `setStartWithWindows`, `openDataFolder` |
+| `desktop/electron/cipherDb.ts` | `openCipherEngine` (SQLite3 Multiple Ciphers, `cipher = sqlcipher`, `legacy = 4`: the phone's SQLCipher 4 format); `loadDbKey` (32 random bytes, kept in `host.key` sealed by Windows DPAPI, current user); `isEncryptedFile` |
+| `desktop/renderer/` | Status page: host name and company, LAN address, KPI tiles (phones, invoices, products), Phones list (series letter, last sync, IP, app version, Online / Offline / Blocked, Block / Unblock), Add phone dialog (QR, one-time, 10-min countdown, link), Sync log (refusals in red), Start with Windows, data folder |
+| `desktop/installer/firewall.nsh` | Inbound TCP 7420, private profile, this exe only; removed on uninstall. Data folder never touched |
+| `desktop/scripts/copy-assets.mjs` | Copies Inter 300–600, Bebas Neue and `assets/icon.png` from the app into `renderer/` |
+
+Host changes for it: `NodeSqliteDb` takes any engine with the node:sqlite / better-sqlite3 shape (`SqlEngine`) and loads `node:sqlite` only when none is given; `expoShim` gains `useEngine` and `setSecureItem` (the app's `dbKey.ts` reads `db_key_v1`, `dbCore` sends `PRAGMA key`); `startHost({ engine, dbKeyHex })`. The terminal host now defaults to `%APPDATA%\InvoiceERP-terminal` so its unencrypted file never meets the Electron app's encrypted one in `%APPDATA%\InvoiceERP`.
+
+**Why DPAPI through PowerShell, not Electron `safeStorage`:** the first build used `safeStorage`. Its key lives in Chromium's `Local State` file, written only on a clean shutdown; the smoke run quits with `app.exit` and the second start failed with "Error while decrypting the ciphertext". On a real PC, a crash or power cut on the first day would have left the database unreadable. DPAPI keeps no state of its own; the key is checked by decrypting it again before first use and passed to PowerShell in an environment variable, never on a command line.
+
+**Why `npmRebuild: false`:** electron-builder tried to compile the database module with Visual Studio (not installed). The module is N-API with prebuilt binaries, which work in any Node or Electron; the packaged-app smoke run proves it.
+
+**Page design** (CLAUDE.md): Dashboard reference layout (top 56, sides 20/32, gap 16), glass cards 16, controls 12, chips 10, dialog 18, pills 999; Inter 300–600, Bebas Neue for counts; dark follows Windows with the Sign In dark-glass recipe; red only for Blocked and refusals; Feather icons stroke 1.8. Backdrop blur is used here (the no-blur exception is Android only). Differences from the reference: no bottom nav (one page), KPI value in Bebas Neue 34 instead of Inter 26/500 (project exception for numbers), and phone rows wrap their status and button under the name below 520 px.
+
+**Still open after Phase 2:**
+- **Phones can't pair yet:** scanning the QR is Phase 4 (phone app Settings → Sync).
+- **Installer not code-signed:** Windows SmartScreen shows "unknown publisher" once.
+- **Installer not run on this PC:** it installs for all users and adds the firewall rule, so the owner runs it.
+- **If Windows' user profile is lost, so is the DPAPI key:** `host.db` and its backups can't be opened. The phones still hold the data and can re-seed a new desktop. A "save recovery key" button is a Phase 3 candidate.
 - **Host reset detection:** if the host database is replaced, phones must notice the new `host_id` and pull from 0 (Phase 4).
 - **Users table:** Phase 5.
 

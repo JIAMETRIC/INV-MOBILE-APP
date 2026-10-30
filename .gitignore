@@ -52,3 +52,8 @@ modules/*/android/.cxx/
 
 # Test build folders (removed by the test runners; left behind only if a run is killed)
 .tmp-*/
+# Desktop page: fonts and icon copied from the app by desktop/scripts/copy-assets.mjs
+desktop/renderer/fonts/
+desktop/renderer/icon.png
+# Desktop installer output (desktop: npm run dist)
+desktop/release/

@@ -136,3 +136,30 @@ npm run test:money / test:xlsx / test:columns   pass
 ```
 
 Not covered: the pull window (`more` = true needs > 2000 changes in one pull); real Wi-Fi between two machines (Phase 6).
+
+## Session 2026-10-30 (Prompt 8): Phase 2, Electron app and installer
+
+Design and file map: `LAN_SYNC_TRACKING.md` § "Phase 2 as built: Electron app and installer".
+
+### Steps and findings
+
+1. **Versions** (published at least two weeks before 2026-10-30, except where noted): `npm audit` flagged `electron` 44.7.2 (high, GHSA-jr5w-w6x2-84p9, fixed after 44.9.0), so the patched **44.9.3** (2026-10-21) is used. Then 0 vulnerabilities.
+2. **Encrypted SQLite without a compiler:** no Visual Studio on this PC. `better-sqlite3-multiple-ciphers` 13.0.3 ships N-API prebuilds (`prebuilds/win32-x64.node`) and loaded in Node (SQLite 3.53.4).
+3. **Smoke run 1** (`INVOICE_ERP_DATA=<scratch>/electron-smoke npx electron . --smoke`): `{"ok":true,"electron":"44.9.3","port":7420,"dbEncrypted":true,"backupEncrypted":true,"products":12,"pairing":true}`.
+4. **Second start failed**: `Error while decrypting the ciphertext provided to safeStorage.decryptString`. No `Local State` had been written in `%APPDATA%\Invoice ERP Desktop` (only GPU caches): Chromium writes it on clean shutdown only. Replaced `safeStorage` with DPAPI through PowerShell (`cipherDb.ts`). Three starts in a row on one folder: all `ok:true`.
+5. **Backup key check** (Node, known key): `VACUUM INTO` copy has no plain SQLite header, opens with the key (`{ x: 42 }`), refuses a wrong key (`SQLITE_NOTADB`).
+6. **Page check** in the browser pane with sample data (served from `desktop/renderer` on 127.0.0.1): light at full width, pairing dialog, dark at 380 px. Fixed: the status badge kept its red "Not running" class after a later successful render; the Sync log heading wasn't centred in its 52 px row; Block / Unblock ran past the card edge at 380 px (now wraps under the name below 520 px). No horizontal scroll at 380 px.
+7. **Installer:** first `npm run dist` stopped at `@electron/rebuild` (no Visual Studio) → `npmRebuild: false`. Second: packaged, but NSIS "Can't open output file" on the final exe (file locked while being written); a clean retry built `release/InvoiceERP-Desktop-Setup-1.0.1.exe` (132 MB).
+8. **Packaged app smoke** (`release/win-unpacked/Invoice ERP Desktop.exe --smoke`): `ok:true`, database and backup encrypted; the native module is unpacked to `app.asar.unpacked`.
+
+### Results
+
+```
+desktop smoke (dev, 3 starts) / packaged smoke   ok:true, dbEncrypted, backupEncrypted
+npm run test:sync          14 PASS (terminal host path, node:sqlite)
+npm run test:integration   26 PASS
+npm run typecheck          clean (app + desktop host); desktop tsconfig.electron.json clean
+npm run test:money / test:xlsx / test:columns   pass
+```
+
+Not done here: running the installer (system-wide install + firewall rule: the owner's step), the tray and "Start with Windows" by hand, and pairing a real phone (Phase 4).

@@ -1,11 +1,23 @@
-// expo-sqlite's async API over Node's built-in SQLite, so the app's data code
-// (src/data, src/sync) runs unchanged on the desktop. Same idea as the
-// integration-test harness (scripts/run-integration-tests.mjs).
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+// expo-sqlite's async API over a synchronous SQLite engine, so the app's data
+// code (src/data, src/sync) runs unchanged on the desktop. The engine is
+// Node's built-in SQLite (terminal host, tests) or, in the Electron app,
+// better-sqlite3-multiple-ciphers (encrypted). Both have this shape.
+import type { DatabaseSync } from 'node:sqlite';
 
 type Arg = string | number | null | undefined | boolean;
+type Value = string | number | null;
 
-const norm = (args: Arg[]): SQLInputValue[] =>
+export interface SqlEngine {
+  exec(sql: string): unknown;
+  prepare(sql: string): {
+    get(...args: Value[]): unknown;
+    all(...args: Value[]): unknown[];
+    run(...args: Value[]): { changes: number | bigint; lastInsertRowid: number | bigint };
+  };
+  close(): unknown;
+}
+
+const norm = (args: Arg[]): Value[] =>
   args.map(a => (a === undefined ? null : typeof a === 'boolean' ? (a ? 1 : 0) : a));
 
 // node:sqlite gives BigInt rowids and null-prototype rows; expo-sqlite gives
@@ -19,12 +31,14 @@ function row<T>(r: unknown): T {
 // execAsync takes no bind parameters here; the app only passes literals.
 export class NodeSqliteDb {
   readonly databasePath: string;
-  private readonly db: DatabaseSync;
+  private readonly db: SqlEngine;
   private queue: Promise<unknown> = Promise.resolve();
 
-  constructor(path: string) {
+  constructor(path: string, engine?: SqlEngine) {
     this.databasePath = path;
-    this.db = new DatabaseSync(path);
+    // Loaded only when used: the Electron app passes its own engine.
+    const Sync = engine ? null : (require('node:sqlite') as { DatabaseSync: typeof DatabaseSync }).DatabaseSync;
+    this.db = engine ?? (new Sync!(path) as unknown as SqlEngine);
   }
 
   // expo-sqlite runs statements one at a time in call order; so does this.

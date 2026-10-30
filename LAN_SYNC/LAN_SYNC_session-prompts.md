@@ -41,3 +41,15 @@ Start Phase 2
 ```
 Commit it
 ```
+
+## Prompt 8
+
+```
+Yes, start Electron
+```
+
+## Prompt 9
+
+```
+Commit it
+```

@@ -2,9 +2,14 @@
 // runs on the desktop. Must be installed before any src/data module loads.
 import Module from 'node:module';
 import crypto from 'node:crypto';
-import { NodeSqliteDb } from './nodeSqlite';
+import { NodeSqliteDb, type SqlEngine } from './nodeSqlite';
 
 let nextPaths: string[] = [];
+let engineFor: ((path: string) => SqlEngine) | null = null;
+
+// The Electron app opens its database with an encrypting engine instead of
+// node:sqlite (desktop/electron/cipherDb.ts).
+export function useEngine(open: (path: string) => SqlEngine): void { engineFor = open; }
 
 // The path for the next database the app code opens (':memory:' when none is
 // queued). The host queues its file; the sync test opens several in turn.
@@ -12,12 +17,20 @@ export function queueDbPath(path: string): void { nextPaths.push(path); }
 
 const store = new Map<string, string>();
 
+// The database key for the encrypting engine: src/data/dbKey.ts reads it from
+// "secure storage" and dbCore sends PRAGMA key. The Electron app keeps the key
+// protected by Windows (safeStorage) and puts it here before the first open.
+export function setSecureItem(key: string, value: string): void { store.set(key, value); }
+
 const shims: Record<string, unknown> = {
   'expo-sqlite': {
-    openDatabaseAsync: async () => new NodeSqliteDb(nextPaths.shift() ?? ':memory:'),
+    openDatabaseAsync: async () => {
+      const path = nextPaths.shift() ?? ':memory:';
+      return new NodeSqliteDb(path, engineFor?.(path));
+    },
   },
-  // The database key is only used by SQLCipher, which node:sqlite doesn't
-  // have (PRAGMA key is ignored), so an in-memory store is enough here.
+  // node:sqlite ignores PRAGMA key, so without setSecureItem a random key
+  // is made and forgotten, which is harmless there.
   'expo-secure-store': {
     WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockThisDeviceOnly',
     getItemAsync: async (k: string) => store.get(k) ?? null,

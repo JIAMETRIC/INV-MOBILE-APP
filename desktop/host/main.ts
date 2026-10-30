@@ -1,5 +1,6 @@
 // Runs the host from a terminal until the Electron shell exists:
-//   npm run host:start                 start, data in %APPDATA%\InvoiceERP
+//   npm run host:start                 start, data in %APPDATA%\InvoiceERP-terminal
+// (unencrypted; the Electron app keeps its encrypted data in %APPDATA%\InvoiceERP)
 //   npm run host:start -- --pair       also print a pairing link (valid 10 minutes)
 //   options: --data <dir>  --port <n>
 import os from 'node:os';
@@ -15,7 +16,7 @@ function opt(name: string): string | undefined {
 
 async function main(): Promise<void> {
   const appData = process.env.APPDATA ?? path.join(os.homedir(), '.config');
-  const dataDir = opt('data') ?? path.join(appData, 'InvoiceERP');
+  const dataDir = opt('data') ?? path.join(appData, 'InvoiceERP-terminal');
   const host = await startHost({ dataDir, port: Number(opt('port') ?? DEFAULT_PORT) });
   console.log(`Invoice ERP host "${host.info.host_name}" listening on port ${host.port}`);
   console.log(`Data: ${dataDir}`);
