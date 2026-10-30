@@ -137,7 +137,7 @@ Code: `src/data/schema.ts` (`SCHEMA_SQL`, `SYNC_SQL`, `SYNC_TABLES`), migration 
 | --- | --- | --- | --- |
 | **0. Decide** ✅ | Owner answers D1–D6 | — | Defaults accepted (Prompt 2) |
 | **1. Sync-ready data** ✅ 2026-10-30 | Schema v9 + migration (uids, timestamps, tombstones, ledger-based stock, `payment_invoices`); repos write uid/dirty/soft-delete; integration tests extended | M | `npm run test:integration` passes on v9, existing phone DB migrates without loss |
-| **2. Desktop host** | New `desktop/` folder: Electron + Node server + SQLite (SQLCipher) reusing `src/data`; endpoints `/health`, `/pair`, `/sync/push`, `/sync/pull`; Windows firewall rule; auto-backup | L | Two simulated phones (Node test) push/pull and converge |
+| **2. Desktop host** 🟡 core done 2026-10-30, Electron shell to do | New `desktop/` folder: Electron + Node server + SQLite (SQLCipher) reusing `src/data`; endpoints `/health`, `/pair`, `/sync/push`, `/sync/pull`; Windows firewall rule; auto-backup | L | Two simulated phones (Node test) push/pull and converge |
 | **3. Desktop admin UI** | Web build of existing screens (S1 Dashboard, S2 Invoices, S3, S5 Products, S6 Settings) + new: **Users**, **Devices & pairing QR**, **Sync log**, filter "by user" | L | Admin sees every phone's invoices and stock in one place |
 | **4. Phone sync client** | Settings → **Sync** section (pair by QR via `expo-camera`, status, Sync now, unpair); sync engine; header sync dot (synced / pending / offline); INTERNET permission + cleartext LAN config; encryption | M | Phone pairs, bills offline, catches up when back on Wi-Fi |
 | **5. Users & roles** | Per-user PIN sign-in (extends the S7 lock), `created_by` on invoices, permission checks on phone and enforced on the host | M | Phone user can't change prices; host rejects a forged push |
@@ -192,6 +192,46 @@ Data each page needs, and what's missing today:
 Logging sits in the data / auth layer, not in the screen files, so the line numbers cited in `SCREEN_CODE_STRUCTURE/*_tree.md` stay valid.
 
 Alternatives considered: Tauri (smaller installer, but the Node data layer would need a sidecar process); a background Node service plus a browser tab at `localhost` (simplest, but no tray icon or installer, and easy to close by accident).
+
+### Phase 2 as built: host core (2026-10-30, Prompt 6)
+
+Runs on plain Node today (`npm run host:start`); the Electron window and installer wrap `startHost()` next.
+
+| File | Role |
+| --- | --- |
+| `src/sync/protocol.ts` | Shared types and constants: `PROTOCOL` 1, port 7420, `PULL_WINDOW` 2000, push / pull / pairing messages, `Envelope`, `SyncDb` (the subset of expo-sqlite both sides use) |
+| `src/sync/wire.ts` | Local row ⇄ wire row: `WIRE_COLS` per table, ids replaced by uids (restock → `product_uid`, invoice → `lines[]` with `product_uid`, payment → `invoice_uids[]`), `readWire` / `writeWire` / `deleteWire`, company details (`META_COLS`) |
+| `src/sync/client.ts` | Phone engine: `collectPush` (dirty = 1 rows, `base_seq` = last host version), `applyPushResult` (clear dirty only where `rev` still matches; `host_wins` → take `current`; other refusals → dirty = 2), `applyPull` (skip rows with a local edit waiting; `giveWay` on unique clashes), `syncOnce(tx, transport)`, `applyPairing` (series prefix) |
+| `desktop/host/app.ts` | `startHost()`: opens the master DB through the app's own `src/data/db` (Expo modules shimmed by `expoShim.ts` + `nodeSqlite.ts`), host tables, one-at-a-time `exclusive()` transactions, server, backups |
+| `desktop/host/hostSync.ts` | `handlePush` (conflict rules below), `handlePull`, `stampChanges` (numbers every dirty row on the host, incl. the admin's own edits) |
+| `desktop/host/server.ts` | `GET /health`, `POST /pair`, `/sync/push`, `/sync/pull`; 20 MB body limit; errors `unknown_device` 401, `revoked` 403, `bad_seal` 401, `pairing_expired` 401, `protocol` 409 |
+| `desktop/host/pairing.ts` | One-time QR (`invoiceerp://pair?h=<LAN IPs>&p=7420&i=<pid>&s=<secret>`, 10 min), series letters A, B … Z, AA …; re-pairing keeps the letter |
+| `desktop/host/seal.ts` | AES-256-GCM, 12-byte IV, tag appended, request path as additional data |
+| `desktop/host/hostSchema.ts` | `host_state` (seq, host_id, name, series count), `devices`, `pairings`, `sync_log` |
+| `desktop/host/backup.ts` | `VACUUM INTO <dataDir>/backups/host-YYYY-MM-DD.db` at start and every 6 h (once a day), last 30 kept |
+| `desktop/host/main.ts` | Terminal entry: `--data`, `--port`, `--pair` |
+
+**Conflict rules as built** (`hostSync.handlePush`):
+
+| Data | Rule |
+| --- | --- |
+| Products | Phone wins if its edit started from the host's current version (`base_seq`) or its `updated_at` is ≥ the host's; else `host_wins`. Same name under another uid → `name_taken`. Stock is rebuilt from the ledger after every push |
+| Restocks, payments, log entries | Append-only; a repeat is acknowledged again. Restock with an unknown product → `missing_product` |
+| Invoices | Same rule as products; a desktop **void always stands**; number used by another invoice → `number_taken`. Paid / partial recomputed from payments after every push (without touching `updated_at`) |
+| Company details | Desktop only; the first phone may fill an empty desktop (D6) |
+| Deletes | Applied, and the host's own tombstone carries them to the other phones |
+| Repeated push | Rows identical to the host's are acknowledged without a new change number |
+
+**On the phone, when a pulled row clashes** (`client.giveWay`): a local product with the same name takes the host's uid (its restocks and invoices are sent again); a local invoice with the same number moves to this device's series (`INV-C001`) and an `invoice.renumber` log entry records the old number.
+
+**Changed from Phase 1:** product uids are name-based **only for the 12 seeded catalog names** (`productSeedSql`, and the v8 → v9 upgrade for those names), so every device seeds the same catalog under the same uids. Products made later get random uids. A first version derived every product's uid from its name; the sync test showed that a renamed product and a new product with its old name then share a uid, so a restock could land on the wrong product.
+
+**Not done yet in Phase 2:**
+- **Electron shell and Windows installer** (needs `electron` and `better-sqlite3-multiple-ciphers`, a large download, and a native rebuild).
+- **Encryption at rest on the desktop:** the host DB is plain SQLite under node:sqlite (`PRAGMA key` is ignored). It comes with SQLCipher in the Electron step.
+- **Firewall rule:** Windows prompts on first run; the README has the one-line PowerShell rule. The installer will add it.
+- **Host reset detection:** if the host database is replaced, phones must notice the new `host_id` and pull from 0 (Phase 4).
+- **Users table:** Phase 5.
 
 ### Risks
 

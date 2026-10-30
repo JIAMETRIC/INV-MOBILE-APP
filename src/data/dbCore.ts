@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { getKeyHex } from './dbKey';
-import { SCHEMA_SQL, SCHEMA_VERSION, SYNC_SQL, SYNC_TABLES, productSeedSql } from './schema';
+import { SCHEMA_SQL, SCHEMA_VERSION, SEED_NAMES_SQL, SYNC_SQL, SYNC_TABLES, productSeedSql, productUidSql } from './schema';
 
 const DB_NAME = 'invoices.db';
 
@@ -150,7 +150,10 @@ async function addSyncColumns(db: SQLite.SQLiteDatabase): Promise<void> {
     const device = `(SELECT device_id FROM sync_state WHERE id = 1)`;
     for (const t of SYNC_TABLES) {
       await db.execAsync(
-        `UPDATE ${t} SET uid = lower(hex(randomblob(16))), origin_device = ${device} WHERE uid IS NULL;`);
+        `UPDATE ${t} SET uid = ${t === 'products'
+          ? `CASE WHEN lower(trim(name)) IN (${SEED_NAMES_SQL()}) THEN ${productUidSql('name')} ELSE lower(hex(randomblob(16))) END`
+          : 'lower(hex(randomblob(16)))'},
+           origin_device = ${device} WHERE uid IS NULL;`);
     }
     await db.execAsync(SYNC_SQL);
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);

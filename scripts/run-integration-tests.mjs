@@ -467,7 +467,7 @@ await t('v9: every row has a uid and this device as origin, and starts dirty', a
     assert.ok(rows.length > 0, `${tbl} has rows by now`);
     assert.equal(new Set(rows.map(r => r.uid)).size, rows.length, `${tbl} uids are unique`);
     for (const r of rows) {
-      assert.match(r.uid, /^[0-9a-f]{32}$/, `${tbl} uid filled`);
+      assert.match(r.uid, tbl === 'products' ? /^(p[0-9a-f]+|[0-9a-f]{32})$/ : /^[0-9a-f]{32}$/, `${tbl} uid filled`);
       assert.equal(r.origin_device, device_id, `${tbl} origin is this device`);
       assert.equal(r.dirty, 1, `${tbl} new rows wait for the first push`);
     }
@@ -620,6 +620,13 @@ await t('v8 -> v9 migration keeps the data and ends like a fresh v9 build', asyn
   // Triggers are live after the upgrade.
   await w.runAsync("INSERT INTO products (name) VALUES ('New')");
   assert.match((await w.getFirstAsync("SELECT uid FROM products WHERE name = 'New'")).uid, /^[0-9a-f]{32}$/);
+  // Seeded catalog names get name-based uids, so every device agrees on them;
+  // a product the shop made itself ('Polo') gets a random one.
+  assert.equal((await w.getFirstAsync("SELECT uid FROM products WHERE id = 1")).uid,
+    'p' + Buffer.from('hoodie').toString('hex'));
+  assert.match((await w.getFirstAsync("SELECT uid FROM products WHERE id = 2")).uid, /^[0-9a-f]{32}$/);
+  const freshHoodie = await (await db.getDb()).getFirstAsync("SELECT uid FROM products WHERE name = 'Hoodie'");
+  assert.equal(freshHoodie.uid, 'p' + Buffer.from('hoodie').toString('hex'), 'fresh seed uses the same uid');
   // Same columns, indexes and triggers as a fresh v9 database.
   const fresh = await db.getDb();
   const shape = async conn => {

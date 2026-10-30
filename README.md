@@ -111,9 +111,12 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 
 | Command | Purpose |
 | --- | --- |
-| `npm run typecheck` | `tsc --noEmit` strict check |
+| `npm run typecheck` | `tsc --noEmit` strict check of the app, then of `desktop/` (its own `desktop/tsconfig.json`, Node types) |
 | `npm run test:money` | Money core / amount-in-words unit tests |
 | `npm run test:integration` | Headless SQLite harness over the real data layer, incl. the v9 sync triggers and a v8 → v9 upgrade from `scripts/fixtures/schema-v8.sql` |
+| `npm run test:sync` | LAN sync end to end: the real desktop host on a local port and three simulated phones (pairing, offline work, conflicts, deletes, convergence) |
+| `npm run host:start` | Build and run the desktop host in a terminal (data in `%APPDATA%\InvoiceERP`, port 7420). Add `-- --pair` to print a one-time pairing link, `-- --data <dir> --port <n>` to change them. Windows asks once to allow it on private networks; to allow it ahead of time (admin PowerShell): `New-NetFirewallRule -DisplayName "Invoice ERP host" -Direction Inbound -Protocol TCP -LocalPort 7420 -Profile Private -Action Allow` |
+| `npm run host:build` | Compile the host only (`desktop/dist/`, git-ignored) |
 | `npm run test:xlsx` | ZIP / OOXML checks on the spreadsheet writer |
 | `python -I scripts/screen-map.py` | regenerate `SCREEN_CODE_STRUCTURE/screen-map.html`, the per-screen function map |
 | `npm run test:columns` | Layout decisions of the `Columns` helper (row / wrap / stack by width) |
@@ -169,8 +172,10 @@ INV-MOBILE-APP/
 │   ├── ui/           M3 kit: tokens, components, Nav (bar/rail), Sheet, Snackbar, breakpoints
 │   ├── features/     auth (S7 sign in) · dashboard · invoices (list, detail, create) · products · settings
 │   ├── data/         SQLCipher DB, schema v9 (sync-ready) + migrations, repos, integer-paise money core, syncRepo (pending changes)
-│   └── export/       PDF template + share, XLSX writer
-├── scripts/          test runners, fixtures/schema-v8.sql (migration test), copy-project.ps1, clean-native-caches.ps1
+│   ├── export/       PDF template + share, XLSX writer
+│   └── sync/         LAN sync shared by phone and desktop: protocol, wire format (uids), phone engine (push / ack / pull)
+├── desktop/host/     desktop host (Node): master DB via the app's own data code, LAN server, pairing, sealing, conflict rules, backups
+├── scripts/          test runners (incl. run-sync-tests.mjs), fixtures/schema-v8.sql (migration test), copy-project.ps1, clean-native-caches.ps1
 ├── android/          generated native project (+5 local edits)
 ├── assets/           icons, splash
 ├── release/          latest APK
@@ -209,7 +214,7 @@ its salted hash is stored (secure storage, never in the repo or in backups).
 - [`AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md): the PIN lock (S7, S6.6): why local, storage keys, lockout, recovery code, flows · [`_walkthrough.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_walkthrough.md) · [`_session-prompts.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_session-prompts.md)
 - [`SCREEN_CODE_STRUCTURE/`](SCREEN_CODE_STRUCTURE/): tree files for S0–S7, P1–P3, D1–D2 and C1–C4 (`AppShell_S0_tree.md` … `SharedComponents_C1-C4_tree.md`), each in the Three-Slot format (the three slots, the file in reading order, the tree with IDs and line numbers, the S-numbers, rows and columns, state and actions, "where to change what", sizes checked); restructure decisions in [`SCREEN_CODE_STRUCTURE_TRACKING.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md) · [`_walkthrough.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md) · [`_session-prompts.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_session-prompts.md)
 - [`LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md): local Gradle APKs signed with the EAS key (phone + emulator), the `/local-build-apk` skill · [`_walkthrough.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_walkthrough.md) · [`_session-prompts.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_session-prompts.md)
-- [`LAN_SYNC/LAN_SYNC_TRACKING.md`](LAN_SYNC/LAN_SYNC_TRACKING.md): multi-phone sync over shop Wi-Fi with the Desktop as admin host: decisions D1–D6 (defaults accepted), Phase 1 done (schema v9), Phases 2–6 to do · [`_walkthrough.md`](LAN_SYNC/LAN_SYNC_walkthrough.md) · [`_session-prompts.md`](LAN_SYNC/LAN_SYNC_session-prompts.md)
+- [`LAN_SYNC/LAN_SYNC_TRACKING.md`](LAN_SYNC/LAN_SYNC_TRACKING.md): multi-phone sync over shop Wi-Fi with the Desktop as admin host: decisions D1–D6 (defaults accepted), Phase 1 done (schema v9), Phase 2 host core done (Electron shell to do), Phases 3–6 to do · [`_walkthrough.md`](LAN_SYNC/LAN_SYNC_walkthrough.md) · [`_session-prompts.md`](LAN_SYNC/LAN_SYNC_session-prompts.md)
 - [`THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md`](THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md): `brand` root colours in `src/ui/tokens.ts`, theme roles, how to rebrand · [`_walkthrough.md`](THEME_AND_COLORS/THEME_AND_COLORS_walkthrough.md) · [`_session-prompts.md`](THEME_AND_COLORS/THEME_AND_COLORS_session-prompts.md)
 - [`CLAUDE.md`](CLAUDE.md) and [`design/DESIGN.md`](design/DESIGN.md): the Flat Glass · Brand Blue design system every screen follows; reference screens in [`design/screens/`](design/screens/)
 - [`agents.md`](agents.md): AI-assistant workflow rules for this folder

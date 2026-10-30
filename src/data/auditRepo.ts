@@ -4,7 +4,8 @@ export type AuditAction =
   | 'invoice.issue' | 'invoice.update' | 'invoice.void' | 'invoice.delete'
   | 'payment.record' | 'product.upsert' | 'product.restock'
   | 'settings.update' | 'backup.export' | 'backup.import' | 'app.reset'
-  | 'auth.signin' | 'auth.failed' | 'auth.locked' | 'auth.recovered';
+  | 'auth.signin' | 'auth.failed' | 'auth.locked' | 'auth.recovered'
+  | 'invoice.renumber';
 
 export async function logAudit(
   action: AuditAction,

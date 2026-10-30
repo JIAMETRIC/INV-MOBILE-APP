@@ -239,6 +239,13 @@ const META_SYNC_COLS = [
 
 const NOT_APPLYING = `COALESCE((SELECT applying FROM sync_state WHERE id = 1), 0) = 0`;
 
+// The seeded catalog's uids come from the names ('p' + hex of the lower-cased
+// name), so every device seeds the same 12 products under the same uids and
+// the host sees one catalog. Products made later get random uids; the same
+// name made on two devices is merged by name when the second one pulls.
+export const productUidSql = (name: string) => `'p' || lower(hex(lower(trim(${name}))))`;
+export const SEED_NAMES_SQL = () => PRODUCT_SEED_NAMES.map(n => `'${n.toLowerCase()}'`).join(', ');
+
 function tableSyncSql(t: SyncTable): string {
   return `
 CREATE UNIQUE INDEX IF NOT EXISTS uq_${t}_uid ON ${t}(uid);
@@ -301,6 +308,6 @@ export const PRODUCT_SEED_NAMES = [
 // Catalog skeleton seeded on every fresh schema build: one row per name with
 // zero price/stock, so the Products table and invoice picker open pre-filled.
 export function productSeedSql(): string {
-  const rows = PRODUCT_SEED_NAMES.map((name, i) => `(${i + 1}, '${name}', 0, 0)`);
-  return `INSERT OR IGNORE INTO products (sl_no, name, unit_paise, stock_qty) VALUES ${rows.join(',')};`;
+  const rows = PRODUCT_SEED_NAMES.map((name, i) => `(${productUidSql(`'${name}'`)}, ${i + 1}, '${name}', 0, 0)`);
+  return `INSERT OR IGNORE INTO products (uid, sl_no, name, unit_paise, stock_qty) VALUES ${rows.join(',')};`;
 }

@@ -70,3 +70,69 @@ Prompt 4 asked for admin pages to track each user and the overall picture; the d
 Results: `test:integration` 26 PASS · `typecheck` clean · `test:money`, `test:xlsx`, `test:columns` pass. Sign-in logging is not covered by the harness (authStore needs expo-secure-store on a device): check on the emulator with the next build.
 
 Note: the data-file line numbers quoted in the `SCREEN_CODE_STRUCTURE/*_tree.md` headers (e.g. `invoicesRepo.ts:126`, "as of 2026-10-23") have shifted by a few lines with the v9 work; the screen files themselves are unchanged.
+
+## Session 2026-10-30 (Prompt 6): Phase 2, host core
+
+Built the desktop host as a Node service plus the shared sync engine; design and file map in `LAN_SYNC_TRACKING.md` § "Phase 2 as built".
+
+### Smoke run of the real entry point
+
+`node desktop/dist/desktop/host/main.js --data <scratch>/host-smoke --port 7499 --pair`:
+
+```
+Invoice ERP host "ADIT-PC" listening on port 7499
+Phones connect to: http://10.23.172.181:7499
+Pairing link (one phone, until 8:52:05 pm): invoiceerp://pair?h=10.23.172.181&p=7499&i=…&s=…
+GET  /health     -> {"app":"invoice-erp-host","protocol":1,"host_id":"…","host_name":"ADIT-PC"}
+POST /sync/pull  (unknown device) -> {"error":"unknown_device"}
+files: host.db (+ WAL), backups/host-2026-10-30.db
+```
+
+### `npm run test:sync` (new, `scripts/run-sync-tests.mjs`)
+
+The real host on 127.0.0.1 and three phones (A, B, C), each with its own copy of the compiled app code and its own in-memory database, talking HTTP with sealed bodies.
+
+First run: 12 / 14. The two failures were real problems:
+
+1. **Pull clash on `invoices.invoice_no`**: phone C had its own `INV-001` from before pairing and pulled the desktop's `INV-001`. Fix: `client.giveWay` moves C's invoice to its series (`INV-C001`), logs `invoice.renumber`, pushes it.
+2. **A repeated push re-numbered identical rows**: harmless, but extra pull traffic. Fix: `hostSync.unchanged` acknowledges identical products / invoices without writing.
+
+While writing the product-name scenario, found that deriving every product uid from its name lets a renamed product and a new product with the old name share a uid. Changed to name-based uids for the seeded catalog only (see TRACKING).
+
+Final: 14 / 14.
+
+```
+PASS host starts: health answers, seeded catalog numbered, backup written
+PASS phone A has data before pairing (the shop's existing phone, D6)
+PASS pairing: series A and B, one-time QR, wrong secret and unknown device refused
+PASS phone A seeds the desktop: invoices, stock, payment, company details
+PASS phone B downloads everything
+PASS both phones work offline, then converge: B invoice + payment on A's invoice, two restocks add up
+PASS a void made on the desktop beats an offline edit on the phone
+PASS price edits: a stale phone edit loses to a newer desktop edit; an edit on the latest version wins
+PASS a delete on one phone reaches the desktop and the other phone
+PASS a second phone that already has its own INV-001: refused, then moved to its own series
+PASS the same product name made on two devices becomes one product
+PASS repeating a push changes nothing (Wi-Fi dropped before the reply)
+PASS a blocked phone is refused
+PASS final state: A, B and the desktop agree; sync log written
+```
+
+### Other changes
+
+- `tsconfig.json`: excludes `desktop/` (the Expo base config has no Node types); `npm run typecheck` now also runs `tsc -p desktop/tsconfig.json --noEmit`.
+- `package.json`: `host:build`, `host:start`, `test:sync`.
+- `.gitignore`: `.tmp-*/` (test build folders). `desktop/dist/` is already covered by `dist/`.
+- `src/data/auditRepo.ts`: action `invoice.renumber`.
+- `src/data/schema.ts`, `dbCore.ts`: seeded products get name-based uids; others random (integration test updated).
+
+### Results
+
+```
+npm run test:sync          14 PASS
+npm run test:integration   26 PASS
+npm run typecheck          clean (app + desktop)
+npm run test:money / test:xlsx / test:columns   pass
+```
+
+Not covered: the pull window (`more` = true needs > 2000 changes in one pull); real Wi-Fi between two machines (Phase 6).

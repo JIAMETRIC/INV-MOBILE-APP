@@ -29,3 +29,15 @@ This app will have a Admin page also to track each users activities and Overall 
 ```
 Yes, add to v9
 ```
+
+## Prompt 6
+
+```
+Start Phase 2
+```
+
+## Prompt 7
+
+```
+Commit it
+```
