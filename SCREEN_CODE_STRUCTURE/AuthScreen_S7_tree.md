@@ -69,3 +69,16 @@ Transitions: `press` (auto-checks at `len` / `first.length`, moves on at 6 on cr
 | PIN length, lockout timings | `PIN`, `LOCKOUT` in `src/auth/authStore.ts` |
 | relock delay (5 min) | `LOCK.relockAfterMs` in `src/auth/LockProvider.tsx` |
 | the Settings side (S6.6) | `SecurityPane` in `src/features/settings/SettingsScreen.tsx` |
+
+## 2026-10-30 addendum: person flow (LAN_SYNC Phase 5)
+
+`AuthFlow` gains `person`, `Step` gains `pick`. `LockProvider` shows `person` instead of `unlock` once the phone is paired and the desktop has people (`src/auth/people.ts`).
+
+| Region / piece | Where | Content |
+| --- | --- | --- |
+| `TEXT.pick`, `PERSON_TEXT(name)` | top, line 38 | "Who's using Invoice ERP?" / "Choose your name, then enter your PIN"; "Hi, <name>" / "Enter your PIN" |
+| `useAuthFlow` | `people`, `who`; `pickPerson` (138), `backToPick` (139); `verify` checks `checkPersonPin` and calls `signIn` in the person flow; Back on `enter` returns to `pick` | |
+| S7.1 pick | `PeoplePicker` (338) | `ListItem` per person (initials, `leadingAlt` for staff, Owner / Staff, chevron), then the forgotten-PIN line |
+| S7.3 | `Footer` (480) | person flow on `enter`: "Not <name>? Choose another person" instead of the recovery link |
+
+No new `S7` numbers; the keypad and dots are unchanged (dots = the person's `pin_len`). Checked on the emulator (1080 × 2400, 411 dp): pick with Owner and Ravi, "Hi, Ravi" with 6 dots, sign-in to the Dashboard.

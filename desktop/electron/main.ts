@@ -10,6 +10,7 @@ import { app, BrowserWindow, Menu, Tray, dialog, ipcMain, nativeImage, nativeThe
 import QRCode from 'qrcode';
 import { startHost, type Host } from '../host/app';
 import { lanAddresses } from '../host/pairing';
+import { listUsers, saveUser, type UserInput } from '../host/users';
 import { isEncryptedFile, loadDbKey, openCipherEngine } from './cipherDb';
 
 const SMOKE = process.argv.includes('--smoke');
@@ -89,6 +90,12 @@ function registerIpc(): void {
     return app.getLoginItemSettings().openAtLogin;
   });
   ipcMain.handle('app:openData', () => shell.openPath(dataDir));
+  // People (LAN_SYNC Phase 5): phones pull them on their next sync.
+  ipcMain.handle('users:list', () => listUsers(host!.db));
+  ipcMain.handle('users:save', async (_e, u: UserInput) => {
+    try { return { ok: true, uid: await host!.exclusive(tx => saveUser(tx, u)) }; }
+    catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+  });
 }
 
 // Build check: the host starts on the encrypted database, a backup exists and

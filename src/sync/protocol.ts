@@ -1,7 +1,9 @@
 // LAN sync protocol (LAN_SYNC). Shared by the phone and the desktop host, so
 // it imports nothing platform-specific. Rows travel with uids, never local ids.
 
-export const PROTOCOL = 1;
+// 2: people (Phase 5: users, updated_by). A phone and a desktop on different
+// numbers refuse to sync (409 'protocol') rather than lose columns.
+export const PROTOCOL = 2;
 export const DEFAULT_PORT = 7420;
 // A pull returns at most this many server_seq numbers; `more` says to ask again.
 export const PULL_WINDOW = 2000;
@@ -39,7 +41,8 @@ export interface WireLine {
 
 export type Changes = { [T in WireTable]: WireRow[] } & {
   meta: WireRow | null; // company details (uid is always 'meta')
-  deletes: { tbl: WireTable; uid: string }[];
+  deletes: { tbl: WireTable; uid: string; user_uid?: string }[]; // user_uid: who deleted it
+  users?: WireRow[]; // pull only: the people made on the desktop (USER_COLS in wire.ts)
 };
 
 export interface PushRequest {
@@ -49,6 +52,8 @@ export interface PushRequest {
 }
 
 // host_wins: the host kept its version; `current` is it, so the phone takes it.
+// not_allowed: the person who made the change may not (Phase 5 limits): the
+// phone takes `current` back, or drops a row the host never had.
 // The other reasons leave the row on the phone, marked for attention (dirty = 2).
 export type RejectReason = 'host_wins' | 'number_taken' | 'name_taken' | 'missing_product' | 'not_allowed';
 
@@ -56,6 +61,9 @@ export interface PushResult {
   accepted: { tbl: WireTable | 'meta'; uid: string; rev: number; server_seq: number }[];
   rejected: { tbl: WireTable | 'meta'; uid: string; rev: number; reason: RejectReason; current?: WireRow }[];
   deleted: { tbl: WireTable; uid: string }[];
+  // Deletes the person may not make: the phone drops the tombstone and puts
+  // the row back (`current`, when the host has it).
+  undeleted?: { tbl: WireTable; uid: string; current?: WireRow }[];
 }
 
 export interface PullRequest {
@@ -91,10 +99,10 @@ export interface PairWelcome {
 }
 
 export function emptyChanges(): Changes {
-  return { products: [], restocks: [], invoices: [], payments: [], audit_logs: [], meta: null, deletes: [] };
+  return { products: [], restocks: [], invoices: [], payments: [], audit_logs: [], meta: null, deletes: [], users: [] };
 }
 
 export function countChanges(c: Changes): number {
   return c.products.length + c.restocks.length + c.invoices.length + c.payments.length
-    + c.audit_logs.length + (c.meta ? 1 : 0) + c.deletes.length;
+    + c.audit_logs.length + (c.meta ? 1 : 0) + c.deletes.length + (c.users?.length ?? 0);
 }

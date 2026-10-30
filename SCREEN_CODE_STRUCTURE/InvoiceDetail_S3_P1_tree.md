@@ -182,3 +182,7 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 P1 was not opened on the device in Prompt 54: the sample invoice totals ₹0, so `canPay` is false and the button is hidden; its code path was checked by reading (same props, same handlers as before the restructure).
 
 Open findings (not applied): the S3.4.h header labels at 320 dp (AMOUNT clips) and in the lg pane (RATE and AMOUNT touch). The labels already have `numberOfLines={1}` (line 242); the proposed fix is `adjustsFontSizeToFit` on them, or a narrower item share under 340 dp (`S3.itemColumns` `[2.2, 0.8, 1.3, 1.5]`, or the label "AMT").
+
+## 2026-10-30 addendum: Delete needs the Delete switch (LAN_SYNC Phase 5, D4)
+
+`useInvoiceDetail()` returns `canDelete = useLock().can('delete')` (line 150); `EditDeleteRow` (313) shows Delete only then. Edit and Record payment stay open to everyone.

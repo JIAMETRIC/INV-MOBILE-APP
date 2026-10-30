@@ -60,3 +60,7 @@ The app lock: S7 Sign in (`src/features/auth/AuthScreen.tsx`), `src/auth/` (Lock
 | dots | 14, gap 16, border 1.5 `textDisabled` → filled `accent` |
 | keys | 72 round (60 under 700 dp tall), gap 14 vertical / 28 horizontal, dark glass + `tileShadow`; icon keys ghost |
 | column | max 400; short landscape (< 600 tall) → row, keys 60, no logo |
+
+## 2026-10-30: people on paired phones (LAN_SYNC Phase 5)
+
+Once a phone is paired with Invoice ERP Desktop and the desktop has people (`users`, made on the desktop's People card), `LockProvider` shows the **person** flow instead of the device PIN: who's using → that person's PIN (salted SHA-256 as here, `pin_salt` / `pin_hash` / `pin_len` from the desktop). `authStore.checkHashed` is the shared check, so a person's wrong PINs count toward the same lockout. A right device PIN while people exist leads on to the person flow; a sync that brings people while the device-PIN screen is showing switches it. The signed-in person is `sync_state.user_uid` (stamped on every change). No recovery code for people: the owner sets a new PIN on the desktop. No fingerprint in people mode. The device PIN stays the fallback when the desktop has nobody. Details: `LAN_SYNC/LAN_SYNC_TRACKING.md` § Phase 5.

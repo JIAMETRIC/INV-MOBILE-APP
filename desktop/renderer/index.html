@@ -63,6 +63,17 @@
     </section>
 
     <section class="card card--list">
+      <div class="between card-head">
+        <span class="overline">People</span>
+        <button class="btn-glass" id="addPerson">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Add person
+        </button>
+      </div>
+      <div id="people"></div>
+    </section>
+
+    <section class="card card--list">
       <div class="card-head"><span class="overline">Sync log</span></div>
       <div id="log"></div>
     </section>
@@ -94,6 +105,41 @@
         <button class="btn-primary btn-sm" id="pairDone">Done</button>
       </div>
     </div>
+  </div>
+
+  <div class="overlay" id="personDialog" hidden>
+    <form class="dialog" role="dialog" aria-modal="true" aria-labelledby="personTitle" id="personForm" novalidate>
+      <h2 class="dialog-title" id="personTitle">Add a person</h2>
+      <label class="field">
+        <span>Name</span>
+        <input id="pName" autocomplete="off" maxlength="40" required>
+      </label>
+      <div class="field">
+        <span id="pRoleLabel">Role</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="pRoleLabel">
+          <button type="button" role="radio" data-role="staff" aria-checked="true">Staff</button>
+          <button type="button" role="radio" data-role="admin" aria-checked="false">Owner</button>
+        </div>
+        <span class="list-sub" id="pRoleHelp"></span>
+      </div>
+      <fieldset class="perms" id="pPerms">
+        <legend class="list-sub">Besides invoices and payments, this person may also:</legend>
+        <label class="check"><input type="checkbox" value="products"><span>Add and change products and prices</span></label>
+        <label class="check"><input type="checkbox" value="stock"><span>Restock and correct stock</span></label>
+        <label class="check"><input type="checkbox" value="delete"><span>Delete or void invoices</span></label>
+        <label class="check"><input type="checkbox" value="settings"><span>Change company details, restore backups, unpair</span></label>
+      </fieldset>
+      <label class="field">
+        <span id="pPinLabel">PIN (4 to 6 digits)</span>
+        <input id="pPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" type="password">
+      </label>
+      <label class="check" id="pActiveRow"><input type="checkbox" id="pActive" checked><span>Can sign in (switch off instead of deleting: their invoices stay theirs)</span></label>
+      <span class="error" id="pError" role="alert"></span>
+      <div class="row gap-12 end">
+        <button type="button" class="btn-glass" id="pCancel">Cancel</button>
+        <button type="submit" class="btn-primary btn-sm" id="pSave">Save</button>
+      </div>
+    </form>
   </div>
 
   <script src="app.js"></script>

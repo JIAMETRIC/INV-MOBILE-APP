@@ -6,7 +6,7 @@ import {
   type PairWelcome, type PullRequest, type PullResponse, type PushRequest, type PushResult,
   type SyncDb, type WireRow, type WireTable,
 } from './protocol';
-import { WIRE_ORDER, deleteWire, readMeta, readWire, writeMeta, writeWire } from './wire';
+import { WIRE_ORDER, deleteWire, readMeta, readWire, writeMeta, writeUser, writeWire } from './wire';
 import { formatInvoiceNo } from '../data/money';
 
 export interface Transport {
@@ -22,6 +22,7 @@ export interface SyncReport {
   accepted: number;
   rejected: PushResult['rejected'];
   pulled: number;
+  usersChanged: boolean; // the desktop sent people: the lock may need to look again
 }
 
 async function setApplying(db: SyncDb, on: boolean): Promise<void> {
@@ -45,8 +46,8 @@ export async function collectPush(db: SyncDb): Promise<PushRequest> {
     const m = await readMeta(db);
     if (m) { const { server_seq, ...r } = m; changes.meta = { ...r, base_seq: server_seq ?? null }; }
   }
-  changes.deletes = await db.getAllAsync<{ tbl: WireTable; uid: string }>(
-    'SELECT tbl, uid FROM sync_tombstones WHERE dirty = 1 ORDER BY id');
+  changes.deletes = await db.getAllAsync<{ tbl: WireTable; uid: string; user_uid: string }>(
+    'SELECT tbl, uid, user_uid FROM sync_tombstones WHERE dirty = 1 ORDER BY id');
   return { protocol: PROTOCOL, device_id: await deviceId(db), changes };
 }
 
@@ -68,9 +69,21 @@ export async function applyPushResult(db: SyncDb, res: PushResult): Promise<void
       const whereArgs = r.tbl === 'meta' ? [] : [r.uid];
       const local = await db.getFirstAsync<{ rev: number }>(`SELECT rev FROM ${table} WHERE ${where}`, ...whereArgs);
       if (!local || local.rev !== r.rev) continue; // edited again since: push that next time
-      if (r.reason === 'host_wins' && r.current) {
+      if ((r.reason === 'host_wins' || r.reason === 'not_allowed') && r.current) {
         if (r.tbl === 'meta') await writeMeta(db, r.current, { dirty: 0, serverSeq: r.current.server_seq ?? null });
         else await writeWire(db, r.tbl, r.current, { dirty: 0, serverSeq: r.current.server_seq ?? null });
+      } else if (r.reason === 'not_allowed' && r.tbl !== 'meta') {
+        // Made by someone who may not, and the desktop never had it: it goes.
+        // A dropped restock takes its stock with it.
+        const product = r.tbl === 'restocks'
+          ? (await db.getFirstAsync<{ product_id: number }>('SELECT product_id FROM restocks WHERE uid = ?', r.uid))?.product_id
+          : undefined;
+        await deleteWire(db, r.tbl, r.uid);
+        if (product !== undefined) {
+          await db.runAsync(
+            'UPDATE products SET stock_qty = (SELECT COALESCE(SUM(delta), 0) FROM restocks WHERE product_id = ?) WHERE id = ?',
+            product, product);
+        }
       } else {
         // Needs a person (number or name already used on another device): kept
         // here, out of the push queue until it's edited.
@@ -79,6 +92,11 @@ export async function applyPushResult(db: SyncDb, res: PushResult): Promise<void
     }
     for (const d of res.deleted) {
       await db.runAsync('DELETE FROM sync_tombstones WHERE tbl = ? AND uid = ?', d.tbl, d.uid);
+    }
+    // Deletes the person may not make: the row comes back.
+    for (const d of res.undeleted ?? []) {
+      await db.runAsync('DELETE FROM sync_tombstones WHERE tbl = ? AND uid = ?', d.tbl, d.uid);
+      if (d.current) await writeWire(db, d.tbl, d.current, { dirty: 0, serverSeq: d.current.server_seq ?? null });
     }
   } finally {
     await setApplying(db, false);
@@ -139,6 +157,7 @@ export async function applyPull(db: SyncDb, res: PullResponse): Promise<number> 
         n++;
       }
     }
+    for (const u of res.changes.users ?? []) { await writeUser(db, u); n++; }
     if (res.changes.meta) {
       const local = await db.getFirstAsync<{ dirty: number }>('SELECT dirty FROM meta WHERE id = 1');
       if (local?.dirty === 0) { await writeMeta(db, res.changes.meta, { dirty: 0, serverSeq: res.changes.meta.server_seq ?? null }); n++; }
@@ -158,7 +177,7 @@ export async function applyPull(db: SyncDb, res: PullResponse): Promise<number> 
 // One full round: push, then pull until the host has nothing newer.
 export async function syncOnce(tx: Tx, transport: Transport): Promise<SyncReport> {
   const req = await tx(db => collectPush(db));
-  const report: SyncReport = { pushed: countChanges(req.changes), accepted: 0, rejected: [], pulled: 0 };
+  const report: SyncReport = { pushed: countChanges(req.changes), accepted: 0, rejected: [], pulled: 0, usersChanged: false };
   if (report.pushed > 0) {
     const res = await transport.push(req);
     await tx(db => applyPushResult(db, res));
@@ -170,6 +189,7 @@ export async function syncOnce(tx: Tx, transport: Transport): Promise<SyncReport
       (await db.getFirstAsync<{ s: number }>('SELECT last_pull_seq s FROM sync_state WHERE id = 1'))?.s ?? 0);
     const res = await transport.pull({ protocol: PROTOCOL, device_id: req.device_id, since });
     report.pulled += await tx(db => applyPull(db, res));
+    if (res.changes.users?.length) report.usersChanged = true;
     if (!res.more) break;
   }
   return report;

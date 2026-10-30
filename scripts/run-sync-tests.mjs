@@ -19,6 +19,7 @@ execFileSync('npx', ['tsc', '--ignoreConfig',
   'desktop/host/app.ts', 'src/sync/client.ts',
   'src/data/settingsRepo.ts', 'src/data/productsRepo.ts', 'src/data/invoicesRepo.ts',
   'src/data/paymentsRepo.ts', 'src/data/syncRepo.ts', 'src/sync/service.ts',
+  'src/auth/people.ts', 'desktop/host/users.ts',
   '--outDir', build, '--rootDir', '.', '--module', 'nodenext', '--moduleResolution', 'nodenext',
   '--target', 'es2022', '--types', 'node', '--skipLibCheck', '--esModuleInterop', '--strict'],
 { stdio: 'inherit', shell: true });
@@ -59,6 +60,7 @@ function makePhone(name) {
     syncRepo: r('src/data/syncRepo.js'), money: r('src/data/money.js'), client: r('src/sync/client.js'),
     tx: fn => db.withTx(fn),
     q: async (sql, ...a) => (await db.getDb()).getAllAsync(sql, ...a),
+    run: async (sql, ...a) => (await db.getDb()).runAsync(sql, ...a),
     one: async (sql, ...a) => (await db.getDb()).getFirstAsync(sql, ...a),
   };
   p.post = async (route, msg) => {
@@ -440,6 +442,111 @@ await t('pairing with a different desktop sends everything again, without duplic
   assert.deepEqual(await picture(hq), before, 'the desktop already had all of it');
   assert.equal((await D.service.syncStatus()).pending, 0);
   assert.deepEqual(await picture(D.q), await picture(hq));
+});
+
+// ---------- people and limits (LAN_SYNC Phase 5, D3 / D4) ----------
+
+const users = require(path.join(build, 'desktop', 'host', 'users.js'));
+const P = {}; // name -> uid
+const saveUser = u => host.exclusive(tx => users.saveUser(tx, u));
+const as = (phone, name) => phone.run('UPDATE sync_state SET user_uid = ? WHERE id = 1', name ? P[name] : '');
+
+await t('desktop people: rules for names, PINs and owners', async () => {
+  P.Owner = await saveUser({ name: 'Owner', role: 'admin', perms: [], active: true, pin: '1234' });
+  P.Ravi = await saveUser({ name: 'Ravi', role: 'staff', perms: [], active: true, pin: '56789' });
+  P.Meena = await saveUser({ name: 'Meena', role: 'staff', perms: ['stock'], active: true, pin: '2468' });
+  const err = async u => { try { await saveUser(u); return 'saved'; } catch (e) { return e.message; } };
+  assert.match(await err({ name: 'ravi', role: 'staff', perms: [], active: true, pin: '1111' }), /already someone called/);
+  assert.match(await err({ name: 'Anu', role: 'staff', perms: [], active: true, pin: '12' }), /4 to 6 digits/);
+  assert.match(await err({ name: 'Anu', role: 'staff', perms: [], active: true }), /needs a PIN/);
+  assert.match(await err({ uid: P.Owner, name: 'Owner', role: 'staff', perms: [], active: true }), /at least one active owner/);
+  const list = await users.listUsers(host.db);
+  assert.deepEqual(list.map(u => [u.name, u.role, u.perms.join(','), u.hasPin]),
+    [['Meena', 'staff', 'stock', true], ['Owner', 'admin', '', true], ['Ravi', 'staff', '', true]]);
+});
+
+await t('people reach the phones; the phone checks PINs the desktop set', async () => {
+  const rep = await A.sync();
+  assert.equal(rep.usersChanged, true);
+  assert.equal((await A.one('SELECT COUNT(*) c FROM users')).c, 3);
+  const people = require(path.join(tmp, 'phoneD', 'src', 'auth', 'people.js'));
+  await D.service.syncNow();
+  assert.equal(await people.peopleMode(), true, 'paired + people = sign in per person');
+  assert.deepEqual((await people.listPeople()).map(p => [p.name, p.pinLen]), [['Meena', 4], ['Owner', 4], ['Ravi', 5]]);
+  assert.equal((await people.checkPersonPin(P.Ravi, '56789')).ok, true);
+  assert.equal((await people.checkPersonPin(P.Ravi, '1234')).ok, false, "the owner's PIN is not Ravi's");
+  await people.signIn(P.Ravi);
+  const me = await people.currentPerson();
+  assert.equal(me.name, 'Ravi');
+  assert.equal(people.may(me, 'products'), false);
+  assert.equal(people.may(null, 'products'), true, 'nobody signed in (owner mode): everything, as before');
+  await people.signIn('');
+});
+
+await t('staff limits: the desktop refuses price, restock, void and delete, and the phone takes them back', async () => {
+  await A.sync();
+  await as(A, 'Ravi');
+  const hoodie = await A.product('Hoodie');
+  const priceBefore = hoodie.unit_paise;
+  const stockBefore = hoodie.stock_qty;
+  await A.prod.upsertProduct({ name: 'Hoodie', unit_paise: 1, stock_qty: hoodie.stock_qty }, hoodie.id);
+  await A.prod.restockProduct(hoodie.id, 3, 0, 'Ravi tries');
+  const inv = await A.issue([['Hoodie', 1, priceBefore, hoodie.id]], 'Ravi customer');
+  let rep = await A.sync();
+  assert.deepEqual(rep.rejected.map(r => [r.tbl, r.reason]).sort(), [['products', 'not_allowed'], ['restocks', 'not_allowed']]);
+  const back = await A.product('Hoodie');
+  assert.equal(back.unit_paise, priceBefore, 'price taken back');
+  assert.equal(back.stock_qty, stockBefore, "Ravi's restock dropped, stock back");
+  assert.equal((await A.one("SELECT COUNT(*) c FROM restocks WHERE note = 'Ravi tries'")).c, 0);
+  // Billing is open to everyone, and the desktop knows who billed.
+  assert.equal((await h1('SELECT created_by FROM invoices WHERE invoice_no = ?', inv.invoiceNo)).created_by, P.Ravi);
+  // Void and delete need the Delete switch.
+  await A.inv.setStatus(inv.invoiceId, 'void');
+  rep = await A.sync();
+  assert.deepEqual(rep.rejected.map(r => r.reason), ['not_allowed']);
+  assert.notEqual((await A.inv.getInvoice(inv.invoiceId)).status, 'void');
+  await A.inv.deleteInvoice(inv.invoiceId);
+  await A.sync();
+  assert.ok(await A.one('SELECT id FROM invoices WHERE invoice_no = ?', inv.invoiceNo), 'delete refused: the invoice is back');
+  assert.equal((await A.one('SELECT COUNT(*) c FROM sync_tombstones')).c, 0);
+  assert.ok(await h1('SELECT id FROM invoices WHERE invoice_no = ?', inv.invoiceNo));
+  // Company details: not for Ravi.
+  await A.settings.updateSettings({ name: 'Ravi Garments' });
+  await A.sync();
+  assert.equal((await A.settings.getSettings()).name, 'Barathy Garments');
+  assert.equal((await h1('SELECT name FROM meta')).name, 'Barathy Garments');
+  assert.deepEqual(Object.values(await A.syncRepo.pendingChanges()).filter(n => n > 0), []);
+});
+
+await t('switches: stock for Meena, everything for the owner, nothing once switched off', async () => {
+  await as(A, 'Meena');
+  const polo = await A.product('Polo T-Shirt');
+  await A.prod.restockProduct(polo.id, 4, 0, 'Meena lot');
+  assert.deepEqual((await A.sync()).rejected, []);
+  assert.equal((await h1("SELECT COUNT(*) c FROM restocks WHERE note = 'Meena lot'")).c, 1);
+  // Owner: price and company details go through.
+  await as(A, 'Owner');
+  const hoodie = await A.product('Hoodie');
+  await A.prod.upsertProduct({ name: 'Hoodie', unit_paise: 65000, stock_qty: hoodie.stock_qty }, hoodie.id);
+  await A.settings.updateSettings({ upi_id: 'barathy@okbank' });
+  assert.deepEqual((await A.sync()).rejected, []);
+  assert.equal((await h1("SELECT unit_paise FROM products WHERE name = 'Hoodie'")).unit_paise, 65000);
+  assert.equal((await h1('SELECT upi_id, updated_by FROM meta')).upi_id, 'barathy@okbank');
+  // Meena switched off on the desktop: her next restock is refused.
+  await saveUser({ uid: P.Meena, name: 'Meena', role: 'staff', perms: ['stock'], active: false });
+  const rep = await A.sync();
+  assert.equal(rep.usersChanged, true);
+  await as(A, 'Meena');
+  await A.prod.restockProduct(polo.id, 2, 0, 'Meena after');
+  assert.deepEqual((await A.sync()).rejected.map(r => r.reason), ['not_allowed']);
+  await as(A, '');
+  await B.sync();
+  assert.deepEqual(await picture(A.q), await picture(hq));
+  assert.deepEqual(await picture(B.q), await picture(hq));
+});
+
+await t('a phone on the old protocol is told to update', async () => {
+  await assert.rejects(A.post('/sync/pull', { protocol: 1, device_id: A.device, since: 0 }), /409 protocol/);
 });
 
 await t('a blocked phone is refused', async () => {

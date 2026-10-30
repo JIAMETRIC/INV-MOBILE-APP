@@ -14,9 +14,12 @@
 // origin_device / created_by, filled and maintained by the triggers in SYNC_SQL; deletes
 // leave a row in sync_tombstones; payments link invoices through
 // payment_invoices instead of the invoice_ids CSV; Stock = Σ restocks.delta.
+// v10: people (LAN_SYNC Phase 5). `users` comes from the desktop; every synced
+// row and the company details record updated_by (the signed-in person), and
+// a tombstone records who deleted the row, so the desktop can check limits.
 // Old v1/v2/v3 databases are wiped and rebuilt (see dbCore.migrate).
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS meta (
@@ -39,6 +42,7 @@ CREATE TABLE IF NOT EXISTS meta (
   dirty INTEGER NOT NULL DEFAULT 0,
   rev INTEGER NOT NULL DEFAULT 0,
   server_seq INTEGER,
+  updated_by TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -55,6 +59,7 @@ CREATE TABLE IF NOT EXISTS products (
   server_seq INTEGER,
   origin_device TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -75,6 +80,7 @@ CREATE TABLE IF NOT EXISTS restocks (
   server_seq INTEGER,
   origin_device TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_restocks_product ON restocks(product_id, id);
@@ -112,6 +118,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   server_seq INTEGER,
   origin_device TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -149,6 +156,7 @@ CREATE TABLE IF NOT EXISTS payments (
   server_seq INTEGER,
   origin_device TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
@@ -186,6 +194,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   server_seq INTEGER,
   origin_device TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
@@ -198,8 +207,29 @@ CREATE TABLE IF NOT EXISTS sync_tombstones (
   dirty INTEGER NOT NULL DEFAULT 1,
   server_seq INTEGER,
   deleted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  user_uid TEXT NOT NULL DEFAULT '',
   UNIQUE (tbl, uid)
 );
+
+-- The people who use the app, made on the desktop and pulled by every phone
+-- (phones never change them). role admin = may do everything; staff = invoices
+-- and payments, plus the switches in perms (comma list of USER_PERMS).
+-- pin_hash = SHA-256 hex of "<pin_salt>:<pin>", as for the app lock.
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  uid TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'staff' CHECK (role IN ('admin', 'staff')),
+  perms TEXT NOT NULL DEFAULT '',
+  pin_salt TEXT NOT NULL DEFAULT '',
+  pin_hash TEXT NOT NULL DEFAULT '',
+  pin_len INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  dirty INTEGER NOT NULL DEFAULT 1,
+  server_seq INTEGER
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_name ON users(name COLLATE NOCASE);
 
 -- This device's sync identity and progress. applying = 1 while rows that came
 -- from the host are written, so the triggers don't mark them dirty again.
@@ -233,6 +263,11 @@ CREATE TABLE IF NOT EXISTS backup_logs (
 export const SYNC_TABLES = ['products', 'restocks', 'invoices', 'payments', 'audit_logs'] as const;
 export type SyncTable = typeof SYNC_TABLES[number];
 
+// What a staff member may be allowed besides invoices and payments (D4).
+// Admins may do all of it.
+export const USER_PERMS = ['products', 'stock', 'delete', 'settings'] as const;
+export type UserPerm = typeof USER_PERMS[number];
+
 // Company details the host owns. invoice_prefix and next_seq stay per device
 // (each device has its own invoice series), so editing them never syncs.
 const META_SYNC_COLS = [
@@ -241,6 +276,7 @@ const META_SYNC_COLS = [
 ];
 
 const NOT_APPLYING = `COALESCE((SELECT applying FROM sync_state WHERE id = 1), 0) = 0`;
+const SIGNED_IN = `COALESCE((SELECT user_uid FROM sync_state WHERE id = 1), '')`;
 
 // The seeded catalog's uids come from the names ('p' + hex of the lower-cased
 // name), so every device seeds the same 12 products under the same uids and
@@ -262,21 +298,22 @@ BEGIN
     uid = COALESCE(NEW.uid, lower(hex(randomblob(16)))),
     origin_device = CASE WHEN NEW.origin_device = ''
       THEN COALESCE((SELECT device_id FROM sync_state WHERE id = 1), '') ELSE NEW.origin_device END,
-    created_by = CASE WHEN NEW.created_by = ''
-      THEN COALESCE((SELECT user_uid FROM sync_state WHERE id = 1), '') ELSE NEW.created_by END
+    created_by = CASE WHEN NEW.created_by = '' THEN ${SIGNED_IN} ELSE NEW.created_by END,
+    updated_by = CASE WHEN NEW.updated_by <> '' THEN NEW.updated_by
+      WHEN NEW.created_by <> '' THEN NEW.created_by ELSE ${SIGNED_IN} END
   WHERE id = NEW.id;
 END;
--- Any local edit marks the row for the next push. An update that changes
--- dirty itself (the sync engine clearing it) is left alone.
+-- Any local edit marks the row for the next push, with the signed-in person.
+-- An update that changes dirty itself (the sync engine clearing it) is left alone.
 CREATE TRIGGER IF NOT EXISTS trg_${t}_upd AFTER UPDATE ON ${t}
 WHEN NEW.dirty = OLD.dirty AND ${NOT_APPLYING}
 BEGIN
-  UPDATE ${t} SET dirty = 1, rev = rev + 1 WHERE id = NEW.id;
+  UPDATE ${t} SET dirty = 1, rev = rev + 1, updated_by = ${SIGNED_IN} WHERE id = NEW.id;
 END;
 CREATE TRIGGER IF NOT EXISTS trg_${t}_del AFTER DELETE ON ${t}
 WHEN OLD.uid IS NOT NULL AND ${NOT_APPLYING}
 BEGIN
-  INSERT OR REPLACE INTO sync_tombstones (tbl, uid) VALUES ('${t}', OLD.uid);
+  INSERT OR REPLACE INTO sync_tombstones (tbl, uid, user_uid) VALUES ('${t}', OLD.uid, ${SIGNED_IN});
 END;`;
 }
 
@@ -289,7 +326,7 @@ ${SYNC_TABLES.map(tableSyncSql).join('\n')}
 CREATE TRIGGER IF NOT EXISTS trg_meta_upd AFTER UPDATE OF ${META_SYNC_COLS.join(', ')} ON meta
 WHEN NEW.dirty = OLD.dirty AND ${NOT_APPLYING}
 BEGIN
-  UPDATE meta SET dirty = 1, rev = rev + 1 WHERE id = NEW.id;
+  UPDATE meta SET dirty = 1, rev = rev + 1, updated_by = ${SIGNED_IN} WHERE id = NEW.id;
 END;
 `;
 

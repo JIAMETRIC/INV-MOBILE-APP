@@ -220,3 +220,46 @@ Test desktop: `node desktop/dist/desktop/host/main.js --data <scratch>/emu-host 
 | Unlock after reinstall | the recorded test PIN opens the app; Dashboard shows the synced stock (25) |
 
 Not tried on the emulator: scanning a QR (the emulator has no real camera; on a phone, scan the desktop's Add phone code), Unpair, two phones at once (covered by `test:sync`). After the 5 s change: `test:sync` 19 PASS, `test:integration` 26 PASS, typecheck clean.
+
+## Session 2026-10-30 (Prompt 17): Phase 5, people and limits
+
+Design and file map: `LAN_SYNC_TRACKING.md` § "Phase 5 as built". Screen docs: S7, S5, S3, S6 rows in `SCREEN_LAYOUT_REFERENCE.md` and addenda in the four `SCREEN_CODE_STRUCTURE` trees. Lock: `AUTH_AND_LOCK` TRACKING / walkthrough.
+
+### Schema v10
+
+- `scripts/fixtures/schema-v9.sql` (new): `SCHEMA_SQL` + `SYNC_SQL` exactly as shipped in build 5 (compiled from `git show f9ddb86:src/data/schema.ts`).
+- A first draft of the migration would have let the v8 → v9 step create `sync_tombstones` from the v10 definitions, and v10 would then have tried to add `user_uid` twice. Fixed before running: v10 adds columns only where missing, and v9 leaves the triggers to v10.
+- `test:integration` 28 PASS. New: "v10: edits record who made them; deletes record who deleted", "v9 -> v10 upgrade (phones on build 5) ends like a fresh v10 build". The v8 → v10 shape test passes too.
+
+### `test:sync` 24 PASS (5 new)
+
+```
+PASS desktop people: rules for names, PINs and owners
+PASS people reach the phones; the phone checks PINs the desktop set
+PASS staff limits: the desktop refuses price, restock, void and delete, and the phone takes them back
+PASS switches: stock for Meena, everything for the owner, nothing once switched off
+PASS a phone on the old protocol is told to update
+```
+
+### Emulator (build 6, `versionCode` 6, x86_64 test build)
+
+- Test desktop on the scratch `emu-host` folder via a small script (its v9 database upgraded to v10, `/health` protocol 2), two test people (Owner, Ravi; PINs in `credentials/emulator-test-lock.txt`).
+- Install over build 5: database v9 → v10, data kept.
+- **Bug found:** the first sync ran under the device-PIN screen and pulled the 2 people (host `sync_log`: pull 2 at 18:11:13); the device PIN then opened the Dashboard. Fixed in `LockProvider` (`refreshPeople` switches an `unlock` gate, `unlocked` sends a right device PIN on to `person`); rebuilt (18 s) and reinstalled.
+- After the fix: "Who's using Invoice ERP?" with Owner (blue OW) and Ravi (grey RA, Staff) → "Hi, Ravi", 6 dots, "Not Ravi? Choose another person" → Ravi's PIN → Dashboard.
+- As Ravi: Products without "Add product"; editor with name / price / stock read-only, no Quick pick, no buttons, the explanatory line, stock history shown; Settings → Security "Signed in as Ravi · Staff · Switch person", no device-PIN card.
+
+### Desktop
+
+- Browser-pane check of the page with sample data: People card (initials, Owner / Staff summaries with switches, "Switched off" badge, Edit) and the Add a person dialog (Name, Staff / Owner switch, four switches, PIN, error line "There is already someone called Ravi."). Initials changed to the phone's rule (one word → first two letters).
+- Electron smoke after the host changes: `ok:true`, database and backup encrypted.
+
+### Other results
+
+```
+npm run typecheck (app + desktop) clean · desktop tsconfig.electron.json clean
+test:money, test:xlsx, test:columns pass
+```
+
+Not done: a phone-ready (arm64 + x86_64) build 6 APK; the people dialog in the real Electron window (checked in the browser pane with sample data).
+

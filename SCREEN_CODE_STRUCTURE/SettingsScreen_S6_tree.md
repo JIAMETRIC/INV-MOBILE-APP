@@ -203,3 +203,13 @@ Open findings (not applied): none.
 - **State:** `useSettings()` gains `sync = useSync()` (status, busy, lastError, pair, syncNow, unpair from `src/sync/SyncProvider.tsx`), `scanning`, `pairLink`, and the actions `pairWith(code)`, `syncNow()`, `unpair()` (lines 174-202).
 - **Numbers:** no new `S6` numbers; the series example reuses `S6.numberPad`.
 - **Sizes:** not size-checked yet (`/size-check` on the emulator is pending).
+
+## 2026-10-30 addendum 2: limits and the signed-in person (LAN_SYNC Phase 5)
+
+- `useSettings()` adds `canSettings` (`lock.can('settings')`) and `companyEditable` (line 215: Settings switch, and on a paired phone someone signed in).
+- `CompanyForm` (348) shows Save or the S6.2.5 note.
+- `ExportRestoreRow` (565) shows Restore with the Settings switch.
+- `PairedCard` (467) shows Unpair with it.
+- `SecurityPane` (496) adds S6.6.1 (Signed in as · Switch person → `lock.lockNow`, which opens the person flow) and moves the device-PIN list card into `DeviceLockCard` (521), hidden for signed-in staff.
+
+Checked on the emulator as Ravi: Security shows "Signed in as Ravi · Staff · Switch person" and Lock now, no device-PIN card.

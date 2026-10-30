@@ -140,7 +140,7 @@ Code: `src/data/schema.ts` (`SCHEMA_SQL`, `SYNC_SQL`, `SYNC_TABLES`), migration 
 | **2. Desktop host** ✅ 2026-10-30 (core + Electron app + installer) | New `desktop/` folder: Electron + Node server + SQLite (SQLCipher) reusing `src/data`; endpoints `/health`, `/pair`, `/sync/push`, `/sync/pull`; Windows firewall rule; auto-backup | L | Two simulated phones (Node test) push/pull and converge |
 | **3. Desktop admin UI** | Web build of existing screens (S1 Dashboard, S2 Invoices, S3, S5 Products, S6 Settings) + new: **Users**, **Devices & pairing QR**, **Sync log**, filter "by user" | L | Admin sees every phone's invoices and stock in one place |
 | **4. Phone sync client** ✅ 2026-10-30 (header sync dot not done) | Settings → **Sync** section (pair by QR via `expo-camera`, status, Sync now, unpair); sync engine; header sync dot (synced / pending / offline); INTERNET permission + cleartext LAN config; encryption | M | Phone pairs, bills offline, catches up when back on Wi-Fi |
-| **5. Users & roles** | Per-user PIN sign-in (extends the S7 lock), `created_by` on invoices, permission checks on phone and enforced on the host | M | Phone user can't change prices; host rejects a forged push |
+| **5. Users & roles** ✅ 2026-10-30 | Per-user PIN sign-in (extends the S7 lock), `created_by` on invoices, permission checks on phone and enforced on the host | M | Phone user can't change prices; host rejects a forged push |
 | **6. Test & roll out** | Multi-device test: emulator + phone + desktop on Wi-Fi; Wi-Fi drop mid-sync; same product restocked on two phones; admin voids while phone edits; `/size-check` on new screens; seed host from current phone; build 5 | M | Checklist in `LAN_SYNC_walkthrough.md` all green |
 
 Order: 1 → 2 → 4 can be tested end to end before the full admin UI (3) and roles (5).
@@ -272,6 +272,46 @@ Host changes for it: `NodeSqliteDb` takes any engine with the node:sqlite / bett
 **Error words** (`service.ts` `MESSAGES`): not paired · desktop not reachable (Wi-Fi / desktop running) · a different desktop answers · blocked on the desktop · desktop no longer knows this phone (pair again) · pairing code used or expired · not a pairing code · different sync versions · desktop problem.
 
 **Not done in Phase 4:** the header sync dot on every screen (status is in Settings → Sync only); opening an `invoiceerp://pair` link from another app (the scheme is registered, but nothing handles it yet); background sync while the app is closed (Android background jobs are out of scope: phones sync when opened).
+
+### Phase 5 as built: people and limits (2026-10-30, Prompt 17)
+
+**Model.** People are made on the desktop (page card **People**: name, Owner or Staff, four switches, PIN 4–6 digits, "can sign in" on / off; never deleted, so their invoices stay theirs). Owner (`role = admin`) may do everything. Staff may make invoices and take payments, plus the switches (`USER_PERMS`):
+
+| Switch | Allows | Checked on the phone | Checked on the desktop |
+| --- | --- | --- | --- |
+| `products` | add / rename / delete products, prices (incl. a new price when restocking) | S5 FAB, New product, name / price fields, Delete, New price | product rows: `updated_by`; product tombstones |
+| `stock` | restock, correct stock | S5 Restock, stock field | restock rows: `created_by`; restock tombstones |
+| `delete` | delete or void invoices (and payments) | S3 Delete | invoice going to void: `updated_by`; invoice / payment tombstones |
+| `settings` | company details, restore a backup, unpair | S6.2 Save, S6.4 Restore, S6.7 Unpair | company details: `updated_by` (the first phone may still fill an empty desktop) |
+
+`''` (nobody signed in: a phone without people, or rows made before) counts as the phone's owner, as before Phase 5, except that company details from a paired phone with nobody signed in are still the desktop's (`host_wins`). An unknown or switched-off person may do none of the switch actions; their invoices and payments are still taken.
+
+**Schema v10** (`dbCore.addPeople`; v8 phones pass v9 then v10 in one open, columns added only where missing):
+- `users` (uid, name unique, role, perms, pin_salt / pin_hash / pin_len, active, updated_at, dirty, server_seq): made on the desktop, pulled by phones.
+- `updated_by` on every synced table and on `meta`.
+- `sync_tombstones.user_uid`.
+- The triggers set `updated_by` (insert: `created_by`, else the signed-in person; update: the signed-in person) and the deleting person on a tombstone.
+
+**Protocol 2.** Push rows carry `updated_by`, and deletes carry `user_uid`. Pulls carry `users`. `PushResult.undeleted` lists deletes the person may not make. `not_allowed` refusals come with the desktop's `current` row, which the phone takes back; a row the desktop never had is dropped (a dropped restock takes its stock with it). A phone and desktop on different protocol numbers refuse to sync (409, "Update the older one"), so a build 5 phone can't half-sync with this desktop. A pushed row with a missing column keeps its default instead of failing.
+
+**On the phone.**
+- `src/auth/people.ts`: list, people mode, PIN check through `authStore.checkHashed` (shared lockout), sign in, current person, `may`.
+- `LockProvider`: `person` flow, `person`, `can(perm)`, `refreshPeople`.
+- S7 person flow: pick, then enter.
+- Limits on S5, S3 and S6, as in the table.
+- `SyncProvider` calls `refreshPeople` when a pull brought people.
+
+**On the desktop.** `desktop/host/users.ts`:
+- `hashPin`, `listUsers`, `saveUser`, with these rules: names unique, PIN 4–6 digits, a new person needs a PIN, at least one active owner.
+- `hostSync.allowed()`: product edits whose only change is stock pass as a stock change (`unchanged(…, loose)`).
+
+**Found on the emulator and fixed:** the first sync after the update runs under the lock. The people it brought did not change the device-PIN screen already showing, so the device PIN opened the app. Now a sync that brings people switches that screen to "Who's using", and a right device PIN leads on to it while people exist.
+
+**Not done in Phase 5:**
+- A person changing their own PIN on the phone (the owner does it on the desktop).
+- Per-person activity pages on the desktop (Phase 3).
+- A login on the desktop itself: the PC's Windows account is the owner's.
+- A tampered app could send `''` as the person: limits guard honest phones (stale permissions, old builds), not a modified app.
 
 ### Risks
 

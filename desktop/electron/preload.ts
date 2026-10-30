@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('host', {
   setBlocked: (deviceId: string, blocked: boolean) => ipcRenderer.invoke('host:block', deviceId, blocked),
   setStartWithWindows: (on: boolean) => ipcRenderer.invoke('app:startWithWindows', on),
   openDataFolder: () => ipcRenderer.invoke('app:openData'),
+  users: () => ipcRenderer.invoke('users:list'),
+  saveUser: (u: unknown) => ipcRenderer.invoke('users:save', u),
 });

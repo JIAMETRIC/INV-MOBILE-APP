@@ -7,6 +7,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useNav } from '../shell/navigation';
+import { useLock } from '../auth/LockProvider';
 import appVersion from '../../app-version.json';
 import {
   SyncError, hasPending, pair as pairWithDesktop, syncNow, syncStatus, unpair as forgetDesktop, type SyncStatus,
@@ -46,6 +47,7 @@ function deviceName(): string {
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const nav = useNav();
+  const lock = useLock();
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState('');
@@ -72,6 +74,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         setLastError('');
         failed.current = false;
         if (report.pulled > 0) nav.refresh();
+        if (report.usersChanged) await lock.refreshPeople(); // people added, changed or switched off
         return report;
       } catch (e) {
         failed.current = true;
@@ -86,7 +89,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     })();
     running.current = p;
     return p;
-  }, [nav, readStatus]);
+  }, [nav, lock, readStatus]);
 
   const runIfPaired = useCallback(async () => {
     const s = await readStatus().catch(() => null);

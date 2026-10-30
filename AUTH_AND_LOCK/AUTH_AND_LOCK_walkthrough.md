@@ -43,3 +43,7 @@
 The emulator's test PIN is the 6-digit one set through the recovery path; its recovery code was shown on screen once (emulator test data only).
 
 **2026-10-30:** that PIN had not been written down, so the emulator's app data was cleared (LAN_SYNC Prompts 11–12) and a new random 6-digit test PIN set. The PIN and its recovery code are in `credentials/emulator-test-lock.txt` (git-ignored, this PC only, emulator test data only). Write down any test PIN set in a later session there too.
+
+## 2026-10-30: person sign-in (LAN_SYNC Phase 5)
+
+Emulator, build 6 (x86_64 test build), paired with a scratch test desktop holding Owner and Ravi (their test PINs are in `credentials/emulator-test-lock.txt`, git-ignored). The first build let the device PIN through after people arrived under the lock (fixed in `LockProvider.refreshPeople` / `unlocked`); after the fix the app opens on "Who's using Invoice ERP?", Ravi's PIN signs him in, and Security shows "Signed in as Ravi".

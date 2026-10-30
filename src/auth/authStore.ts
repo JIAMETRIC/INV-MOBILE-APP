@@ -21,7 +21,7 @@ export const LOCKOUT = { freeTries: 5, baseMs: 30_000, maxMs: 15 * 60_000 } as c
 // Recovery code: 12 characters from 32 that can't be confused (no I, O, 0, 1).
 const CODE = { alphabet: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', length: 12, group: 4 } as const;
 
-type Hashed = { salt: string; hash: string };
+export type Hashed = { salt: string; hash: string };
 type Fails = { count: number; until: number };
 export type Attempt = { ok: true } | { ok: false; waitMs: number; triesLeft: number };
 
@@ -83,11 +83,16 @@ export async function lockoutRemaining(): Promise<number> {
 }
 
 async function check(key: string, secret: string): Promise<Attempt> {
+  return checkHashed(await readJson<Hashed>(key), secret, key === KEY.pin ? 'pin' : 'recovery');
+}
+
+// The one PIN check: the lockout counter, the log entries. A person's PIN
+// (src/auth/people.ts) comes with its salt and hash from the desktop, and
+// shares the device's lockout.
+export async function checkHashed(rec: Hashed | null, secret: string, what: string): Promise<Attempt> {
   const wait = await lockoutRemaining();
   const f = (await readJson<Fails>(KEY.fails)) ?? { count: 0, until: 0 };
   if (wait > 0) return { ok: false, waitMs: wait, triesLeft: 0 };
-  const rec = await readJson<Hashed>(key);
-  const what = key === KEY.pin ? 'pin' : 'recovery';
   if (rec && sameHex((await hashed(secret, rec.salt)).hash, rec.hash)) {
     await SecureStore.deleteItemAsync(KEY.fails);
     if (what === 'recovery') await logAudit('auth.recovered', 'auth', what);

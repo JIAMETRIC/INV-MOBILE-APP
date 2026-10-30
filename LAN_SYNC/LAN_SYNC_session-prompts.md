@@ -89,3 +89,21 @@ Build phone APK
 ```
 Commit it
 ```
+
+## Prompt 16
+
+```
+What next i have to do?
+```
+
+## Prompt 17
+
+```
+Phase 5: users, limits
+```
+
+## Prompt 18
+
+```
+Commit it
+```

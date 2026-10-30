@@ -297,7 +297,7 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 | S3.3 | Primary actions | wrap row, gap 12 (`layout.grid`): **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | `ActionRow` |
 | S3.4 | Items table | SectionTitle "Items (n)"; `ItemsHeader` Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3** (`S3.itemColumns`, read by the header and the rows), numbers right-aligned; each `LineRow` (memo) padded 12, bottom border; description up to 2 lines | `ItemsCard`, `ItemsHeader`, `LineRow` |
 | S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | `TotalsCard` |
-| S3.6 | Secondary actions | not void → **Edit** (outline, opens S4 in edit mode) · **Void** (ghost, red) | `EditVoidRow` |
+| S3.6 | Secondary actions | **Edit** (opens S4 in edit mode) · **Delete** (solid red, confirm; only with the Delete switch, D4 / LAN_SYNC Phase 5) | `EditDeleteRow` |
 | P1 | Record-payment sheet | see P1 below | `PaymentSheet` |
 
 ### Functions
@@ -480,7 +480,7 @@ md: table, but the editor opens as P3 (dialog)
 | S5.6.2 | "Quick pick" chips = `QUICK_PICKS` (`PRODUCT_SEED_NAMES`, src/data/schema.ts) | `QuickPickChips` |
 | S5.6.3 | "Size" chips = `SIZES` (`PRODUCT_SIZES`) + "No size" | `SizeChips` |
 | S5.6.4 | Price (₹) \| Stock (`Columns kind="input"`); Stock helper = "Sold n · Avl n" | `PriceStockRow` |
-| S5.6.5 | Buttons right-aligned: Delete (ghost red, edit only) · Restock (tonal, edit only) · Save | `EditorActions` |
+| S5.6.5 | Buttons right-aligned: Delete (ghost red, edit only, Products switch) · Restock (tonal, edit only, Stock switch) · Save (either switch). With neither switch: one line instead, "You can look at products. Changing them needs the Products or Stock switch, set on Invoice ERP Desktop." Without Products: name and price read-only, Quick pick hidden, no "Add product" (FAB / header button), no New price in S5.7; without Stock: stock read-only (D4, LAN_SYNC Phase 5) | `EditorActions`, `ProductForm`, `PriceStockRow` |
 | S5.6.6 | Stock history list: icon (restock / edit) · "Restock +n → stock m" · date · note | `StockHistory` |
 | S5.7.1 | Info line: "name · size — current stock n" | `RestockForm` |
 | S5.7.2 | Qty to add \| New price (₹) (`Columns kind="input"`; a blank price keeps the current one) | `RestockForm` |
@@ -543,11 +543,13 @@ Sections are defined in `SECTIONS`: **company**, **sync** (S6.7, since 2026-10-3
 | S6.2.1 | Business | Business name · Subtitle · Address (multiline) · City \| Pincode · PAN \| Contact (`FieldRow` = `Columns`) · Email | `BusinessCard` |
 | S6.2.2 | Bank / UPI | title · Bank \| Branch · A/C no \| IFSC · UPI ID | `BankCard` |
 | S6.2.3 | Invoice numbering | title · Prefix \| Next number (read-only, e.g. `PRE-002`, padded to `S6.numberPad`) | `NumberingCard` |
-| S6.2.4 | Save | the Save button at the end of the form | `CompanyForm` |
+| S6.2.4 | Save | the Save button at the end of the form (with the Settings switch, and on a paired phone only when someone is signed in) | `CompanyForm` |
+| S6.2.5 | Read-only note | instead of Save: "Company details are changed by the owner, or by someone with the Settings switch on Invoice ERP Desktop." / on a paired phone with nobody signed in: "Company details come from Invoice ERP Desktop. Change them there, or sign in as the owner." | `CompanyForm` |
 | S6.3 | **Drafts** | `DraftsPane`: "Drafts (n)" (lg+) · Card list of `DraftRow` (memo): title party · subtitle `draft_no · n lines · ₹total · date` · trailing trash (confirm). Tap → S4 with `draftId`. Empty: "No drafts" | `DraftsPane`, `DraftRow` |
 | S6.4 | **Backup & restore** | `BackupPane`: info text · `ExportRestoreRow` (Export \| Restore, 1:1) · `RecentBackups`: archive icon · file name · `kind · KB · date` | `BackupPane` |
 | S6.5 | **Activity log** | `ActivityPane`: ListItem: `action — entity_type entity_id` · date (latest `S6.auditRows` 50) | `ActivityPane` |
-| S6.6 | **Security** | `SecurityPane`: "App lock" card (when it locks, `LOCK.relockAfterMs` 5 min) · list card: Fingerprint / face unlock (`Switch`, greyed when nothing is enrolled) · Change PIN › · New recovery code › · **Lock now** (solid). The PIN screens are S7 | `SecurityPane` |
+| S6.6 | **Security** | `SecurityPane`: "App lock" card (when it locks, `LOCK.relockAfterMs` 5 min) · S6.6.1 · list card (`DeviceLockCard`, the device PIN; hidden for staff once people sign in): Fingerprint / face unlock (`Switch`, greyed when nothing is enrolled) · Change PIN › · New recovery code › · **Lock now** (solid). The PIN screens are S7 | `SecurityPane` |
+| S6.6.1 | Signed in (people mode) | list card: initials · "Signed in as <name>" · Owner / Staff · "Switch person" (blue) › → the S7 person flow | `SecurityPane` |
 | S6.7 | **Sync with desktop** (LAN_SYNC) | `SyncPane`: S6.7.1 or S6.7.2 + S6.7.3, then the last error (red) when the last sync failed | `SyncPane` |
 | S6.7.1 | Not paired | "Desktop" card: what pairing does · **Scan pairing code** (solid, camera) · "Or paste the pairing link" input · **Pair** (outline, disabled while empty) | `PairCard` |
 | S6.7.2 | Paired | list card: Desktop (monitor · host name) · Invoice series (hash · `INV-A001, INV-A002 …`) · Last sync (refresh · "today 10:42 · n waiting to send") · when the desktop refused changes: alert row + red **Check** badge | `PairedCard` |
@@ -606,7 +608,8 @@ Tablets: the same column, max width 400, centred.
 | Flow (`LockProvider` gate) | Steps |
 | --- | --- |
 | `setup` (no PIN yet) | create → confirm → code (recovery code shown once) → bio (only if a fingerprint is enrolled) → app |
-| `unlock` (app start, back after `LOCK.relockAfterMs`, Lock now) | enter (fingerprint prompt opens by itself when on) → app; "Use recovery code" → recover → create → confirm → code → app |
+| `unlock` (app start, back after `LOCK.relockAfterMs`, Lock now) | enter (fingerprint prompt opens by itself when on) → app; "Use recovery code" → recover → create → confirm → code → app. Once the phone has people (below), a right device PIN leads on to `person` |
+| `person` (paired phone whose desktop has people, LAN_SYNC Phase 5; replaces `unlock`) | pick (who's using) → enter (that person's PIN, their length of dots) → app; "Not <name>? Choose another person" and Back return to pick. No recovery code (the owner resets PINs on the desktop) and no fingerprint (it can't tell people apart) |
 | `change` (S6.6 Change PIN) | enter current → create → confirm → app. Cancel / Back returns |
 | `new-code` (S6.6 New recovery code) | enter current → code → app. Cancel / Back returns |
 
@@ -614,10 +617,10 @@ Tablets: the same column, max width 400, centred.
 
 | ID | Region | Content | Function |
 | --- | --- | --- | --- |
-| S7.0 | Header | logo · title · line under it (`TEXT[step]`; `VERIFY_TEXT` for change / new-code) | `Header` |
-| S7.1 | Step card | `PinEntry` (dots + Continue) · `RecoveryEntry` (Input + Continue) · `RecoveryCode` (code + "I have written it down") · `BioOffer` (Turn on · Not now) · `Message` | `StepCard` |
+| S7.0 | Header | logo · title · line under it (`TEXT[step]`; `VERIFY_TEXT` for change / new-code; "Hi, <name>" / "Enter your PIN" in the person flow) | `Header` |
+| S7.1 | Step card | `PeoplePicker` (pick: ListItem per person: initials (blue = owner, grey = staff) · name · Owner / Staff · chevron; then "Forgot your PIN? The owner can set a new one on Invoice ERP Desktop.") · `PinEntry` (dots + Continue) · `RecoveryEntry` (Input + Continue) · `RecoveryCode` (code + "I have written it down") · `BioOffer` (Turn on · Not now) · `Message` | `StepCard` |
 | S7.2 | Keypad | 3 × 4, `KeypadKey` × 12 | `Keypad`, `KeypadKey` |
-| S7.3 | Footer | Forgot PIN? Use recovery code · Back to PIN · Cancel | `Footer` |
+| S7.3 | Footer | Forgot PIN? Use recovery code · Not <name>? Choose another person (person flow) · Back to PIN · Cancel | `Footer` |
 
 ### Rules
 

@@ -176,3 +176,7 @@ Both list rows are `React.memo` with explicit props (`p`, `last`, `onPress`, `th
 | xl 961 · xxl 1280 | [ table \| editor 38 % ]: list pane 541 dp (xl) and 739 dp (xxl) ≥ 520, six columns with full names; the editor pane shows its empty state until a row is tapped | Prompt 30 (bug as at lg: list ≈ 335 / 347 dp, NAME gone, AVL cut), Prompt 31 (fixed: all six columns, names readable), Prompt 32 (xl 541 ≥ 520 by arithmetic), Prompt 49 (six-column table, editor pane empty state) |
 
 Open findings (not applied): none. Every Prompt 30 finding on S5 was closed in Prompts 31 and 32; Prompt 44 reported S5 and P3 as ok at every phone size.
+
+## 2026-10-30 addendum: limits (LAN_SYNC Phase 5, D4)
+
+`useProducts()` returns `canProducts` / `canStock` from `useLock().can(...)` (line 207). Products: the FAB (224) and the header's New product only with Products; `ProductForm` (402) makes the name read-only and hides `QuickPickChips` without it; `PriceStockRow` makes price read-only without Products and stock read-only without Stock; `EditorActions` (448) shows Delete with Products, Restock with Stock, Save with either, else one explanatory line; `RestockForm` hides New price without Products. Checked on the emulator as Ravi (staff, no switches): no FAB, editor read-only with the line, stock history still shown.

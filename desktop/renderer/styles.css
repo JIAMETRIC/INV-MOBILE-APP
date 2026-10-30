@@ -179,4 +179,26 @@ h1, h2 { margin: 0; }
 .link summary { font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; min-height: 32px; }
 .link code { display: block; font-size: 12px; overflow-wrap: anywhere; user-select: all; color: var(--muted); }
 
+/* people dialog: fields (kit input: height 50, radius 12 here), the role switch, permissions */
+.field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.field input {
+  height: 50px; padding: 0 16px; border-radius: 12px; font-size: 15px; color: var(--text);
+  background: var(--glassStrong); border: 1px solid var(--divider); outline: none;
+}
+.field input:focus { border-color: var(--primaryColor); box-shadow: var(--focusRing); }
+.segmented {
+  display: flex; padding: 4px; border-radius: 999px; background: var(--glass);
+  border: 1px solid var(--glassBorder); box-shadow: var(--shadowPrimary);
+}
+.segmented button {
+  flex: 1; height: 36px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--muted); font-size: 14px; font-weight: 500; transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+.segmented button[aria-checked="true"] { background: var(--primaryColor); color: var(--lightColor); font-weight: 600; box-shadow: var(--shadowPrimary); }
+.perms { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.perms legend { padding: 0; margin-bottom: 4px; }
+.perms[disabled] { opacity: 0.5; }
+.error { min-height: 18px; font-size: 13px; color: var(--red); }
+.btn-glass { display: inline-flex; align-items: center; gap: 8px; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

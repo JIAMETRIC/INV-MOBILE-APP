@@ -155,6 +155,36 @@ async function addSyncColumns(db: SQLite.SQLiteDatabase): Promise<void> {
           : 'lower(hex(randomblob(16)))'},
            origin_device = ${device} WHERE uid IS NULL;`);
     }
+    // The triggers and uid indexes come with the v10 step (addPeople), which
+    // always follows in the same open.
+    await db.execAsync('PRAGMA user_version = 9;');
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
+async function addColumnIfMissing(db: SQLite.SQLiteDatabase, table: string, column: string, decl: string): Promise<void> {
+  const cols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  if (!cols.some(c => c.name === column)) await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${decl};`);
+}
+
+// v9 -> v10: people (LAN_SYNC Phase 5). The users table, updated_by on every
+// synced row and the company details, the deleting person on tombstones, and
+// the triggers rebuilt to fill them. Rows so far count as the device owner's ('').
+// Columns are added only where missing: coming from v8, the v9 step already
+// made sync_tombstones from the current SCHEMA_SQL.
+async function addPeople(db: SQLite.SQLiteDatabase): Promise<void> {
+  await db.execAsync('BEGIN');
+  try {
+    for (const t of [...SYNC_TABLES, 'meta']) await addColumnIfMissing(db, t, 'updated_by', "TEXT NOT NULL DEFAULT ''");
+    await addColumnIfMissing(db, 'sync_tombstones', 'user_uid', "TEXT NOT NULL DEFAULT ''");
+    await db.execAsync(`
+      ${SYNC_TABLES.map(t => `DROP TRIGGER IF EXISTS trg_${t}_ins; DROP TRIGGER IF EXISTS trg_${t}_upd; DROP TRIGGER IF EXISTS trg_${t}_del;`).join('\n')}
+      DROP TRIGGER IF EXISTS trg_meta_upd;
+    `);
+    await db.execAsync(SCHEMA_SQL); // creates users
     await db.execAsync(SYNC_SQL);
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
     await db.execAsync('COMMIT');
@@ -185,6 +215,10 @@ export async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (version === 8) {
     await addSyncColumns(db);
+    version = 9;
+  }
+  if (version === 9) {
+    await addPeople(db);
     version = SCHEMA_VERSION;
   }
   let forceDrop = false;
@@ -204,7 +238,7 @@ export async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       // Clean rebuild (approved for the v2 GST/Clients removal, kept for the
       // v3 Products rename): the old schema is incompatible and only test
       // data exists, so wipe every table child-first instead of migrating rows.
-      for (const t of ['sync_state', 'sync_tombstones', 'payment_invoices',
+      for (const t of ['users', 'sync_state', 'sync_tombstones', 'payment_invoices',
         'backup_logs', 'audit_logs', 'drafts', 'payments',
         'invoice_items', 'invoices', 'restocks', 'products', 'items', 'clients', 'meta']) {
         await db.execAsync(`DROP TABLE IF EXISTS ${t};`);

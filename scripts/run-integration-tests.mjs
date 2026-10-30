@@ -186,7 +186,7 @@ const mkLine = (sno, desc, qty, unitPaise, productId = null) => ({
 await t('DB opens, migrates, seeds meta singleton', async () => {
   const d = await db.getDb();
   assert.ok(d);
-  assert.equal((await d.getFirstAsync('PRAGMA user_version')).user_version, 9);
+  assert.equal((await d.getFirstAsync('PRAGMA user_version')).user_version, 10);
   const s = await settingsRepo.getSettings();
   assert.equal(s.invoice_prefix, 'INV-');
   assert.equal(s.next_seq, 1);
@@ -604,7 +604,7 @@ await t('v8 -> v9 migration keeps the data and ends like a fresh v9 build', asyn
     INSERT INTO audit_logs (action, entity_type, entity_id) VALUES ('invoice.issue', 'invoice', 'INV-001');
     PRAGMA user_version = 8;`);
   await dbCore.migrate(w);
-  assert.equal((await w.getFirstAsync('PRAGMA user_version')).user_version, 9);
+  assert.equal((await w.getFirstAsync('PRAGMA user_version')).user_version, 10);
   assert.equal((await w.getFirstAsync('SELECT COUNT(*) c FROM invoices')).c, 2, 'invoices kept');
   const st = await w.getFirstAsync('SELECT device_id FROM sync_state');
   for (const tbl of SYNCED) {
@@ -642,6 +642,60 @@ await t('v8 -> v9 migration keeps the data and ends like a fresh v9 build', asyn
   // A second open is a no-op.
   await dbCore.migrate(w);
   assert.equal((await w.getFirstAsync('SELECT COUNT(*) c FROM payment_invoices')).c, 3);
+});
+
+// ---------- v10 people (LAN_SYNC Phase 5) ----------
+
+await t('v10: edits record who made them; deletes record who deleted', async () => {
+  const d = await db.getDb();
+  await d.runAsync("UPDATE sync_state SET user_uid = 'u-anu' WHERE id = 1");
+  const hoodie = (await productsRepo.listProducts('Hoodie'))[0];
+  await productsRepo.upsertProduct({ name: 'Hoodie', unit_paise: 58000, stock_qty: hoodie.stock_qty }, hoodie.id);
+  assert.equal((await d.getFirstAsync('SELECT updated_by FROM products WHERE id = ?', hoodie.id)).updated_by, 'u-anu');
+  const lines = [mkLine(1, 'who', 1, 100)];
+  const res = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  const inv = await d.getFirstAsync('SELECT uid, created_by, updated_by FROM invoices WHERE id = ?', res.invoiceId);
+  assert.equal(inv.created_by, 'u-anu');
+  assert.equal(inv.updated_by, 'u-anu');
+  await d.runAsync("UPDATE sync_state SET user_uid = 'u-ravi' WHERE id = 1");
+  await invoicesRepo.setStatus(res.invoiceId, 'void');
+  const after = await d.getFirstAsync('SELECT created_by, updated_by FROM invoices WHERE id = ?', res.invoiceId);
+  assert.deepEqual(after, { created_by: 'u-anu', updated_by: 'u-ravi' }, 'created_by stays, updated_by moves');
+  await invoicesRepo.deleteInvoice(res.invoiceId);
+  assert.equal((await d.getFirstAsync("SELECT user_uid FROM sync_tombstones WHERE tbl = 'invoices' AND uid = ?", inv.uid)).user_uid, 'u-ravi');
+  await settingsRepo.updateSettings({ city: 'Tiruppur' });
+  assert.equal((await d.getFirstAsync('SELECT updated_by FROM meta')).updated_by, 'u-ravi');
+  await d.runAsync("UPDATE sync_state SET user_uid = '' WHERE id = 1");
+});
+
+await t('v9 -> v10 upgrade (phones on build 5) ends like a fresh v10 build', async () => {
+  const w = new NodeSQLiteWrapper(new DatabaseSync(':memory:'));
+  w.execSync(readFileSync(path.join(root, 'scripts', 'fixtures', 'schema-v9.sql'), 'utf8'));
+  w.execSync(`
+    INSERT INTO meta (id, name) VALUES (1, 'Barathy');
+    INSERT INTO products (name, unit_paise) VALUES ('Shorts', 100);
+    INSERT INTO sync_tombstones (tbl, uid) VALUES ('invoices', 'gone');
+    PRAGMA user_version = 9;`);
+  const before = await w.getFirstAsync("SELECT uid, origin_device FROM products WHERE name = 'Shorts'");
+  await dbCore.migrate(w);
+  assert.equal((await w.getFirstAsync('PRAGMA user_version')).user_version, 10);
+  assert.deepEqual(await w.getFirstAsync("SELECT uid, origin_device, updated_by FROM products WHERE name = 'Shorts'"),
+    { ...before, updated_by: '' }, 'existing rows keep their uid and count as the owner\'s');
+  assert.equal((await w.getFirstAsync('SELECT user_uid FROM sync_tombstones')).user_uid, '');
+  // New triggers are live.
+  await w.runAsync("UPDATE sync_state SET user_uid = 'u-anu' WHERE id = 1");
+  await w.runAsync("UPDATE products SET unit_paise = 200 WHERE name = 'Shorts'");
+  assert.equal((await w.getFirstAsync("SELECT updated_by FROM products WHERE name = 'Shorts'")).updated_by, 'u-anu');
+  const shape = async conn => {
+    const objs = await conn.getAllAsync(
+      "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name");
+    const cols = {};
+    for (const o of objs.filter(x => x.type === 'table')) {
+      cols[o.name] = (await conn.getAllAsync(`PRAGMA table_info(${o.name})`)).map(c => c.name).sort();
+    }
+    return { objs, cols };
+  };
+  assert.deepEqual(await shape(w), await shape(await db.getDb()));
 });
 
 rmSync(outDir, { recursive: true, force: true });

@@ -12,7 +12,7 @@ import { useTheme } from '../../shell/providers';
 import { useBackIntercept, useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
-  Badge, Button, Card, EmptyState, Input, ListItem, SectionTitle, TopAppBar, type IconName,
+  Badge, Button, Card, EmptyState, Input, ListItem, SectionTitle, TopAppBar, initials, type IconName,
 } from '../../ui/components';
 import { useNavInset } from '../../ui/navMetrics';
 import { Screen } from '../../ui/Screen';
@@ -208,7 +208,14 @@ function useSettings() {
     snack(on ? 'Fingerprint unlock on' : 'Fingerprint unlock off');
   };
 
+  // D4 (LAN_SYNC Phase 5): company details, restore and unpair need the Settings
+  // switch. A paired phone with nobody signed in takes company details from the
+  // desktop (the desktop would undo a change made here).
+  const canSettings = lock.can('settings');
+  const companyEditable = canSettings && !(sync.status?.paired && !lock.person);
+
   return {
+    canSettings, companyEditable,
     section, setSection, openOnPhone, setOpenOnPhone,
     settings, backups, audit, busy, lock, sync, scanning, setScanning, pairLink, setPairLink,
     setField, saveCompany, exportBackup, importBackup, toggleBio, pairWith, syncNow, unpair,
@@ -336,14 +343,23 @@ function FieldRow({ children }: { children: React.ReactNode }) {
   return <Columns kind="input">{children}</Columns>;
 }
 
-// S6.2 — Company: the Business, Bank / UPI and Invoice numbering cards, then Save (S6.2.4).
+// S6.2 — Company: the Business, Bank / UPI and Invoice numbering cards, then Save (S6.2.4),
+// or (S6.2.5) the line saying where these are changed when this person may not.
 function CompanyForm({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ gap: layout.gap }}>
       <BusinessCard s={s} theme={theme} />
       <BankCard s={s} theme={theme} />
       <NumberingCard s={s} theme={theme} />
-      <Button label="Save" icon="check" theme={theme} busy={s.busy} onPress={() => void s.saveCompany()} />
+      {s.companyEditable
+        ? <Button label="Save" icon="check" theme={theme} busy={s.busy} onPress={() => void s.saveCompany()} />
+        : (
+          <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
+            {s.canSettings
+              ? 'Company details come from Invoice ERP Desktop. Change them there, or sign in as the owner.'
+              : 'Company details are changed by the owner, or by someone with the Settings switch on Invoice ERP Desktop.'}
+          </Text>
+        )}
     </View>
   );
 }
@@ -446,7 +462,8 @@ function PairCard({ s, theme }: { s: Loaded; theme: Theme }) {
   );
 }
 
-// S6.7.2 — paired: Desktop · Invoice series · Last sync (+ waiting / needs attention), then S6.7.3.
+// S6.7.2 — paired: Desktop · Invoice series · Last sync (+ waiting / needs attention), then S6.7.3
+// (Unpair only with the Settings switch, D4).
 function PairedCard({ s, theme }: { s: Loaded; theme: Theme }) {
   const st = s.sync.status!;
   const waiting = st.pending > 0 ? ` · ${st.pending} waiting to send` : '';
@@ -467,16 +484,17 @@ function PairedCard({ s, theme }: { s: Loaded; theme: Theme }) {
       </Card>
       <View style={{ flexDirection: 'row', gap: layout.grid }}>
         <Button label="Sync now" icon="refresh-cw" theme={theme} busy={s.sync.busy} onPress={() => void s.syncNow()} style={{ flex: 1 }} />
-        <Button label="Unpair" icon="x" variant="outline" theme={theme} onPress={s.unpair} style={{ flex: 1 }} />
+        {s.canSettings ? <Button label="Unpair" icon="x" variant="outline" theme={theme} onPress={s.unpair} style={{ flex: 1 }} /> : null}
       </View>
     </>
   );
 }
 
-// S6.6 — Security: when the app locks, then a list card (fingerprint switch · Change PIN ·
-// New recovery code), then Lock now. The PIN screens themselves are S7.
+// S6.6 — Security: when the app locks, (S6.6.1, people mode) who is signed in with Switch
+// person, then a list card (fingerprint switch · Change PIN · New recovery code: the device
+// PIN, owners only once people sign in), then Lock now. The PIN screens themselves are S7.
 function SecurityPane({ s, theme }: { s: Loaded; theme: Theme }) {
-  const { bio } = s.lock;
+  const { bio, person } = s.lock;
   const minutes = LOCK.relockAfterMs / 60_000;
   return (
     <View style={{ gap: layout.gap }}>
@@ -486,6 +504,23 @@ function SecurityPane({ s, theme }: { s: Loaded; theme: Theme }) {
           The app asks for your PIN when it opens and after {minutes} minutes in the background.
         </Text>
       </Card>
+      {person ? (
+        <Card theme={theme} list>
+          <ListItem theme={theme} flush leadingText={initials(person.name)} leadingAlt={person.role !== 'admin'}
+            title={`Signed in as ${person.name}`} subtitle={person.role === 'admin' ? 'Owner' : 'Staff'}
+            chevron divider={false} onPress={s.lock.lockNow} trailing={<Text style={[type.label, { color: theme.accent }]}>Switch person</Text>} />
+        </Card>
+      ) : null}
+      {person && person.role !== 'admin' ? null : <DeviceLockCard s={s} theme={theme} bio={bio} />}
+      <Button label="Lock now" icon="lock" theme={theme} onPress={s.lock.lockNow} />
+    </View>
+  );
+}
+
+// S6.6 list — the device PIN: fingerprint / face unlock switch · Change PIN · New recovery code.
+function DeviceLockCard({ s, theme, bio }: { s: Loaded; theme: Theme; bio: Loaded['lock']['bio'] }) {
+  return (
+    <>
       <Card theme={theme} list>
         <ListItem theme={theme} flush leadingIcon="smartphone"
           title="Fingerprint / face unlock"
@@ -505,8 +540,7 @@ function SecurityPane({ s, theme }: { s: Loaded; theme: Theme }) {
         <ListItem theme={theme} flush leadingIcon="file-text" title="New recovery code" subtitle="The old code stops working"
           chevron divider={false} onPress={s.lock.showNewCode} />
       </Card>
-      <Button label="Lock now" icon="lock" theme={theme} onPress={s.lock.lockNow} />
-    </View>
+    </>
   );
 }
 
@@ -527,12 +561,14 @@ function BackupPane({ s, theme }: { s: Loaded; theme: Theme }) {
   );
 }
 
-// S6.4 row — one row, two equal columns: Export (blue) | Restore (glass).
+// S6.4 row — one row, two equal columns: Export (blue) | Restore (glass; Settings switch only, D4).
 function ExportRestoreRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: layout.grid }}>
       <Button label="Export" icon="share" theme={theme} busy={s.busy} onPress={() => void s.exportBackup()} style={{ flex: 1 }} />
-      <Button label="Restore" icon="download" variant="outline" theme={theme} busy={s.busy} onPress={() => void s.importBackup()} style={{ flex: 1 }} />
+      {s.canSettings ? (
+        <Button label="Restore" icon="download" variant="outline" theme={theme} busy={s.busy} onPress={() => void s.importBackup()} style={{ flex: 1 }} />
+      ) : null}
     </View>
   );
 }

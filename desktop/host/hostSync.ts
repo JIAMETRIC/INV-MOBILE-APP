@@ -5,9 +5,25 @@ import {
   PULL_WINDOW, emptyChanges,
   type PullRequest, type PullResponse, type PushRequest, type PushResult, type SyncDb, type WireRow, type WireTable,
 } from '../../src/sync/protocol';
-import { WIRE_COLS, WIRE_ORDER, deleteWire, localId, readMeta, readWire, writeMeta, writeWire } from '../../src/sync/wire';
+import { WIRE_COLS, WIRE_ORDER, deleteWire, localId, readMeta, readUsers, readWire, writeMeta, writeWire } from '../../src/sync/wire';
+import type { UserPerm } from '../../src/data/schema';
 
-const STAMPED: readonly string[] = [...WIRE_ORDER, 'sync_tombstones'];
+const STAMPED: readonly string[] = [...WIRE_ORDER, 'sync_tombstones', 'users'];
+
+// May this person make this kind of change (D4)? '' is a phone's owner before
+// anyone signs in on it (no people yet, or rows made before): allowed, as
+// before Phase 5. An unknown or switched-off person may not.
+async function allowed(db: SyncDb, uid: unknown, perm: UserPerm): Promise<boolean> {
+  if (!uid) return true;
+  const u = await db.getFirstAsync<{ role: string; perms: string; active: number }>(
+    'SELECT role, perms, active FROM users WHERE uid = ?', String(uid));
+  if (!u || !u.active) return false;
+  return u.role === 'admin' || u.perms.split(',').includes(perm);
+}
+
+const DELETE_PERM: Record<WireTable, UserPerm | null> = {
+  products: 'products', restocks: 'stock', invoices: 'delete', payments: 'delete', audit_logs: null,
+};
 
 // Gives every row changed on the host since the last sweep (pushed rows and
 // the admin's own edits: the schema triggers mark both dirty) the next change
@@ -39,11 +55,14 @@ async function current(db: SyncDb, t: WireTable, uid: string): Promise<WireRow |
 
 // True when the pushed row says what the host already has (a push repeated
 // after a lost reply). Stock is left out: the host derives it from the ledger.
-async function unchanged(db: SyncDb, t: 'products' | 'invoices', row: WireRow): Promise<boolean> {
+// `loose` also ignores when and by whom: a product row that changed only
+// because its stock moved (a restock) is not a product edit.
+async function unchanged(db: SyncDb, t: 'products' | 'invoices', row: WireRow, loose = false): Promise<boolean> {
   const cur = await current(db, t, row.uid);
   if (!cur) return false;
-  const keys = [...WIRE_COLS[t].filter(k => k !== 'stock_qty'), ...(t === 'invoices' ? ['lines'] : [])];
-  return keys.every(k => JSON.stringify(cur[k] ?? null) === JSON.stringify(row[k] ?? null));
+  const skip = loose ? ['stock_qty', 'updated_at', 'updated_by'] : ['stock_qty'];
+  const keys = [...WIRE_COLS[t].filter(k => !skip.includes(k)), ...(t === 'invoices' ? ['lines'] : [])];
+  return keys.every(k => row[k] === undefined || JSON.stringify(cur[k] ?? null) === JSON.stringify(row[k] ?? null));
 }
 
 // Paid / partial follow the payments, as in paymentsRepo.recordPayment; void
@@ -69,7 +88,7 @@ async function refreshStock(db: SyncDb, productId: number): Promise<void> {
 
 export async function handlePush(db: SyncDb, req: PushRequest): Promise<PushResult> {
   await stampChanges(db); // so a host_wins reply carries the right server_seq
-  const res: PushResult = { accepted: [], rejected: [], deleted: [] };
+  const res: PushResult = { accepted: [], rejected: [], deleted: [], undeleted: [] };
   const ok: { tbl: WireTable | 'meta'; uid: string; rev: number }[] = [];
   const reject = (tbl: WireTable | 'meta', row: WireRow, reason: PushResult['rejected'][number]['reason'], cur?: WireRow) =>
     res.rejected.push({ tbl, uid: row.uid, rev: row.rev ?? 0, reason, ...(cur ? { current: cur } : {}) });
@@ -82,7 +101,11 @@ export async function handlePush(db: SyncDb, req: PushRequest): Promise<PushResu
     const clash = await db.getFirstAsync<{ uid: string }>(
       'SELECT uid FROM products WHERE name = ? COLLATE NOCASE AND uid <> ?', String(row.name ?? ''), row.uid);
     if (clash) { reject('products', row, 'name_taken'); continue; }
-    if (host && await unchanged(db, 'products', row)) { ok.push({ tbl: 'products', uid: row.uid, rev: row.rev ?? 0 }); continue; }
+    if (host && await unchanged(db, 'products', row, true)) { ok.push({ tbl: 'products', uid: row.uid, rev: row.rev ?? 0 }); continue; }
+    if (!(await allowed(db, row.updated_by, 'products'))) {
+      reject('products', row, 'not_allowed', host ? await current(db, 'products', row.uid) : undefined);
+      continue;
+    }
     if (host && !phoneWins(row, host)) { reject('products', row, 'host_wins', await current(db, 'products', row.uid)); continue; }
     const id = await writeWire(db, 'products', row, { dirty: 1 });
     if (id !== null) stock.add(id);
@@ -93,6 +116,7 @@ export async function handlePush(db: SyncDb, req: PushRequest): Promise<PushResu
   // simply acknowledged again.
   for (const row of c.restocks) {
     if (await localId(db, 'restocks', row.uid) === null) {
+      if (!(await allowed(db, row.created_by, 'stock'))) { reject('restocks', row, 'not_allowed'); continue; }
       const id = await writeWire(db, 'restocks', row, { dirty: 1 });
       if (id === null) { reject('restocks', row, 'missing_product'); continue; }
       const p = await db.getFirstAsync<{ product_id: number }>('SELECT product_id FROM restocks WHERE id = ?', id);
@@ -108,6 +132,11 @@ export async function handlePush(db: SyncDb, req: PushRequest): Promise<PushResu
     const host = await db.getFirstAsync<HostRow & { status: string }>(
       'SELECT id, server_seq, updated_at, status FROM invoices WHERE uid = ?', row.uid);
     if (host && await unchanged(db, 'invoices', row)) { ok.push({ tbl: 'invoices', uid: row.uid, rev: row.rev ?? 0 }); continue; }
+    // Voiding needs the delete permission.
+    if (host && host.status !== 'void' && row.status === 'void' && !(await allowed(db, row.updated_by, 'delete'))) {
+      reject('invoices', row, 'not_allowed', await current(db, 'invoices', row.uid));
+      continue;
+    }
     // A void made on the desktop always stands.
     if (host && ((host.status === 'void' && row.status !== 'void') || !phoneWins(row, host))) {
       reject('invoices', row, 'host_wins', await current(db, 'invoices', row.uid));
@@ -132,11 +161,13 @@ export async function handlePush(db: SyncDb, req: PushRequest): Promise<PushResu
     ok.push({ tbl: 'audit_logs', uid: row.uid, rev: row.rev ?? 0 });
   }
 
-  // Company details belong to the desktop. The only exception is the first
-  // phone filling an empty desktop (D6).
+  // Company details belong to the desktop. A phone may fill an empty desktop
+  // (the first phone, D6), and a signed-in person with the settings switch
+  // may change them; a phone's owner without people ('') may not.
   if (c.meta) {
     const host = await db.getFirstAsync<{ name: string }>('SELECT name FROM meta WHERE id = 1');
-    if (!host?.name) {
+    const by = c.meta.updated_by;
+    if (!host?.name || (by && await allowed(db, by, 'settings'))) {
       await writeMeta(db, c.meta, { dirty: 1 });
       ok.push({ tbl: 'meta', uid: 'meta', rev: c.meta.rev ?? 0 });
     } else {
@@ -145,8 +176,14 @@ export async function handlePush(db: SyncDb, req: PushRequest): Promise<PushResu
   }
 
   for (const d of c.deletes) {
+    const perm = DELETE_PERM[d.tbl];
+    if (perm && !(await allowed(db, d.user_uid, perm))) {
+      const cur = await current(db, d.tbl, d.uid);
+      res.undeleted!.push({ tbl: d.tbl, uid: d.uid, ...(cur ? { current: cur } : {}) });
+      continue;
+    }
     await deleteWire(db, d.tbl, d.uid); // the host's own tombstone tells the other phones
-    res.deleted.push(d);
+    res.deleted.push({ tbl: d.tbl, uid: d.uid });
   }
 
   for (const id of stock) await refreshStock(db, id);
@@ -178,5 +215,6 @@ export async function handlePull(db: SyncDb, req: PullRequest): Promise<PullResp
   if (meta && meta.server_seq != null && meta.server_seq > since && meta.server_seq <= upto) changes.meta = meta;
   changes.deletes = await db.getAllAsync<{ tbl: WireTable; uid: string }>(
     'SELECT tbl, uid FROM sync_tombstones WHERE server_seq > ? AND server_seq <= ? ORDER BY server_seq', since, upto);
+  changes.users = await readUsers(db, 'server_seq > ? AND server_seq <= ?', since, upto);
   return { changes, upto, more: upto < top };
 }

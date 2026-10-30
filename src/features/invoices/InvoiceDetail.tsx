@@ -14,6 +14,7 @@ import { File, Paths } from 'expo-file-system';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
+import { useLock } from '../../auth/LockProvider';
 import { Button, Card, Input, MoneyText, SectionTitle, SegmentedControl, StatusGlyph, TotalRow } from '../../ui/components';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
@@ -47,6 +48,7 @@ const S3 = {
 
 function useInvoiceDetail(invoiceId: number) {
   const nav = useNav();
+  const lock = useLock();
   const snack = useSnackbar();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<InvoiceLine[]>([]);
@@ -145,6 +147,7 @@ function useInvoiceDetail(invoiceId: number) {
     inv, lines, settings, imageRef, paid, outstanding, busy, canPay, party, contact,
     payOpen, closePayment: () => setPayOpen(false), payAmount, setPayAmount, payError, setPayError, payMode, setPayMode,
     deleteThisInvoice, askPayment, submitPayment, share,
+    canDelete: lock.can('delete'), // D4: deleting needs the Delete switch
     openEdit: () => { if (inv) nav.openCreate({ invoiceId: inv.id }); },
   };
 }
@@ -306,12 +309,15 @@ function TotalsCard({ s, theme }: { s: Loaded; theme: Theme }) {
 }
 
 // S3.6 — Edit (glass) · Delete (solid red, white text); the invoice and its items are removed.
+// Delete only with the Delete switch (D4).
 function EditDeleteRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: layout.grid }}>
       <Button label="Edit" icon="edit-2" theme={theme} onPress={s.openEdit} />
-      <Button label="Delete" icon="trash-2" theme={theme} onPress={s.deleteThisInvoice}
-        style={{ backgroundColor: theme.destructive }} />
+      {s.canDelete ? (
+        <Button label="Delete" icon="trash-2" theme={theme} onPress={s.deleteThisInvoice}
+          style={{ backgroundColor: theme.destructive }} />
+      ) : null}
     </View>
   );
 }

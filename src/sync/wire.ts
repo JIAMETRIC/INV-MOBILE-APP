@@ -5,7 +5,7 @@ import type { SqlArg, SyncDb, WireLine, WireRow, WireTable } from './protocol';
 
 // Columns that travel, per table (besides uid). Local ids, dirty and rev never do.
 export const WIRE_COLS: Record<WireTable, readonly string[]> = {
-  products: ['sl_no', 'name', 'size', 'unit_paise', 'stock_qty', 'created_at', 'updated_at', 'origin_device', 'created_by'],
+  products: ['sl_no', 'name', 'size', 'unit_paise', 'stock_qty', 'created_at', 'updated_at', 'origin_device', 'created_by', 'updated_by'],
   restocks: ['kind', 'delta', 'stock_after', 'unit_paise', 'note', 'created_at', 'origin_device', 'created_by'],
   invoices: [
     'invoice_no', 'status', 'invoice_date', 'due_date',
@@ -13,7 +13,7 @@ export const WIRE_COLS: Record<WireTable, readonly string[]> = {
     'gross_paise', 'discount_percent', 'discount_paise', 'round_off_paise', 'total_paise',
     'amount_in_words', 'upi_id', 'notes',
     'has_shipping', 'ship_name', 'ship_address', 'ship_city', 'ship_pincode', 'payment_mode',
-    'created_at', 'updated_at', 'origin_device', 'created_by',
+    'created_at', 'updated_at', 'origin_device', 'created_by', 'updated_by',
   ],
   payments: ['payment_date', 'party_name', 'mode', 'reference_no', 'amount_paise', 'remarks', 'created_at', 'origin_device', 'created_by'],
   audit_logs: ['action', 'entity_type', 'entity_id', 'details_json', 'created_at', 'origin_device', 'created_by'],
@@ -22,8 +22,24 @@ export const WIRE_COLS: Record<WireTable, readonly string[]> = {
 // Company details the host owns (same list as the meta trigger in schema.ts).
 export const META_COLS = [
   'name', 'subtitle', 'address', 'city', 'pincode', 'pan', 'contact', 'email',
-  'bank_name', 'bank_branch', 'bank_ac_no', 'bank_ifsc', 'upi_id', 'updated_at',
+  'bank_name', 'bank_branch', 'bank_ac_no', 'bank_ifsc', 'upi_id', 'updated_at', 'updated_by',
 ] as const;
+
+// A person, as the desktop sends them to phones (never pushed back).
+export const USER_COLS = ['name', 'role', 'perms', 'pin_salt', 'pin_hash', 'pin_len', 'active', 'updated_at'] as const;
+
+export async function readUsers(db: SyncDb, where: string, ...args: SqlArg[]): Promise<WireRow[]> {
+  return db.getAllAsync<WireRow>(`SELECT uid, server_seq, ${USER_COLS.join(', ')} FROM users WHERE ${where} ORDER BY id`, ...args);
+}
+
+// Phone: insert or update one person from a pull.
+export async function writeUser(db: SyncDb, row: WireRow): Promise<void> {
+  const vals = USER_COLS.map(c => row[c] as SqlArg);
+  await db.runAsync(
+    `INSERT INTO users (uid, ${USER_COLS.join(', ')}, dirty, server_seq) VALUES (?, ${USER_COLS.map(() => '?').join(', ')}, 0, ?)
+     ON CONFLICT(uid) DO UPDATE SET ${USER_COLS.map(c => `${c} = excluded.${c}`).join(', ')}, dirty = 0, server_seq = excluded.server_seq`,
+    row.uid, ...vals, (row.server_seq ?? null) as SqlArg);
+}
 
 // Push and pull order: what a row points at arrives before the row.
 export const WIRE_ORDER: readonly WireTable[] = ['products', 'restocks', 'invoices', 'payments', 'audit_logs'];
@@ -80,7 +96,8 @@ export interface WriteOpts {
 // Inserts or updates one wire row by uid, with its lines / links. Returns the
 // local id, or null when a restock's product is unknown here.
 export async function writeWire(db: SyncDb, t: WireTable, row: WireRow, o: WriteOpts): Promise<number | null> {
-  const cols = [...WIRE_COLS[t]];
+  // A column the sender didn't send keeps its default (insert) or value (update).
+  const cols = WIRE_COLS[t].filter(c => row[c] !== undefined);
   const vals: SqlArg[] = cols.map(c => arg(row[c]));
   if (t === 'restocks') {
     const pid = await localId(db, 'products', row.product_uid as string | null);
@@ -125,7 +142,7 @@ export async function writeWire(db: SyncDb, t: WireTable, row: WireRow, o: Write
 }
 
 export async function writeMeta(db: SyncDb, row: WireRow, o: WriteOpts): Promise<void> {
-  const cols: string[] = [...META_COLS];
+  const cols: string[] = META_COLS.filter(c => row[c] !== undefined);
   const vals: SqlArg[] = cols.map(c => arg(row[c]));
   if (o.serverSeq !== undefined) { cols.push('server_seq'); vals.push(o.serverSeq); }
   cols.push('dirty'); vals.push(o.dirty);

@@ -12,18 +12,21 @@ import { Feather } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBreakpoint } from '../../ui/useBreakpoint';
-import { Button, Card, Input, ripple } from '../../ui/components';
+import { Button, Card, Input, ListItem, initials, ripple } from '../../ui/components';
 import { dark, font, layout, motion, radius, shadow, space, touch, type } from '../../ui/tokens';
 import {
   CODE_LENGTH, PIN, checkPin, checkRecoveryCode, lockoutRemaining, newRecoveryCode, normaliseCode, pinLength, setPin,
 } from '../../auth/authStore';
 import { bioUnlock } from '../../auth/biometrics';
+import { checkPersonPin, listPeople, signIn, type Person } from '../../auth/people';
 
-export type AuthFlow = 'setup' | 'unlock' | 'change' | 'new-code';
-type Step = 'enter' | 'recover' | 'create' | 'confirm' | 'code' | 'bio';
+// person: who's using, then that person's PIN (paired phone with people, LAN_SYNC Phase 5).
+export type AuthFlow = 'setup' | 'unlock' | 'person' | 'change' | 'new-code';
+type Step = 'pick' | 'enter' | 'recover' | 'create' | 'confirm' | 'code' | 'bio';
 
 // The words on each step: title (H1) and the line under it.
 const TEXT: Record<Step, { title: string; sub: string }> = {
+  pick: { title: "Who's using Invoice ERP?", sub: 'Choose your name, then enter your PIN' },
   enter: { title: 'Welcome back', sub: 'Enter your PIN to open Invoice ERP' },
   recover: { title: 'Use recovery code', sub: 'Enter the 12-character code you wrote down when you set up your PIN' },
   create: { title: 'Create a PIN', sub: 'Choose 4 to 6 digits. You will enter it each time you open the app.' },
@@ -32,6 +35,7 @@ const TEXT: Record<Step, { title: string; sub: string }> = {
   bio: { title: 'Unlock with fingerprint?', sub: 'Use your fingerprint or face instead of typing the PIN. The PIN always works too.' },
 };
 const VERIFY_TEXT = { title: 'Enter your PIN', sub: 'Confirm it is you before changing security settings' };
+const PERSON_TEXT = (name: string) => ({ title: `Hi, ${name}`, sub: 'Enter your PIN' });
 
 // Every number that is specific to this screen (kit §7.4: top 88, sides 24, gap 28).
 const S7 = {
@@ -54,7 +58,9 @@ const theme = dark;
 // transition between steps.
 // ---------------------------------------------------------------------------
 function useAuthFlow({ flow, bio, setBio, onDone, onCancel }: AuthScreenProps) {
-  const [step, setStep] = useState<Step>(flow === 'setup' ? 'create' : 'enter');
+  const [step, setStep] = useState<Step>(flow === 'setup' ? 'create' : flow === 'person' ? 'pick' : 'enter');
+  const [people, setPeople] = useState<Person[]>([]); // person flow: who may sign in
+  const [who, setWho] = useState<Person | null>(null); // person flow: the one picked
   const [entry, setEntry] = useState('');
   const [first, setFirst] = useState(''); // the PIN typed on `create`, checked on `confirm`
   const [len, setLen] = useState<number>(PIN.max); // dots on `enter`: the stored PIN's length
@@ -71,9 +77,10 @@ function useAuthFlow({ flow, bio, setBio, onDone, onCancel }: AuthScreenProps) {
   const canBio = flow === 'unlock' && step === 'enter' && bio.available && bio.enabled;
 
   useEffect(() => {
-    void pinLength().then(n => { if (n) setLen(n); });
+    if (flow === 'person') void listPeople().then(setPeople);
+    else void pinLength().then(n => { if (n) setLen(n); });
     void lockoutRemaining().then(ms => { if (ms > 0) setUntil(Date.now() + ms); });
-  }, []);
+  }, [flow]);
 
   // Lockout countdown, once a second while it runs.
   useEffect(() => {
@@ -115,11 +122,21 @@ function useAuthFlow({ flow, bio, setBio, onDone, onCancel }: AuthScreenProps) {
   const verify = async (pin: string) => {
     setBusy(true);
     try {
+      if (flow === 'person' && who) {
+        const r = await checkPersonPin(who.uid, pin);
+        if (r.ok) { await signIn(who.uid); onDone(); }
+        else showFailure(r, 'Wrong PIN.');
+        return;
+      }
       const r = await checkPin(pin);
       if (r.ok) await afterEnter();
       else showFailure(r, 'Wrong PIN.');
     } finally { setEntry(''); setBusy(false); }
   };
+
+  // Person flow: pick someone (their PIN length sets the dots), or go back to the list.
+  const pickPerson = (p: Person) => { setWho(p); setLen(p.pinLen); setEntry(''); setStep('enter'); setMsg(null); };
+  const backToPick = () => { setWho(null); setEntry(''); setStep('pick'); setMsg(null); };
 
   const toConfirm = (pin: string) => { setFirst(pin); setEntry(''); setStep('confirm'); setMsg(null); };
 
@@ -179,6 +196,7 @@ function useAuthFlow({ flow, bio, setBio, onDone, onCancel }: AuthScreenProps) {
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (step === 'recover') { backToPin(); return true; }
+      if (flow === 'person' && step === 'enter') { backToPick(); return true; }
       if (onCancel && step !== 'code') { onCancel(); return true; }
       BackHandler.exitApp();
       return true;
@@ -186,12 +204,14 @@ function useAuthFlow({ flow, bio, setBio, onDone, onCancel }: AuthScreenProps) {
     return () => sub.remove();
   });
 
-  const text = step === 'enter' && flow !== 'unlock' ? VERIFY_TEXT
+  const text = step === 'enter' && flow === 'person' && who ? PERSON_TEXT(who.name)
+    : step === 'enter' && flow !== 'unlock' ? VERIFY_TEXT
     : step === 'create' && (flow === 'change' || recovered) ? { ...TEXT.create, title: 'Choose a new PIN' }
     : TEXT[step];
 
   return {
     flow, step, text, entry, len, first, msg, waitMs, busy, canBio, code, codeInput, setCodeInput, onCancel,
+    people, who, pickPerson, backToPick,
     dots: step === 'enter' ? len : step === 'confirm' ? first.length : PIN.max,
     canContinue: step === 'create' && entry.length >= PIN.min,
     press, backspace, tryBio, toConfirm, submitCode, codeWritten, turnOnBio, goRecover, backToPin, onDone,
@@ -277,7 +297,8 @@ function Header({ a, compact }: { a: AuthState; compact?: boolean }) {
 function StepCard({ a }: { a: AuthState }) {
   return (
     <Card theme={theme} style={{ borderRadius: radius.form, padding: space[5], gap: layout.gap }}>
-      {a.step === 'recover' ? <RecoveryEntry a={a} />
+      {a.step === 'pick' ? <PeoplePicker a={a} />
+        : a.step === 'recover' ? <RecoveryEntry a={a} />
         : a.step === 'code' ? <RecoveryCode a={a} />
         : a.step === 'bio' ? <BioOffer a={a} />
         : <PinEntry a={a} />}
@@ -308,6 +329,25 @@ function PinEntry({ a }: { a: AuthState }) {
       {a.step === 'create' ? (
         <Button label="Continue" theme={theme} disabled={!a.canContinue} onPress={() => a.toConfirm(a.entry)} />
       ) : null}
+    </>
+  );
+}
+
+// S7.1 pick — one row per person (initials · name · Owner / Staff); a forgotten PIN is
+// reset on the desktop, so there is no recovery code here.
+function PeoplePicker({ a }: { a: AuthState }) {
+  return (
+    <>
+      <View>
+        {a.people.map((p, i) => (
+          <ListItem key={p.uid} theme={theme} flush leadingText={initials(p.name)} leadingAlt={p.role !== 'admin'}
+            title={p.name} subtitle={p.role === 'admin' ? 'Owner' : 'Staff'} chevron
+            divider={i < a.people.length - 1} onPress={() => a.pickPerson(p)} />
+        ))}
+      </View>
+      <Text style={[type.caption, { color: theme.textMuted, textAlign: 'center' }]}>
+        Forgot your PIN? The owner can set a new one on Invoice ERP Desktop.
+      </Text>
     </>
   );
 }
@@ -436,10 +476,12 @@ function KeypadKey({ size, label, ghost, disabled, onPress, children }: {
   );
 }
 
-// S7.3 — the links under everything: Forgot PIN? / Back to PIN / Cancel (14, #ebeaea; link 600 white).
+// S7.3 — the links under everything: Forgot PIN? / Not <name>? / Back to PIN / Cancel (14, #ebeaea; link 600 white).
 function Footer({ a }: { a: AuthState }) {
   const links: Array<{ lead?: string; label: string; onPress: () => void }> = [];
-  if (a.step === 'enter') links.push({ lead: 'Forgot PIN?', label: 'Use recovery code', onPress: a.goRecover });
+  if (a.step === 'enter' && a.flow === 'person' && a.who) {
+    links.push({ lead: `Not ${a.who.name}?`, label: 'Choose another person', onPress: a.backToPick });
+  } else if (a.step === 'enter') links.push({ lead: 'Forgot PIN?', label: 'Use recovery code', onPress: a.goRecover });
   if (a.step === 'recover') links.push({ label: 'Back to PIN', onPress: a.backToPin });
   if (a.onCancel && a.step !== 'code') links.push({ label: 'Cancel', onPress: a.onCancel });
   if (!links.length) return null;

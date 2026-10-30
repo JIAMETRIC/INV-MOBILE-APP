@@ -101,6 +101,85 @@ async function refresh() {
   catch (e) { $('state').textContent = 'Not running'; $('state').className = 'badge badge--red'; console.error(e); }
 }
 
+// ---------- people (LAN_SYNC Phase 5) ----------
+
+const PERM_WORDS = { products: 'Products', stock: 'Stock', delete: 'Delete', settings: 'Settings' };
+// Same rule as the phone (components.initials): two words -> first letters, one word -> its first two.
+const initialsOf = n => {
+  const w = n.trim().split(/\s+/).filter(Boolean);
+  return (w.length === 1 ? w[0].slice(0, 2) : w.slice(0, 2).map(x => x[0]).join('')).toUpperCase() || '?';
+};
+let editing = null; // the person being edited, or null for a new one
+let role = 'staff';
+
+function personRow(u) {
+  const row = el('div', 'list-row device-row');
+  row.append(el('div', u.role === 'admin' ? 'list-avatar' : 'list-avatar list-avatar--alt', initialsOf(u.name)));
+  const text = el('div', 'list-text');
+  text.append(el('span', 'list-title', u.name));
+  const what = u.role === 'admin' ? 'Owner · may do everything'
+    : `Staff · invoices, payments${u.perms.length ? ' + ' + u.perms.map(p => PERM_WORDS[p]).join(', ') : ''}`;
+  text.append(el('span', 'list-sub', what));
+  row.append(text);
+  if (!u.active) row.append(el('span', 'badge badge--off', 'Switched off'));
+  const btn = el('button', 'btn-glass', 'Edit');
+  btn.setAttribute('aria-label', `Edit ${u.name}`);
+  btn.addEventListener('click', () => openPerson(u));
+  row.append(btn);
+  return row;
+}
+
+async function loadPeople() {
+  const list = await window.host.users();
+  $('people').replaceChildren(...(list.length ? list.map(personRow)
+    : [el('div', 'empty', 'Nobody yet: each phone opens with its own PIN. Add the people who use the phones; once a paired phone syncs, it asks who is using it and their PIN.')]));
+}
+
+function setRole(r) {
+  role = r;
+  for (const b of document.querySelectorAll('.segmented [data-role]')) b.setAttribute('aria-checked', String(b.dataset.role === r));
+  $('pPerms').disabled = r === 'admin';
+  $('pRoleHelp').textContent = r === 'admin' ? 'Owners may do everything, on every phone.' : 'Staff may make invoices and take payments, plus the switches below.';
+}
+
+function openPerson(u) {
+  editing = u || null;
+  $('personTitle').textContent = u ? `Edit ${u.name}` : 'Add a person';
+  $('pName').value = u ? u.name : '';
+  setRole(u ? u.role : 'staff');
+  for (const c of $('pPerms').querySelectorAll('input')) c.checked = !!u && u.perms.includes(c.value);
+  $('pPin').value = '';
+  $('pPinLabel').textContent = u ? 'New PIN (leave empty to keep the current one)' : 'PIN (4 to 6 digits)';
+  $('pActive').checked = u ? u.active : true;
+  $('pActiveRow').hidden = !u;
+  $('pError').textContent = '';
+  $('personDialog').hidden = false;
+  $('pName').focus();
+}
+
+function closePerson() { $('personDialog').hidden = true; $('addPerson').focus(); }
+
+$('addPerson').addEventListener('click', () => openPerson(null));
+$('pCancel').addEventListener('click', closePerson);
+$('personDialog').addEventListener('click', e => { if (e.target === $('personDialog')) closePerson(); });
+for (const b of document.querySelectorAll('.segmented [data-role]')) b.addEventListener('click', () => setRole(b.dataset.role));
+$('personForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const pin = $('pPin').value.trim();
+  if (pin && !/^\d{4,6}$/.test(pin)) { $('pError').textContent = 'The PIN must be 4 to 6 digits.'; return; }
+  const res = await window.host.saveUser({
+    uid: editing ? editing.uid : undefined,
+    name: $('pName').value,
+    role,
+    perms: [...$('pPerms').querySelectorAll('input:checked')].map(c => c.value),
+    active: editing ? $('pActive').checked : true,
+    pin: pin || (editing ? undefined : ''),
+  });
+  if (!res.ok) { $('pError').textContent = res.error; return; }
+  closePerson();
+  loadPeople();
+});
+
 // ---------- pairing dialog ----------
 
 let expiryTimer = null;
@@ -134,11 +213,16 @@ $('addPhone').addEventListener('click', showPairing);
 $('newCode').addEventListener('click', showPairing);
 $('pairDone').addEventListener('click', closePairing);
 $('pairDialog').addEventListener('click', e => { if (e.target === $('pairDialog')) closePairing(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('pairDialog').hidden) closePairing(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('pairDialog').hidden) closePairing();
+  if (!$('personDialog').hidden) closePerson();
+});
 $('openData').addEventListener('click', () => window.host.openDataFolder());
 $('startWithWindows').addEventListener('change', async e => {
   e.target.checked = await window.host.setStartWithWindows(e.target.checked);
 });
 
 refresh();
+loadPeople();
 setInterval(refresh, 5000);

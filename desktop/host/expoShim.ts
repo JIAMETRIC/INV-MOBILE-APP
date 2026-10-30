@@ -40,6 +40,9 @@ const shims: Record<string, unknown> = {
   'expo-crypto': {
     getRandomBytesAsync: async (n: number) => new Uint8Array(crypto.randomBytes(n)),
     getRandomBytes: (n: number) => new Uint8Array(crypto.randomBytes(n)),
+    // The app lock and people PINs hash with SHA-256 (lowercase hex, like expo-crypto).
+    CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+    digestStringAsync: async (_alg: string, s: string) => crypto.createHash('sha256').update(s).digest('hex'),
     randomUUID: () => crypto.randomUUID(),
   },
 };
