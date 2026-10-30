@@ -53,3 +53,27 @@ Yes, start Electron
 ```
 Commit it
 ```
+
+## Prompt 10
+
+```
+Phase 4: phone sync
+```
+
+## Prompt 11
+
+```
+What is the PIN (I never kept any)
+```
+
+## Prompt 12
+
+```
+Yes, clear it
+```
+
+## Prompt 13
+
+```
+Commit it
+```

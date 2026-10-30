@@ -41,3 +41,5 @@
 | 5-minute relock, tablets, landscape, dark mode | **not tested** |
 
 The emulator's test PIN is the 6-digit one set through the recovery path; its recovery code was shown on screen once (emulator test data only).
+
+**2026-10-30:** that PIN had not been written down, so the emulator's app data was cleared (LAN_SYNC Prompts 11–12) and a new random 6-digit test PIN set. The PIN and its recovery code are in `credentials/emulator-test-lock.txt` (git-ignored, this PC only, emulator test data only). Write down any test PIN set in a later session there too.

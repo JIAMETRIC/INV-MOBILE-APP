@@ -12,7 +12,7 @@ import { useTheme } from '../../shell/providers';
 import { useBackIntercept, useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
-  Button, Card, EmptyState, Input, ListItem, SectionTitle, TopAppBar, type IconName,
+  Badge, Button, Card, EmptyState, Input, ListItem, SectionTitle, TopAppBar, type IconName,
 } from '../../ui/components';
 import { useNavInset } from '../../ui/navMetrics';
 import { Screen } from '../../ui/Screen';
@@ -25,15 +25,18 @@ import { exportDbBackup, listBackups, restoreDbBackup } from '../../data/backupR
 import { recentAudit } from '../../data/auditRepo';
 import { shareFile } from '../../export/pdf';
 import { LOCK, useLock } from '../../auth/LockProvider';
+import { useSync } from '../../sync/SyncProvider';
+import { PairScanner } from './PairScanner';
 import { bioUnlock } from '../../auth/biometrics';
 import type { Settings } from '../../data/types';
 import appVersion from '../../../app-version.json';
 
-type Section = 'company' | 'security' | 'backup' | 'activity';
+type Section = 'company' | 'sync' | 'security' | 'backup' | 'activity';
 
-// S6.1 — the four sections, in order: key · label · hint · Feather icon.
+// S6.1 — the five sections, in order: key · label · hint · Feather icon.
 const SECTIONS: Array<{ key: Section; label: string; hint: string; icon: IconName }> = [
   { key: 'company', label: 'Company', hint: 'Business details, bank, invoice numbering', icon: 'briefcase' },
+  { key: 'sync', label: 'Sync with desktop', hint: 'Pair with Invoice ERP Desktop, share invoices and stock', icon: 'refresh-cw' },
   { key: 'security', label: 'Security', hint: 'PIN, fingerprint, recovery code, lock', icon: 'lock' },
   { key: 'backup', label: 'Backup & restore', hint: 'Encrypted database export and import', icon: 'upload-cloud' },
   { key: 'activity', label: 'Activity log', hint: 'Recent changes made in the app', icon: 'clock' },
@@ -54,6 +57,15 @@ const S6 = {
   numberPad: 3, // S6.2.3: "INV-002" pads the sequence to 3 digits
 } as const;
 
+// S6.7.2 "Last sync": SQLite UTC "YYYY-MM-DD HH:MM:SS" → "today 10:42" / "29 Oct, 18:05".
+function syncTime(utc: string): string {
+  if (!utc) return 'Not yet';
+  const d = new Date(utc.replace(' ', 'T') + 'Z');
+  const hm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString()
+    ? `today ${hm}` : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${hm}`;
+}
+
 type Backup = Awaited<ReturnType<typeof listBackups>>[number];
 type AuditRow = Awaited<ReturnType<typeof recentAudit>>[number];
 
@@ -72,6 +84,9 @@ function useSettings() {
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(false);
   const lock = useLock();
+  const sync = useSync();
+  const [scanning, setScanning] = useState(false);
+  const [pairLink, setPairLink] = useState('');
 
   // One pane (phones, md): system Back returns to the section list before leaving Settings.
   useBackIntercept(() => {
@@ -155,6 +170,37 @@ function useSettings() {
     }
   };
 
+  // S6.7: pair from the scanner or the pasted link; the first sync starts right after.
+  const pairWith = async (code: string) => {
+    setScanning(false);
+    setBusy(true);
+    try {
+      await sync.pair(code);
+      setPairLink('');
+      snack('Paired with the desktop');
+    } catch (e) {
+      alert('Pairing did not work', e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const syncNow = async () => {
+    const r = await sync.syncNow();
+    if (r) snack(r.pushed + r.pulled > 0 ? `Synced: ${r.pushed} sent, ${r.pulled} received` : 'Up to date');
+  };
+
+  const unpair = () => {
+    alert(
+      'Unpair from the desktop?',
+      'This phone stops syncing. Its invoices stay here and on the desktop. To sync again, pair with a new code.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Unpair', style: 'destructive', onPress: () => void sync.unpair() },
+      ],
+    );
+  };
+
   // S6.6: turning fingerprint unlock on asks for a fingerprint first, so it is known to work.
   const toggleBio = async (on: boolean) => {
     if (on && !(await bioUnlock('Confirm your fingerprint'))) return;
@@ -164,8 +210,8 @@ function useSettings() {
 
   return {
     section, setSection, openOnPhone, setOpenOnPhone,
-    settings, backups, audit, busy, lock,
-    setField, saveCompany, exportBackup, importBackup, toggleBio,
+    settings, backups, audit, busy, lock, sync, scanning, setScanning, pairLink, setPairLink,
+    setField, saveCompany, exportBackup, importBackup, toggleBio, pairWith, syncNow, unpair,
   };
 }
 type SettingsState = ReturnType<typeof useSettings>;
@@ -217,7 +263,7 @@ function Header({ s, theme, open }: { s: Loaded; theme: Theme; open?: (typeof SE
   return (
     <TopAppBar
       title={open ? open.label : 'Settings'}
-      subtitle={open ? undefined : 'Company, security, backup'}
+      subtitle={open ? undefined : 'Company, sync, security, backup'}
       theme={theme}
       large={!open}
       onBack={open ? () => s.setOpenOnPhone(null) : undefined}
@@ -278,6 +324,7 @@ function SectionListPane({ s, theme }: { s: Loaded; theme: Theme }) {
 function SectionBody({ s, theme, section }: { s: Loaded; theme: Theme; section: Section }) {
   switch (section) {
     case 'company': return <CompanyForm s={s} theme={theme} />;
+    case 'sync': return <SyncPane s={s} theme={theme} />;
     case 'security': return <SecurityPane s={s} theme={theme} />;
     case 'backup': return <BackupPane s={s} theme={theme} />;
     case 'activity': return <ActivityPane s={s} theme={theme} />;
@@ -360,6 +407,69 @@ function NumberingCard({ s, theme }: { s: Loaded; theme: Theme }) {
         </FieldRow>
       </View>
     </Card>
+  );
+}
+
+// S6.7 — Sync with desktop: not paired = what it does + Scan (S6.7.1) or paste a link;
+// paired = desktop · series · last sync (S6.7.2), then Sync now | Unpair (S6.7.3).
+// The scanner (S6.7.4) is a full-screen overlay.
+function SyncPane({ s, theme }: { s: Loaded; theme: Theme }) {
+  const st = s.sync.status;
+  return (
+    <View style={{ gap: layout.gap }}>
+      {st?.paired ? <PairedCard s={s} theme={theme} /> : <PairCard s={s} theme={theme} />}
+      {s.sync.lastError ? (
+        <Text style={[type.bodyMedium, { color: theme.error }]} accessibilityLiveRegion="polite">{s.sync.lastError}</Text>
+      ) : null}
+      <PairScanner visible={s.scanning} onCode={code => void s.pairWith(code)} onClose={() => s.setScanning(false)} />
+    </View>
+  );
+}
+
+// S6.7.1 — not paired: what pairing does, Scan pairing code, or paste the link (emulators, no camera).
+function PairCard({ s, theme }: { s: Loaded; theme: Theme }) {
+  return (
+    <Card theme={theme} style={{ gap: space[4] }}>
+      <SectionTitle title="Desktop" theme={theme} />
+      <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: -space[3] }]}>
+        Pair this phone with Invoice ERP Desktop on the same Wi-Fi. Invoices, payments and stock are
+        then kept on the desktop and shared with your other phones. On the desktop, choose Add phone.
+      </Text>
+      <Button label="Scan pairing code" icon="camera" theme={theme} busy={s.busy} onPress={() => s.setScanning(true)} />
+      <View style={{ marginBottom: S6.inputPull }}>
+        <Input label="Or paste the pairing link" value={s.pairLink} onChange={s.setPairLink} theme={theme}
+          autoCapitalize="none" placeholder="invoiceerp://pair?…" />
+      </View>
+      <Button label="Pair" icon="link" variant="outline" theme={theme} busy={s.busy}
+        disabled={!s.pairLink.trim()} onPress={() => void s.pairWith(s.pairLink)} />
+    </Card>
+  );
+}
+
+// S6.7.2 — paired: Desktop · Invoice series · Last sync (+ waiting / needs attention), then S6.7.3.
+function PairedCard({ s, theme }: { s: Loaded; theme: Theme }) {
+  const st = s.sync.status!;
+  const waiting = st.pending > 0 ? ` · ${st.pending} waiting to send` : '';
+  return (
+    <>
+      <Card theme={theme} list>
+        <ListItem theme={theme} flush leadingIcon="monitor" title="Desktop" subtitle={st.hostName || 'Invoice ERP Desktop'} />
+        <ListItem theme={theme} flush leadingIcon="hash" title="Invoice series"
+          subtitle={`${st.series}${String(1).padStart(S6.numberPad, '0')}, ${st.series}${String(2).padStart(S6.numberPad, '0')} …`} />
+        <ListItem theme={theme} flush leadingIcon="refresh-cw" title="Last sync" divider={st.attention > 0}
+          subtitle={`${syncTime(st.lastSyncAt)}${waiting}`} />
+        {st.attention > 0 ? (
+          <ListItem theme={theme} flush leadingIcon="alert-circle" divider={false}
+            title={`${st.attention} change${st.attention === 1 ? '' : 's'} not taken by the desktop`}
+            subtitle="Usually an invoice number or product name already used on another device"
+            trailing={<Badge label="Check" tone="error" theme={theme} />} />
+        ) : null}
+      </Card>
+      <View style={{ flexDirection: 'row', gap: layout.grid }}>
+        <Button label="Sync now" icon="refresh-cw" theme={theme} busy={s.sync.busy} onPress={() => void s.syncNow()} style={{ flex: 1 }} />
+        <Button label="Unpair" icon="x" variant="outline" theme={theme} onPress={s.unpair} style={{ flex: 1 }} />
+      </View>
+    </>
   );
 }
 

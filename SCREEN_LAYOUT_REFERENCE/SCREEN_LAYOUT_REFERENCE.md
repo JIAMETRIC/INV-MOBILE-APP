@@ -507,7 +507,7 @@ md: table, but the editor opens as P3 (dialog)
 
 **File:** `src/features/settings/SettingsScreen.tsx`
 
-Sections are defined in `SECTIONS`: **company**, **security** (S6.6, since 2026-10-29), **backup**, **activity**. (Drafts, S6.3, is no longer in the list.)
+Sections are defined in `SECTIONS`: **company**, **sync** (S6.7, since 2026-10-30), **security** (S6.6, since 2026-10-29), **backup**, **activity**. (Drafts, S6.3, is no longer in the list.)
 
 ### Phone: list, then drill-in
 
@@ -548,6 +548,11 @@ Sections are defined in `SECTIONS`: **company**, **security** (S6.6, since 2026-
 | S6.4 | **Backup & restore** | `BackupPane`: info text · `ExportRestoreRow` (Export \| Restore, 1:1) · `RecentBackups`: archive icon · file name · `kind · KB · date` | `BackupPane` |
 | S6.5 | **Activity log** | `ActivityPane`: ListItem: `action — entity_type entity_id` · date (latest `S6.auditRows` 50) | `ActivityPane` |
 | S6.6 | **Security** | `SecurityPane`: "App lock" card (when it locks, `LOCK.relockAfterMs` 5 min) · list card: Fingerprint / face unlock (`Switch`, greyed when nothing is enrolled) · Change PIN › · New recovery code › · **Lock now** (solid). The PIN screens are S7 | `SecurityPane` |
+| S6.7 | **Sync with desktop** (LAN_SYNC) | `SyncPane`: S6.7.1 or S6.7.2 + S6.7.3, then the last error (red) when the last sync failed | `SyncPane` |
+| S6.7.1 | Not paired | "Desktop" card: what pairing does · **Scan pairing code** (solid, camera) · "Or paste the pairing link" input · **Pair** (outline, disabled while empty) | `PairCard` |
+| S6.7.2 | Paired | list card: Desktop (monitor · host name) · Invoice series (hash · `INV-A001, INV-A002 …`) · Last sync (refresh · "today 10:42 · n waiting to send") · when the desktop refused changes: alert row + red **Check** badge | `PairedCard` |
+| S6.7.3 | Actions | one row, 1:1: **Sync now** (solid, busy while syncing) \| **Unpair** (outline, confirm) | `PairedCard` |
+| S6.7.4 | Scanner | full-screen overlay, dark recipe: camera · top bar "Scan pairing code" / "Desktop: Add phone" with back · 240 blue aiming frame (radius 16) · one line of help; no camera access: the reason + **Allow camera** | `PairScanner.tsx` |
 
 ### Functions
 
@@ -562,6 +567,9 @@ Sections are defined in `SECTIONS`: **company**, **security** (S6.6, since 2026-
 | `importBackup()` | pick a file → confirm → `restoreDbBackup` (takes a safety copy first) | in `useSettings` |
 | `removeDraft(d)` / `openDraft(d)` | confirm → `deleteDraft` / S4 with the draft | in `useSettings` |
 | `toggleBio(on)` | S6.6: on asks for a fingerprint first, then `lock.setBio` → snackbar | in `useSettings` |
+| `pairWith(code)` | S6.7: closes the scanner, `sync.pair(code)` (pairs, then the first sync) → snackbar; failure → alert with the reason | in `useSettings` |
+| `syncNow()` | S6.7.3: `sync.syncNow()` → snackbar "Synced: n sent, n received" / "Up to date"; a failure shows under the cards | in `useSettings` |
+| `unpair()` | S6.7.3: confirm → `sync.unpair()` (forgets the desktop; data and series stay) | in `useSettings` |
 
 ---
 

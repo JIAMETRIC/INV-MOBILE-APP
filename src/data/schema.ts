@@ -204,6 +204,7 @@ CREATE TABLE IF NOT EXISTS sync_tombstones (
 -- This device's sync identity and progress. applying = 1 while rows that came
 -- from the host are written, so the triggers don't mark them dirty again.
 -- user_uid is the signed-in user: new rows record it in created_by.
+-- host_id / host_name: the desktop this phone is paired with (host_url empty = not paired).
 CREATE TABLE IF NOT EXISTS sync_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   device_id TEXT NOT NULL DEFAULT '',
@@ -211,7 +212,9 @@ CREATE TABLE IF NOT EXISTS sync_state (
   host_url TEXT NOT NULL DEFAULT '',
   last_pull_seq INTEGER NOT NULL DEFAULT 0,
   last_sync_at TEXT NOT NULL DEFAULT '',
-  user_uid TEXT NOT NULL DEFAULT ''
+  user_uid TEXT NOT NULL DEFAULT '',
+  host_id TEXT NOT NULL DEFAULT '',
+  host_name TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS backup_logs (

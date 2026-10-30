@@ -177,8 +177,23 @@ export async function syncOnce(tx: Tx, transport: Transport): Promise<SyncReport
 
 // After pairing: remember the host and switch new invoices to this device's
 // series (INV-A001 …). Invoices already issued keep their numbers.
+// A different desktop than before (new PC, or its database was replaced) has
+// none of this phone's data and numbers its changes from 1 again: send
+// everything again and pull from the start.
 export async function applyPairing(db: SyncDb, welcome: PairWelcome, hostUrl: string): Promise<void> {
-  await db.runAsync('UPDATE sync_state SET host_url = ? WHERE id = 1', hostUrl);
+  const before = await db.getFirstAsync<{ host_id: string }>('SELECT host_id FROM sync_state WHERE id = 1');
+  if (before?.host_id && before.host_id !== welcome.host_id) {
+    await setApplying(db, true);
+    try {
+      for (const t of WIRE_ORDER) await db.runAsync(`UPDATE ${t} SET dirty = 1, server_seq = NULL`);
+      await db.runAsync('UPDATE sync_tombstones SET dirty = 1, server_seq = NULL');
+      await db.runAsync('UPDATE sync_state SET last_pull_seq = 0 WHERE id = 1');
+    } finally {
+      await setApplying(db, false);
+    }
+  }
+  await db.runAsync('UPDATE sync_state SET host_url = ?, host_id = ?, host_name = ? WHERE id = 1',
+    hostUrl, welcome.host_id, welcome.host_name);
   const prefix = `INV-${welcome.series}`;
   const cur = await db.getFirstAsync<{ invoice_prefix: string }>('SELECT invoice_prefix FROM meta WHERE id = 1');
   if (cur?.invoice_prefix !== prefix) {

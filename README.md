@@ -1,6 +1,6 @@
 # Invoice ERP — Android app (standalone)
 
-Offline, local-only invoicing app for a garment business: invoices with party snapshot,
+Offline-first invoicing app for a garment business (works without a network; with Invoice ERP Desktop on the shop Wi-Fi it syncs, see `LAN_SYNC/`): invoices with party snapshot,
 products by name × size with live Sold / Available stock and a restock ledger, payments,
 PDF + Excel export, and SQLCipher-encrypted storage with on-device backups. The app opens behind
 a PIN lock (4–6 digits, optional fingerprint / face unlock, a recovery code for a forgotten PIN).
@@ -115,7 +115,7 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | `npm run typecheck` | `tsc --noEmit` strict check of the app, then of `desktop/` (its own `desktop/tsconfig.json`, Node types) |
 | `npm run test:money` | Money core / amount-in-words unit tests |
 | `npm run test:integration` | Headless SQLite harness over the real data layer, incl. the v9 sync triggers and a v8 → v9 upgrade from `scripts/fixtures/schema-v8.sql` |
-| `npm run test:sync` | LAN sync end to end: the real desktop host on a local port and three simulated phones (pairing, offline work, conflicts, deletes, convergence) |
+| `npm run test:sync` | LAN sync end to end: the real desktop host on a local port and four simulated phones (pairing, offline work, conflicts, deletes, convergence; phone D runs the app's own sync service with its @noble/ciphers sealing) |
 | `npm run host:start` | Build and run the desktop host in a terminal (unencrypted, data in `%APPDATA%\InvoiceERP-terminal`, port 7420; for development and tests). Add `-- --pair` to print a one-time pairing link, `-- --data <dir> --port <n>` to change them. Windows asks once to allow it on private networks; to allow it ahead of time (admin PowerShell): `New-NetFirewallRule -DisplayName "Invoice ERP host" -Direction Inbound -Protocol TCP -LocalPort 7420 -Profile Private -Action Allow` |
 | `npm run host:build` | Compile the host only (`desktop/dist/`, git-ignored) |
 | `cd desktop && npm install` | Once: the desktop app's own dependencies (Electron, encrypted SQLite, QR codes) in `desktop/node_modules`, kept apart from the phone app's |
@@ -140,7 +140,8 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | --- | --- | --- |
 | `android/gradle.properties` | `reactNativeArchitectures=arm64-v8a,x86_64` | One APK for phones (arm64) and the emulator (x86_64). Emulator-only quick build: add `-PreactNativeArchitectures=x86_64` (~30 s vs ~24 min clean) |
 | `android/app/build.gradle` | signing block from `~/.claude/skills/local-build-apk/templates/signing.gradle.txt` | Debug and release sign with the EAS phone key read from `credentials.json`, so local APKs update the phone's EAS-built app in place (debug key when the file is missing) |
-| `android/app/src/release/AndroidManifest.xml` | removes INTERNET + ACCESS_NETWORK_STATE | Release APKs stay offline, like the EAS builds |
+| `android/app/src/release/AndroidManifest.xml` | removes ACCESS_NETWORK_STATE (INTERNET stays since build 5) | Like the EAS builds (`blockedPermissions`); LAN sync with the desktop needs INTERNET |
+| `android/app/src/main/AndroidManifest.xml` | `android:usesCleartextTraffic="true"` on `<application>` | LAN sync talks plain HTTP to the desktop (bodies AES-GCM sealed); EAS builds get it from `withCleartextLan` in `app.config.ts` |
 | `android/gradle.properties` | `expo.sqlite.useSQLCipher=true` | Without it the DB silently falls back to unencrypted SQLite |
 | `android/local.properties` | `sdk.dir=C:/Users/<you>/AppData/Local/Android/Sdk` | Prebuild doesn't always write it |
 

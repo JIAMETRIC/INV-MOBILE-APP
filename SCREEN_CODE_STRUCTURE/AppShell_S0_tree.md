@@ -221,3 +221,7 @@ md keeps `panes: 1` on purpose (useBreakpoint.ts:13-14): an 8-inch tablet in por
 | xxl 1280 (10-inch landscape) | rail with labels; S2 three panes | Prompt 30, Prompt 31 |
 
 Open findings (not applied): none for the shell; the tablet findings of Prompt 30 were closed in Prompts 31 to 33, all inside screens.
+
+## 2026-10-30 addendum: SyncProvider (LAN_SYNC Phase 4)
+
+`Root()` now wraps `Shell` in `SyncProvider` inside `SnackbarProvider` (`<SyncProvider><Shell /></SyncProvider>`, App.tsx:100), imported from `src/sync/SyncProvider.tsx`. It draws nothing. It runs sync with the desktop when the app opens or comes back, every minute while it is open, and within 5 s of a save on any screen (a local check for waiting changes), and it calls `nav.refresh()` when a pull brought changes. Line numbers above are from 2026-10-23 and have moved since (`LockProvider` 2026-10-29, `SyncProvider` 2026-10-30).

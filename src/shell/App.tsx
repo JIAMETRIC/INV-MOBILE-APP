@@ -28,6 +28,7 @@ import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { TopAppBar } from '../ui/components';
 import { SnackbarProvider } from '../ui/Snackbar';
 import { LockProvider } from '../auth/LockProvider';
+import { SyncProvider } from '../sync/SyncProvider';
 
 export default function App() {
   return (
@@ -96,7 +97,7 @@ function Root() {
       <NavProvider isPhone={bp.isPhone}>
         {/* Phones: clear the floating nav and the 52 FAB above it (16 gaps), so snackbars never cover them. */}
         <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_HEIGHT + 52 + 2 * 16 + 8 : 0}>
-          <Shell />
+          <SyncProvider><Shell /></SyncProvider>
         </SnackbarProvider>
       </NavProvider>
     </LockProvider>

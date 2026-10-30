@@ -17,11 +17,21 @@ const withWhatsAppQueries: (c: ExpoConfig) => ExpoConfig = c => withAndroidManif
   return cfg;
 });
 
-// INTERNET stays available in dev (Metro needs it, plan §12); it is stripped
-// only from preview/production builds via blockedPermissions.
+// LAN sync (LAN_SYNC): phones talk to the desktop over plain HTTP on the shop
+// network; the bodies are AES-GCM sealed (src/sync/seal.ts), so cleartext
+// transport is allowed. Android blocks cleartext by default from API 28.
+const withCleartextLan: (c: ExpoConfig) => ExpoConfig = c => withAndroidManifest(c, cfg => {
+  const app = cfg.modResults.manifest.application?.[0];
+  if (app) app.$['android:usesCleartextTraffic'] = 'true';
+  return cfg;
+});
+
+// INTERNET is needed for LAN sync with the desktop (owner decision D5,
+// 2026-10-30); before that, release builds stripped it. ACCESS_NETWORK_STATE
+// is still stripped from preview/production builds.
 const isReleaseLike = !!process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== 'development';
 
-export default ({ config }: ConfigContext): ExpoConfig => withWhatsAppQueries({
+export default ({ config }: ConfigContext): ExpoConfig => withCleartextLan(withWhatsAppQueries({
   ...config,
   name: 'Invoice ERP',
   slug: 'invoice-erp',
@@ -46,10 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => withWhatsAppQueries({
     },
     ...(isReleaseLike
       ? {
-          blockedPermissions: [
-            'android.permission.INTERNET',
-            'android.permission.ACCESS_NETWORK_STATE',
-          ],
+          blockedPermissions: ['android.permission.ACCESS_NETWORK_STATE'],
         }
       : {}),
   },
@@ -58,6 +65,8 @@ export default ({ config }: ConfigContext): ExpoConfig => withWhatsAppQueries({
     'expo-secure-store',
     // S7 fingerprint / face unlock (Android: USE_BIOMETRIC comes from the module's manifest).
     ['expo-local-authentication', { faceIDPermission: 'Allow Invoice ERP to use Face ID to unlock the app.' }],
+    // Settings → Sync: scan the desktop's pairing QR code. No microphone.
+    ['expo-camera', { cameraPermission: 'Allow Invoice ERP to scan the pairing code shown by Invoice ERP Desktop.', recordAudioAndroid: false }],
   ],
   experiments: { typedRoutes: false },
   // expo-sqlite web driver (wa-sqlite worker) needs crossOriginIsolated.
@@ -69,4 +78,4 @@ export default ({ config }: ConfigContext): ExpoConfig => withWhatsAppQueries({
       { value: 'credentialless', key: 'Cross-Origin-Embedder-Policy' },
     ],
   },
-});
+}));

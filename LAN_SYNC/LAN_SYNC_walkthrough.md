@@ -163,3 +163,60 @@ npm run test:money / test:xlsx / test:columns   pass
 ```
 
 Not done here: running the installer (system-wide install + firewall rule: the owner's step), the tray and "Start with Windows" by hand, and pairing a real phone (Phase 4).
+
+## Session 2026-10-30 (Prompt 10): Phase 4, phone sync
+
+Design and file map: `LAN_SYNC_TRACKING.md` § "Phase 4 as built". Screen docs: `SCREEN_LAYOUT_REFERENCE.md` § S6 (S6.7 rows and functions), `SCREEN_CODE_STRUCTURE/SettingsScreen_S6_tree.md` and `AppShell_S0_tree.md` (2026-10-30 addenda).
+
+### Dependencies
+
+- `expo-camera` ~58.0.14 through `npx expo install` (the version Expo SDK 58 expects), plugin with `recordAudioAndroid: false`. Its Android manifest adds only CAMERA.
+- `@noble/ciphers` ^2.4.0 (2026-08-27, pure JS, no native code).
+- `npm audit --omit=dev` lists 12 issues, all in Expo's own CLI / config packages (`node-forge`, `zod`, `deepmerge`, `uuid`), already there before; the two new packages add none.
+
+### `npm run test:sync`: 19 / 19
+
+Five new tests with phone D running the app's own `src/sync/service.ts`:
+
+```
+PASS phone sealing (@noble/ciphers) and desktop sealing (node:crypto) read each other
+PASS pairing link: parsed; anything else refused
+PASS phone service pairs from the link (first address dead), then syncs both ways
+PASS phone service: wrong desktop, blocked, forgotten and offline are told apart
+PASS pairing with a different desktop sends everything again, without duplicates
+```
+
+### Other checks
+
+```
+npm run typecheck          clean (app + desktop host)
+npm run test:integration   26 PASS
+npm run test:money / test:xlsx / test:columns   pass
+npx expo export --platform android   bundle builds
+```
+
+### On the emulator (Medium_Phone_API_37.0)
+
+- Release APK, x86_64 only, versionCode 5, EAS key: `gradlew assembleRelease -PreactNativeArchitectures=x86_64` in 2 min 19 s (44.7 MB).
+- `adb install -r` over build 4: Success, data kept. `dumpsys`: versionCode 5, INTERNET (granted) and CAMERA declared, no RECORD_AUDIO.
+- First start: no database error, PIN screen shown, so the **real v8 → v9 upgrade** of the emulator's database worked.
+- The app was behind a PIN set in the 2026-10-29 session and never written down (Prompt 11). With the owner's go-ahead (Prompt 12), `adb shell pm clear com.jiametric.invoiceerp` wiped the emulator's app data (its 2 test invoices). A new random test PIN was created and, with the one-time recovery code, saved to `credentials/emulator-test-lock.txt` (git-ignored); see `AUTH_AND_LOCK_walkthrough.md`.
+
+### On the emulator: pairing and sync through the UI (Prompts 11–12)
+
+Test desktop: `node desktop/dist/desktop/host/main.js --data <scratch>/emu-host --pair` on port 7420; pairing link typed into S6.7.1 with `h=10.0.2.2` (the emulator's address for this PC).
+
+| Step | Result |
+| --- | --- |
+| Settings | five sections; header "Company, sync, security, backup"; "Sync with desktop" second |
+| S6.7.1 not paired | Desktop card, Scan pairing code, link input, Pair disabled until a link is in |
+| Pair (link) | S6.7.2: Desktop ADIT-PC · Invoice series INV-A001, INV-A002 … · Last sync today 10:38 PM |
+| Desktop side | `devices`: "Google sdk_gphone64_x86_64", series A, app "1.0.1 (5)"; `sync_log`: pair, push 12 (the phone's catalog, no refusals), pull 12; still **12 products** (seeded uids match, no duplicates) |
+| Desktop → phone | Hoodie price set to ₹649.00 in the desktop DB → Sync now → Products shows ₹649.00 |
+| Phone → desktop (old trigger) | Hoodie stock 0 → 25 in the editor: **not** sent within 4 s. Products saves don't call `nav.refresh()`, so the 1.5 s after-save trigger never fired; the 60 s tick sent it (desktop: stock 25, restock `edit +25`, log `product.upsert`) |
+| Fix | `SyncProvider` checks for waiting changes every 5 s (`hasPending()`, one local query), on every screen, skipped while the last round failed; rebuilt (18 s, bundle checked for `hasPending`), reinstalled |
+| Phone → desktop (new trigger) | Hoodie stock 25 → 30, Save, no Sync tap: desktop stock **30 after 3 s**; restocks `+25 → 25`, `+5 → 30` |
+| Desktop off | Sync now → red "Desktop not reachable. Check that this phone is on the shop Wi-Fi and Invoice ERP Desktop is running." Cards and buttons stay usable |
+| Unlock after reinstall | the recorded test PIN opens the app; Dashboard shows the synced stock (25) |
+
+Not tried on the emulator: scanning a QR (the emulator has no real camera; on a phone, scan the desktop's Add phone code), Unpair, two phones at once (covered by `test:sync`). After the 5 s change: `test:sync` 19 PASS, `test:integration` 26 PASS, typecheck clean.

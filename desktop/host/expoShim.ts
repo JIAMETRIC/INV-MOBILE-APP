@@ -39,6 +39,7 @@ const shims: Record<string, unknown> = {
   },
   'expo-crypto': {
     getRandomBytesAsync: async (n: number) => new Uint8Array(crypto.randomBytes(n)),
+    getRandomBytes: (n: number) => new Uint8Array(crypto.randomBytes(n)),
     randomUUID: () => crypto.randomUUID(),
   },
 };

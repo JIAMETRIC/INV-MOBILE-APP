@@ -139,7 +139,7 @@ Code: `src/data/schema.ts` (`SCHEMA_SQL`, `SYNC_SQL`, `SYNC_TABLES`), migration 
 | **1. Sync-ready data** ✅ 2026-10-30 | Schema v9 + migration (uids, timestamps, tombstones, ledger-based stock, `payment_invoices`); repos write uid/dirty/soft-delete; integration tests extended | M | `npm run test:integration` passes on v9, existing phone DB migrates without loss |
 | **2. Desktop host** ✅ 2026-10-30 (core + Electron app + installer) | New `desktop/` folder: Electron + Node server + SQLite (SQLCipher) reusing `src/data`; endpoints `/health`, `/pair`, `/sync/push`, `/sync/pull`; Windows firewall rule; auto-backup | L | Two simulated phones (Node test) push/pull and converge |
 | **3. Desktop admin UI** | Web build of existing screens (S1 Dashboard, S2 Invoices, S3, S5 Products, S6 Settings) + new: **Users**, **Devices & pairing QR**, **Sync log**, filter "by user" | L | Admin sees every phone's invoices and stock in one place |
-| **4. Phone sync client** | Settings → **Sync** section (pair by QR via `expo-camera`, status, Sync now, unpair); sync engine; header sync dot (synced / pending / offline); INTERNET permission + cleartext LAN config; encryption | M | Phone pairs, bills offline, catches up when back on Wi-Fi |
+| **4. Phone sync client** ✅ 2026-10-30 (header sync dot not done) | Settings → **Sync** section (pair by QR via `expo-camera`, status, Sync now, unpair); sync engine; header sync dot (synced / pending / offline); INTERNET permission + cleartext LAN config; encryption | M | Phone pairs, bills offline, catches up when back on Wi-Fi |
 | **5. Users & roles** | Per-user PIN sign-in (extends the S7 lock), `created_by` on invoices, permission checks on phone and enforced on the host | M | Phone user can't change prices; host rejects a forged push |
 | **6. Test & roll out** | Multi-device test: emulator + phone + desktop on Wi-Fi; Wi-Fi drop mid-sync; same product restocked on two phones; admin voids while phone edits; `/size-check` on new screens; seed host from current phone; build 5 | M | Checklist in `LAN_SYNC_walkthrough.md` all green |
 
@@ -254,6 +254,24 @@ Host changes for it: `NodeSqliteDb` takes any engine with the node:sqlite / bett
 - **If Windows' user profile is lost, so is the DPAPI key:** `host.db` and its backups can't be opened. The phones still hold the data and can re-seed a new desktop. A "save recovery key" button is a Phase 3 candidate.
 - **Host reset detection:** if the host database is replaced, phones must notice the new `host_id` and pull from 0 (Phase 4).
 - **Users table:** Phase 5.
+
+### Phase 4 as built: phone sync (2026-10-30, Prompt 10)
+
+| File | Role |
+| --- | --- |
+| `src/sync/seal.ts` | AES-256-GCM in pure JS (`@noble/ciphers` 2.4.0), byte-for-byte the desktop's format (tested both ways) |
+| `src/sync/service.ts` | `parsePairingCode`, `pair(code, deviceName, appVersion)` (probes the QR's addresses in parallel, 3 s each; device key → `expo-secure-store` `sync_device_key_v1`), `syncNow()` (health check first: offline / other desktop; then `syncOnce`, 60 s per call), `syncStatus()`, `unpair()`; `SyncError` codes with the words to show |
+| `src/sync/SyncProvider.tsx` | Background sync once paired: on open, on coming back, every 60 s while open, within 5 s of a save on any screen (cheap local check for waiting changes, skipped while the last round failed); `nav.refresh()` when a pull brought changes; `useSync()` for Settings. Device name from `Platform.constants` Brand + Model |
+| `src/sync/client.ts` | `applyPairing` stores `host_id` / `host_name`; pairing with a **different desktop** marks every row for sending again and pulls from 0 |
+| `src/features/settings/SettingsScreen.tsx` | S6.7 **Sync with desktop**: not paired = Scan pairing code / paste link → Pair; paired = Desktop · Invoice series · Last sync (+ waiting, + refused-changes row), Sync now \| Unpair; last error in red |
+| `src/features/settings/PairScanner.tsx` | S6.7.4 full-screen QR scanner (`expo-camera` ~58.0.14, QR only, no microphone) |
+| `src/data/schema.ts` | `sync_state.host_id`, `host_name` (v9, still unreleased) |
+| `app.config.ts`, `android/` | INTERNET kept in release builds (D5); `usesCleartextTraffic` (plugin `withCleartextLan` + LOCAL EDIT); `expo-camera` plugin with `recordAudioAndroid: false` |
+| `app-version.json`, `android/app/build.gradle` | versionCode 5 |
+
+**Error words** (`service.ts` `MESSAGES`): not paired · desktop not reachable (Wi-Fi / desktop running) · a different desktop answers · blocked on the desktop · desktop no longer knows this phone (pair again) · pairing code used or expired · not a pairing code · different sync versions · desktop problem.
+
+**Not done in Phase 4:** the header sync dot on every screen (status is in Settings → Sync only); opening an `invoiceerp://pair` link from another app (the scheme is registered, but nothing handles it yet); background sync while the app is closed (Android background jobs are out of scope: phones sync when opened).
 
 ### Risks
 

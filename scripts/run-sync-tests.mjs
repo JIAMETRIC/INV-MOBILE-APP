@@ -18,14 +18,14 @@ rmSync(tmp, { recursive: true, force: true });
 execFileSync('npx', ['tsc', '--ignoreConfig',
   'desktop/host/app.ts', 'src/sync/client.ts',
   'src/data/settingsRepo.ts', 'src/data/productsRepo.ts', 'src/data/invoicesRepo.ts',
-  'src/data/paymentsRepo.ts', 'src/data/syncRepo.ts',
+  'src/data/paymentsRepo.ts', 'src/data/syncRepo.ts', 'src/sync/service.ts',
   '--outDir', build, '--rootDir', '.', '--module', 'nodenext', '--moduleResolution', 'nodenext',
   '--target', 'es2022', '--types', 'node', '--skipLibCheck', '--esModuleInterop', '--strict'],
 { stdio: 'inherit', shell: true });
 
 // Each phone gets its own copy of the compiled code, so each has its own
 // getDb() singleton and therefore its own database.
-for (const p of ['phoneA', 'phoneB', 'phoneC']) cpSync(build, path.join(tmp, p), { recursive: true });
+for (const p of ['phoneA', 'phoneB', 'phoneC', 'phoneD']) cpSync(build, path.join(tmp, p), { recursive: true });
 
 const shim = require(path.join(build, 'desktop', 'host', 'expoShim.js'));
 shim.installExpoShims();
@@ -333,6 +333,113 @@ await t('repeating a push changes nothing (Wi-Fi dropped before the reply)', asy
   await A.tx(d => A.client.applyPushResult(d, second));
   await A.sync();
   assert.equal((await A.product('Hoodie')).stock_qty, (await h1("SELECT stock_qty FROM products WHERE name = 'Hoodie'")).stock_qty);
+});
+
+// ---------- phone D: the real phone service (src/sync/service.ts) ----------
+// Its own sealing (@noble/ciphers), the pairing link, the stored device key,
+// the health check, its error codes: what the app runs on a phone.
+
+const D = makePhone('phoneD');
+D.service = require(path.join(tmp, 'phoneD', 'src', 'sync', 'service.js'));
+D.noble = require(path.join(tmp, 'phoneD', 'src', 'sync', 'seal.js'));
+const crypto = await import('node:crypto');
+const linkFor = (pairing, hosts) =>
+  `invoiceerp://pair?h=${hosts.join(',')}&p=${host.port}&i=${pairing.pid}&s=${encodeURIComponent(pairing.secret)}`;
+const codeOf = async fn => { try { await fn(); return 'no error'; } catch (e) { return e.code ?? e.message; } };
+
+await t('phone sealing (@noble/ciphers) and desktop sealing (node:crypto) read each other', async () => {
+  const key = crypto.randomBytes(32).toString('base64');
+  const body = { hello: 'वணக்கம் ₹', n: [1, 2, 3] };
+  const fromPhone = D.noble.seal(key, '/sync/push', body, new Uint8Array(crypto.randomBytes(12)));
+  assert.deepEqual(open(key, '/sync/push', fromPhone), body);
+  assert.deepEqual(D.noble.open(key, '/sync/pull', seal(key, '/sync/pull', body)), body);
+  assert.throws(() => D.noble.open(key, '/sync/push', seal(key, '/sync/pull', body)), 'another path does not open');
+  assert.throws(() => open(crypto.randomBytes(32).toString('base64'), '/sync/push', fromPhone), 'another key does not open');
+});
+
+await t('pairing link: parsed; anything else refused', async () => {
+  const c = D.service.parsePairingCode('invoiceerp://pair?h=192.168.1.10%2C10.0.0.5&p=7420&i=ab12&s=xO%2B%2Fk%3D');
+  assert.deepEqual(c, { hosts: ['192.168.1.10', '10.0.0.5'], port: 7420, pid: 'ab12', secret: 'xO+/k=' });
+  for (const bad of ['', 'https://example.com', 'invoiceerp://pair?h=1.2.3.4&p=7420&i=x', 'invoiceerp://pair?p=1&i=x&s=y']) {
+    assert.equal(D.service.parsePairingCode(bad), null, bad);
+  }
+  assert.equal(await codeOf(() => D.service.pair('hello', 'D', 'test')), 'bad_code');
+});
+
+await t('phone service pairs from the link (first address dead), then syncs both ways', async () => {
+  const { pairing } = await host.newPairing();
+  const w = await D.service.pair(linkFor(pairing, ['127.0.0.2', '127.0.0.1']), 'Test phone D', '1.0.1 (5)');
+  assert.equal(w.series, 'D');
+  let st = await D.service.syncStatus();
+  assert.equal(st.paired, true);
+  assert.equal(st.series, 'INV-D');
+  assert.equal(st.hostName, host.info.host_name);
+  // First sync: brings the shop down, sends D's catalog up.
+  let rep = await D.service.syncNow();
+  assert.deepEqual(rep.rejected, []);
+  assert.ok(rep.pulled > 0);
+  D.device = await D.client.deviceId(await (require(path.join(tmp, 'phoneD', 'src', 'data', 'db.js'))).getDb());
+  // D bills, syncs; the desktop and A get it.
+  const hoodie = await D.product('Hoodie');
+  const d1 = await D.issue([['Hoodie', 1, 62000, hoodie.id]], 'Walk-in D');
+  assert.equal(d1.invoiceNo, 'INV-D001');
+  assert.equal((await D.service.syncStatus()).pending > 0, true);
+  rep = await D.service.syncNow();
+  assert.deepEqual(rep.rejected, []);
+  st = await D.service.syncStatus();
+  assert.equal(st.pending, 0);
+  assert.notEqual(st.lastSyncAt, '');
+  assert.ok(await h1("SELECT id FROM invoices WHERE invoice_no = 'INV-D001'"));
+  assert.equal((await h1('SELECT name FROM devices WHERE device_id = ?', D.device)).name, 'Test phone D');
+  await A.sync();
+  assert.ok(await A.one("SELECT id FROM invoices WHERE invoice_no = 'INV-D001'"));
+  assert.deepEqual(await picture(D.q), await picture(hq));
+});
+
+await t('phone service: wrong desktop, blocked, forgotten and offline are told apart', async () => {
+  const dbD = await (require(path.join(tmp, 'phoneD', 'src', 'data', 'db.js'))).getDb();
+  // Another desktop answering at the stored address.
+  await dbD.runAsync("UPDATE sync_state SET host_id = 'someone-else' WHERE id = 1");
+  assert.equal(await codeOf(() => D.service.syncNow()), 'other_host');
+  await dbD.runAsync('UPDATE sync_state SET host_id = ? WHERE id = 1', host.info.host_id);
+  // Blocked on the desktop.
+  await host.exclusive(tx => tx.runAsync('UPDATE devices SET revoked = 1 WHERE device_id = ?', D.device));
+  assert.equal(await codeOf(() => D.service.syncNow()), 'revoked');
+  await host.exclusive(tx => tx.runAsync('UPDATE devices SET revoked = 0 WHERE device_id = ?', D.device));
+  // Desktop dropped this phone (its key no longer opens).
+  await host.exclusive(tx => tx.runAsync("UPDATE devices SET key = ? WHERE device_id = ?", crypto.randomBytes(32).toString('base64'), D.device));
+  assert.equal(await codeOf(() => D.service.syncNow()), 'forgotten');
+  // Nothing listening.
+  const url = (await dbD.getFirstAsync('SELECT host_url FROM sync_state')).host_url;
+  await dbD.runAsync("UPDATE sync_state SET host_url = 'http://127.0.0.1:9' WHERE id = 1");
+  assert.equal(await codeOf(() => D.service.syncNow()), 'offline');
+  await dbD.runAsync('UPDATE sync_state SET host_url = ? WHERE id = 1', url);
+  // Unpaired: says so.
+  await D.service.unpair();
+  assert.equal((await D.service.syncStatus()).paired, false);
+  assert.equal(await codeOf(() => D.service.syncNow()), 'not_paired');
+  // A used code is refused.
+  const { pairing } = await host.newPairing();
+  await D.service.pair(linkFor(pairing, ['127.0.0.1']), 'Test phone D', 'test');
+  assert.equal(await codeOf(() => D.service.pair(linkFor(pairing, ['127.0.0.1']), 'Test phone D', 'test')), 'pairing_expired');
+  assert.deepEqual((await D.service.syncNow()).rejected, []);
+});
+
+await t('pairing with a different desktop sends everything again, without duplicates', async () => {
+  const dbD = await (require(path.join(tmp, 'phoneD', 'src', 'data', 'db.js'))).getDb();
+  // Pretend D was paired elsewhere before: the next pairing is "a new desktop".
+  await dbD.runAsync("UPDATE sync_state SET host_id = 'old-desktop' WHERE id = 1");
+  const { pairing } = await host.newPairing();
+  await D.service.pair(linkFor(pairing, ['127.0.0.1']), 'Test phone D', 'test');
+  const before = await picture(hq);
+  // pair() doesn't sync by itself (the app's SyncProvider does): everything is waiting.
+  assert.ok((await D.service.syncStatus()).pending >= 12, 'all rows waiting again');
+  assert.equal((await dbD.getFirstAsync('SELECT last_pull_seq s FROM sync_state')).s, 0);
+  const rep = await D.service.syncNow();
+  assert.deepEqual(rep.rejected, []);
+  assert.deepEqual(await picture(hq), before, 'the desktop already had all of it');
+  assert.equal((await D.service.syncStatus()).pending, 0);
+  assert.deepEqual(await picture(D.q), await picture(hq));
 });
 
 await t('a blocked phone is refused', async () => {
