@@ -67,8 +67,9 @@ export async function getAging(): Promise<AgingRow[]> {
   const rows: AgingRow[] = [];
   for (const o of open) {
     const paid = await db.getFirstAsync<{ n: number }>(
-      `SELECT COALESCE(SUM(amount_paise),0) n FROM payments WHERE ',' || invoice_ids || ',' LIKE '%,' || ? || ',%'`,
-      String(o.id),
+      `SELECT COALESCE(SUM(p.amount_paise),0) n FROM payments p
+       JOIN payment_invoices pi ON pi.payment_id = p.id WHERE pi.invoice_id = ?`,
+      o.id,
     );
     rows.push({
       invoice_id: o.id,

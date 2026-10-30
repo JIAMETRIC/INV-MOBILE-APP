@@ -4,6 +4,7 @@
 // as salted SHA-256 hashes; the lock gates the UI, the database key is unchanged.
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import { logAudit } from '../data/auditRepo';
 
 const KEY = {
   pin: 'auth_pin_v1', // { salt, hash, len }
@@ -86,14 +87,18 @@ async function check(key: string, secret: string): Promise<Attempt> {
   const f = (await readJson<Fails>(KEY.fails)) ?? { count: 0, until: 0 };
   if (wait > 0) return { ok: false, waitMs: wait, triesLeft: 0 };
   const rec = await readJson<Hashed>(key);
+  const what = key === KEY.pin ? 'pin' : 'recovery';
   if (rec && sameHex((await hashed(secret, rec.salt)).hash, rec.hash)) {
     await SecureStore.deleteItemAsync(KEY.fails);
+    if (what === 'recovery') await logAudit('auth.recovered', 'auth', what);
     return { ok: true };
   }
   const count = f.count + 1;
   const over = count - LOCKOUT.freeTries;
   const waitMs = over >= 0 ? Math.min(LOCKOUT.maxMs, LOCKOUT.baseMs * 2 ** over) : 0;
   await writeJson(KEY.fails, { count, until: Date.now() + waitMs });
+  // Wrong PINs are on the Activity log's watch list (A3).
+  await logAudit(waitMs > 0 ? 'auth.locked' : 'auth.failed', 'auth', what, { count, waitMs });
   return { ok: false, waitMs, triesLeft: Math.max(0, LOCKOUT.freeTries - count) };
 }
 

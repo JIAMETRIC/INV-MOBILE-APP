@@ -113,7 +113,7 @@ In Android Studio, the equivalent is Device Manager → Edit → Graphics: **Sof
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` strict check |
 | `npm run test:money` | Money core / amount-in-words unit tests |
-| `npm run test:integration` | Headless SQLite harness over the real data layer |
+| `npm run test:integration` | Headless SQLite harness over the real data layer, incl. the v9 sync triggers and a v8 → v9 upgrade from `scripts/fixtures/schema-v8.sql` |
 | `npm run test:xlsx` | ZIP / OOXML checks on the spreadsheet writer |
 | `python -I scripts/screen-map.py` | regenerate `SCREEN_CODE_STRUCTURE/screen-map.html`, the per-screen function map |
 | `npm run test:columns` | Layout decisions of the `Columns` helper (row / wrap / stack by width) |
@@ -168,9 +168,9 @@ INV-MOBILE-APP/
 │   ├── auth/         app lock: LockProvider (when the PIN screen shows), authStore (secure storage), biometrics
 │   ├── ui/           M3 kit: tokens, components, Nav (bar/rail), Sheet, Snackbar, breakpoints
 │   ├── features/     auth (S7 sign in) · dashboard · invoices (list, detail, create) · products · settings
-│   ├── data/         SQLCipher DB, schema v4 + migrations, repos, integer-paise money core
+│   ├── data/         SQLCipher DB, schema v9 (sync-ready) + migrations, repos, integer-paise money core, syncRepo (pending changes)
 │   └── export/       PDF template + share, XLSX writer
-├── scripts/          test runners, copy-project.ps1, clean-native-caches.ps1
+├── scripts/          test runners, fixtures/schema-v8.sql (migration test), copy-project.ps1, clean-native-caches.ps1
 ├── android/          generated native project (+5 local edits)
 ├── assets/           icons, splash
 ├── release/          latest APK
@@ -182,6 +182,7 @@ INV-MOBILE-APP/
 │   (the portable version for a new app is the user-level skill `~/.claude/skills/responsive-screens/`: rules + the layout helpers + the size-tour script)
 ├── .claude/skills/size-check/  /size-check: screenshot every screen at phone and tablet sizes (scripts/size-tour.py)
 ├── CLAUDE.md               design rules (kit) + project exceptions; points to AGENTS.md
+├── LAN_SYNC/                multi-phone Wi-Fi sync with the Desktop as admin host: plan, schema v9, test log (TRACKING · walkthrough · session-prompts)
 ├── AUTH_AND_LOCK/           the PIN lock: rationale, storage keys, flows, test log (TRACKING · walkthrough · session-prompts)
 ├── THEME_AND_COLORS/        brand root colours, theme roles, rebrand steps (TRACKING · walkthrough · session-prompts)
 ├── SCREEN_LAYOUT_REFERENCE/ per-screen layout map with IDs for edit prompts (+ TRACKING · walkthrough · session-prompts)
@@ -208,6 +209,7 @@ its salted hash is stored (secure storage, never in the repo or in backups).
 - [`AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_TRACKING.md): the PIN lock (S7, S6.6): why local, storage keys, lockout, recovery code, flows · [`_walkthrough.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_walkthrough.md) · [`_session-prompts.md`](AUTH_AND_LOCK/AUTH_AND_LOCK_session-prompts.md)
 - [`SCREEN_CODE_STRUCTURE/`](SCREEN_CODE_STRUCTURE/): tree files for S0–S7, P1–P3, D1–D2 and C1–C4 (`AppShell_S0_tree.md` … `SharedComponents_C1-C4_tree.md`), each in the Three-Slot format (the three slots, the file in reading order, the tree with IDs and line numbers, the S-numbers, rows and columns, state and actions, "where to change what", sizes checked); restructure decisions in [`SCREEN_CODE_STRUCTURE_TRACKING.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_TRACKING.md) · [`_walkthrough.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_walkthrough.md) · [`_session-prompts.md`](SCREEN_CODE_STRUCTURE/SCREEN_CODE_STRUCTURE_session-prompts.md)
 - [`LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_TRACKING.md): local Gradle APKs signed with the EAS key (phone + emulator), the `/local-build-apk` skill · [`_walkthrough.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_walkthrough.md) · [`_session-prompts.md`](LOCAL_BUILD_APK/LOCAL_BUILD_APK_session-prompts.md)
+- [`LAN_SYNC/LAN_SYNC_TRACKING.md`](LAN_SYNC/LAN_SYNC_TRACKING.md): multi-phone sync over shop Wi-Fi with the Desktop as admin host: decisions D1–D6 (defaults accepted), Phase 1 done (schema v9), Phases 2–6 to do · [`_walkthrough.md`](LAN_SYNC/LAN_SYNC_walkthrough.md) · [`_session-prompts.md`](LAN_SYNC/LAN_SYNC_session-prompts.md)
 - [`THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md`](THEME_AND_COLORS/THEME_AND_COLORS_TRACKING.md): `brand` root colours in `src/ui/tokens.ts`, theme roles, how to rebrand · [`_walkthrough.md`](THEME_AND_COLORS/THEME_AND_COLORS_walkthrough.md) · [`_session-prompts.md`](THEME_AND_COLORS/THEME_AND_COLORS_session-prompts.md)
 - [`CLAUDE.md`](CLAUDE.md) and [`design/DESIGN.md`](design/DESIGN.md): the Flat Glass · Brand Blue design system every screen follows; reference screens in [`design/screens/`](design/screens/)
 - [`agents.md`](agents.md): AI-assistant workflow rules for this folder

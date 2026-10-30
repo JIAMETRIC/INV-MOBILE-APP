@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { getKeyHex } from './dbKey';
-import { SCHEMA_SQL, SCHEMA_VERSION, productSeedSql } from './schema';
+import { SCHEMA_SQL, SCHEMA_VERSION, SYNC_SQL, SYNC_TABLES, productSeedSql } from './schema';
 
 const DB_NAME = 'invoices.db';
 
@@ -18,6 +18,8 @@ export async function openDb(): Promise<SQLite.SQLiteDatabase> {
 async function createSchema(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(SCHEMA_SQL);
   await db.execAsync(`INSERT OR IGNORE INTO meta (id) VALUES (1);`);
+  // Triggers first, so the seeded catalog gets uids like any other new row.
+  await db.execAsync(SYNC_SQL);
   await db.execAsync(productSeedSql());
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
 }
@@ -93,7 +95,7 @@ async function addPaymentMode(db: SQLite.SQLiteDatabase): Promise<void> {
   try {
     await db.execAsync(`
       ALTER TABLE invoices ADD COLUMN payment_mode TEXT NOT NULL DEFAULT 'Cash';
-      PRAGMA user_version = ${SCHEMA_VERSION};
+      PRAGMA user_version = 8;
     `);
     await db.execAsync('COMMIT');
   } catch (e) {
@@ -102,7 +104,64 @@ async function addPaymentMode(db: SQLite.SQLiteDatabase): Promise<void> {
   }
 }
 
-async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
+// v8 -> v9: sync-ready (LAN_SYNC). Existing rows keep their data, get a uid and
+// stay dirty, so the first sync uploads this phone's data to the desktop.
+async function addSyncColumns(db: SQLite.SQLiteDatabase): Promise<void> {
+  const syncCols = (t: string) => `
+    ALTER TABLE ${t} ADD COLUMN uid TEXT;
+    ALTER TABLE ${t} ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE ${t} ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE ${t} ADD COLUMN server_seq INTEGER;
+    ALTER TABLE ${t} ADD COLUMN origin_device TEXT NOT NULL DEFAULT '';
+    ALTER TABLE ${t} ADD COLUMN created_by TEXT NOT NULL DEFAULT '';`;
+  await db.execAsync('BEGIN');
+  try {
+    await db.execAsync(`
+      ${SYNC_TABLES.map(syncCols).join('\n')}
+      ALTER TABLE meta ADD COLUMN dirty INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE meta ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE meta ADD COLUMN server_seq INTEGER;
+    `);
+    // Creates only the new tables (payment_invoices, sync_tombstones, sync_state).
+    await db.execAsync(SCHEMA_SQL);
+    await db.execAsync(`
+      INSERT OR IGNORE INTO sync_state (id, device_id) VALUES (1, lower(hex(randomblob(16))));
+
+      -- Stock must equal the ledger, because the host rebuilds it from restocks.
+      -- A product whose balance drifted gets one correcting 'edit' row.
+      INSERT INTO restocks (product_id, kind, delta, stock_after, unit_paise, note)
+      SELECT p.id, 'edit',
+             p.stock_qty - COALESCE((SELECT SUM(r.delta) FROM restocks r WHERE r.product_id = p.id), 0),
+             p.stock_qty, p.unit_paise, 'Ledger matched to stock (sync upgrade)'
+      FROM products p
+      WHERE abs(p.stock_qty - COALESCE((SELECT SUM(r.delta) FROM restocks r WHERE r.product_id = p.id), 0)) > 1e-9;
+
+      -- Split each payment's invoice_ids CSV into payment_invoices rows.
+      WITH RECURSIVE split(pid, rest, part) AS (
+        SELECT id, invoice_ids || ',', '' FROM payments
+        UNION ALL
+        SELECT pid, substr(rest, instr(rest, ',') + 1), substr(rest, 1, instr(rest, ',') - 1)
+        FROM split WHERE rest <> ''
+      )
+      INSERT OR IGNORE INTO payment_invoices (payment_id, invoice_id)
+      SELECT pid, CAST(part AS INTEGER) FROM split
+      WHERE part <> '' AND CAST(part AS INTEGER) IN (SELECT id FROM invoices);
+    `);
+    const device = `(SELECT device_id FROM sync_state WHERE id = 1)`;
+    for (const t of SYNC_TABLES) {
+      await db.execAsync(
+        `UPDATE ${t} SET uid = lower(hex(randomblob(16))), origin_device = ${device} WHERE uid IS NULL;`);
+    }
+    await db.execAsync(SYNC_SQL);
+    await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
+export async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let version = row?.user_version ?? 0;
   if (version === 4) {
@@ -119,6 +178,10 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (version === 7) {
     await addPaymentMode(db);
+    version = 8;
+  }
+  if (version === 8) {
+    await addSyncColumns(db);
     version = SCHEMA_VERSION;
   }
   let forceDrop = false;
@@ -138,7 +201,8 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       // Clean rebuild (approved for the v2 GST/Clients removal, kept for the
       // v3 Products rename): the old schema is incompatible and only test
       // data exists, so wipe every table child-first instead of migrating rows.
-      for (const t of ['backup_logs', 'audit_logs', 'drafts', 'payments',
+      for (const t of ['sync_state', 'sync_tombstones', 'payment_invoices',
+        'backup_logs', 'audit_logs', 'drafts', 'payments',
         'invoice_items', 'invoices', 'restocks', 'products', 'items', 'clients', 'meta']) {
         await db.execAsync(`DROP TABLE IF EXISTS ${t};`);
       }

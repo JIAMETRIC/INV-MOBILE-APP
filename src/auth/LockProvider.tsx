@@ -8,6 +8,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { getBioEnabled, pinLength, setBioEnabled } from './authStore';
+import { logAudit } from '../data/auditRepo';
 import { bioAvailable } from './biometrics';
 import { AuthScreen, type AuthFlow } from '../features/auth/AuthScreen';
 import { dark } from '../ui/tokens';
@@ -98,7 +99,7 @@ export function LockProvider({ children }: { children: React.ReactNode }) {
             flow={gate}
             bio={bio}
             setBio={setBio}
-            onDone={() => setGate(null)}
+            onDone={() => { if (gate === 'unlock') void logAudit('auth.signin', 'auth', 'unlock'); setGate(null); }}
             onCancel={gate === 'change' || gate === 'new-code' ? () => setGate(null) : undefined}
           />
         </View>
