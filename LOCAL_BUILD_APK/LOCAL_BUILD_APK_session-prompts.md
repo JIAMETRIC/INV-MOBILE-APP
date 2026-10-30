@@ -83,3 +83,15 @@ Build phone APK
 ```
 Commit it
 ```
+
+## Prompt 15
+
+```
+Build both
+```
+
+## Prompt 16
+
+```
+Commit it
+```

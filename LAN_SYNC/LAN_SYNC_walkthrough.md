@@ -263,3 +263,8 @@ test:money, test:xlsx, test:columns pass
 
 Not done: a phone-ready (arm64 + x86_64) build 6 APK; the people dialog in the real Electron window (checked in the browser pane with sample data).
 
+## Session 2026-10-30 (Prompt 19): build 6 phone APK + desktop 1.0.2 installer
+
+- Phone: `release/InvoiceERP-1.0.1-build6-local.apk` (arm64-v8a + x86_64, EAS key MATCH, details in `LOCAL_BUILD_APK_walkthrough.md`); on the emulator it opens on "Who's using Invoice ERP?".
+- Desktop: `desktop/package.json` version 1.0.1 → **1.0.2**; `npm run dist` → `desktop/release/InvoiceERP-Desktop-Setup-1.0.2.exe` (132 MB, SHA-256 starts `f8fbf616d1bf9a1d`). The packaged app's smoke run gives `ok:true` (Electron 44.9.3, database and backup encrypted, 12 products, pairing works); `app.asar` contains the People card and `users.js`. `npm audit`: 0.
+- Not run here: the installer itself (system-wide install and firewall rule: the owner's step).

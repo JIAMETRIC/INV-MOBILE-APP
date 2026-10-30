@@ -62,3 +62,17 @@ Code at `f9ddb86` on branch `lan-sync` (schema v9, Settings → Sync with deskto
 | Copy | `release/InvoiceERP-1.0.1-build5-local.apk` (75.0 MB, git-ignored, SHA-256 starts `9a33801494bb030f`) |
 
 On the phone: install over EAS build 3 or local build 4 (same key, so it updates in place and keeps the data). The first start upgrades the database to schema v9, so export a backup from Settings → Backup & restore first. To sync, run Invoice ERP Desktop on a PC on the same Wi-Fi, choose Add phone, and scan the code from Settings → Sync with desktop.
+
+## 2026-10-30: build 6 (people and limits)
+
+Code at `319b6fa` on branch `lan-sync` (LAN_SYNC Phase 5: schema v10, sync protocol 2). `versionCode` 6 was set during the Phase 5 emulator test.
+
+| Check | Result |
+| --- | --- |
+| `gradlew.bat assembleRelease -x lintVitalAnalyzeRelease -x lintVitalRelease` | BUILD SUCCESSFUL in 19 s (native code cached) |
+| `verify_apk.py` | 1.0.1 / versionCode 6; arm64-v8a, x86_64; INTERNET requested (intended); ACCESS_NETWORK_STATE not requested; APK cert = keystore cert `cd7a17f8…9b9aa969` → MATCH; RESULT OK |
+| APK contents | the people sign-in and the 5-second sync check in the bundle; CAMERA declared, RECORD_AUDIO absent |
+| `adb install -r` on emulator-5554 | Success; opens on "Who's using Invoice ERP?" (the emulator is paired with a test desktop that has people); no errors in logcat |
+| Copy | `release/InvoiceERP-1.0.1-build6-local.apk` (75.0 MB, git-ignored, SHA-256 starts `45406424962a6d3a`) |
+
+Pair build 6 phones with Invoice ERP Desktop **1.0.2** (same sync protocol 2). Back up from Settings before installing: the first start upgrades the database to v10.

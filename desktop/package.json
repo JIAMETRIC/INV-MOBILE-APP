@@ -1,7 +1,7 @@
 {
   "name": "invoice-erp-desktop",
   "productName": "Invoice ERP Desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Invoice ERP desktop host: master database and LAN sync for the phones",
   "private": true,
   "author": "JIAMETRIC",
