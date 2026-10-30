@@ -48,3 +48,17 @@ Code at `020c390` (S7 app lock + `expo-local-authentication`, S2 payment pill). 
 | Copy | `release/InvoiceERP-1.0.1-build4-local.apk` (58.9 MB, git-ignored) |
 
 Still open: install on the owner's phone (holds EAS build 3; same key, so `adb install -r` or opening the APK on the phone updates in place). Fingerprint unlock is first testable there.
+
+## 2026-10-30: build 5 (LAN sync with the desktop)
+
+Code at `f9ddb86` on branch `lan-sync` (schema v9, Settings → Sync with desktop, `expo-camera`, INTERNET kept). `versionCode` 4 → 5 was already set in `app-version.json` and `android/app/build.gradle` during the Phase 4 emulator test (an x86_64-only build then; this one has both CPU types).
+
+| Check | Result |
+| --- | --- |
+| `gradlew.bat assembleRelease -x lintVitalAnalyzeRelease -x lintVitalRelease` | BUILD SUCCESSFUL in 7 s (native code already cached from build 4 and the x86_64 test build) |
+| `verify_apk.py` | 1.0.1 / versionCode 5; arm64-v8a, x86_64; **INTERNET requested** (intended since build 5, LAN sync decision D5); ACCESS_NETWORK_STATE not requested; APK cert = keystore cert `cd7a17f8…9b9aa969` → MATCH; RESULT OK |
+| APK contents | JS bundle has the 5-second sync check (`hasPending`); `expo-camera` and ML Kit barcode classes in the dex; CAMERA declared, RECORD_AUDIO absent |
+| `adb install -r` on emulator-5554 | Success; relaunch shows the S7 lock (data kept) |
+| Copy | `release/InvoiceERP-1.0.1-build5-local.apk` (75.0 MB, git-ignored, SHA-256 starts `9a33801494bb030f`) |
+
+On the phone: install over EAS build 3 or local build 4 (same key, so it updates in place and keeps the data). The first start upgrades the database to schema v9, so export a backup from Settings → Backup & restore first. To sync, run Invoice ERP Desktop on a PC on the same Wi-Fi, choose Add phone, and scan the code from Settings → Sync with desktop.

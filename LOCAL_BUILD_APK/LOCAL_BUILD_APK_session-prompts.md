@@ -71,3 +71,15 @@ Yes, uninstall
 ```
 Local Build
 ```
+
+## Prompt 13
+
+```
+Build phone APK
+```
+
+## Prompt 14
+
+```
+Commit it
+```

@@ -77,3 +77,15 @@ Yes, clear it
 ```
 Commit it
 ```
+
+## Prompt 14
+
+```
+Build phone APK
+```
+
+## Prompt 15
+
+```
+Commit it
+```
