@@ -36,6 +36,10 @@ export const shadow = {
   secondary: '0 8px 16px rgba(20, 71, 108, 0.2)',
 } as const;
 
+// The side wall of a 3D chart: laid over the slice colour, a see-through
+// darkColor, so the depth is flat colour (no gradient, rule 3).
+export const chartShade = alpha(brand.dark, 0.25);
+
 // Real status colours (DESIGN.md §11 allows green/red "only for real status").
 const status = {
   green: '#2e7d32', greenDark: '#66bb6a',

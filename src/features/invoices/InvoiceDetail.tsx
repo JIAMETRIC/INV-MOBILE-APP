@@ -10,9 +10,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
+import { File, Paths } from 'expo-file-system';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
+import { useLock } from '../../auth/LockProvider';
 import { Button, Card, Input, MoneyText, SectionTitle, SegmentedControl, StatusGlyph, TotalRow } from '../../ui/components';
 import { Sheet } from '../../ui/Sheet';
 import { useSnackbar } from '../../ui/Snackbar';
@@ -22,7 +24,7 @@ import { formatPaise, formatDateDisplay } from '../../data/money';
 import { deleteInvoice, getInvoice, getLines } from '../../data/invoicesRepo';
 import { paidPaiseForInvoice, recordPayment } from '../../data/paymentsRepo';
 import { logAudit } from '../../data/auditRepo';
-import { exportInvoicePdf, exportInvoicePdfAndShare, shareFile } from '../../export/pdf';
+import { shareFile } from '../../export/pdf';
 import { getSettings } from '../../data/settingsRepo';
 import { IMAGE_WIDTH, InvoiceImage } from './InvoiceImage';
 import type { Invoice, InvoiceLine, Settings } from '../../data/types';
@@ -43,16 +45,15 @@ const S3 = {
 // State and data: the invoice, its lines and payments, the two exports, Delete,
 // and the Record-payment sheet (P1).
 // ---------------------------------------------------------------------------
-// The share actions: the PDF, the picture (Image and WhatsApp), and Save (PDF into the app's Invoices folder).
-type ShareKind = 'pdf' | 'image' | 'whatsapp' | 'save';
 
 function useInvoiceDetail(invoiceId: number) {
   const nav = useNav();
+  const lock = useLock();
   const snack = useSnackbar();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [paid, setPaid] = useState(0);
-  const [busy, setBusy] = useState<ShareKind | null>(null);
+  const [busy, setBusy] = useState<'share' | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const imageRef = useRef<React.ComponentRef<typeof View>>(null);
   const [payOpen, setPayOpen] = useState(false);
@@ -122,20 +123,19 @@ function useInvoiceDetail(invoiceId: number) {
     snack(`₹${formatPaise(amountPaise)} recorded (${payMode})`);
   };
 
-  // WhatsApp and Image both send the picture through the phone's share sheet (WhatsApp is listed there).
-  // Save writes the PDF to the app's Invoices folder, then opens the share sheet so it can go to Files.
-  const share = (kind: ShareKind) => {
+  // Share: the invoice picture, captured off screen and renamed "<invoice no>.png", then
+  // the same two-way choice as the Excel exports: WhatsApp or Save to phone.
+  const share = () => {
     if (!inv) return;
-    setBusy(kind);
-    const picture = () => captureRef(imageRef, { format: 'png', quality: 1, result: 'tmpfile' })
-      .then(uri => shareFile(uri));
-    const job = kind === 'pdf' ? exportInvoicePdfAndShare(inv.id)
-      : kind === 'save' ? exportInvoicePdf(inv.id).then(f => {
-        snack(`Saved ${f.name} to the app's Invoices folder`);
-        return shareFile(f.uri);
+    setBusy('share');
+    void captureRef(imageRef, { format: 'png', quality: 1, result: 'tmpfile' })
+      .then(uri => {
+        const named = new File(Paths.cache, `${inv.invoice_no.replace(/[^\w.-]+/g, '_')}.png`);
+        if (named.exists) named.delete();
+        new File(uri).move(named);
+        return shareFile(named.uri);
       })
-        : picture();
-    void job.catch(e => alert('Share failed', e instanceof Error ? e.message : String(e)))
+      .catch(e => alert('Share failed', e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(null));
   };
 
@@ -147,6 +147,7 @@ function useInvoiceDetail(invoiceId: number) {
     inv, lines, settings, imageRef, paid, outstanding, busy, canPay, party, contact,
     payOpen, closePayment: () => setPayOpen(false), payAmount, setPayAmount, payError, setPayError, payMode, setPayMode,
     deleteThisInvoice, askPayment, submitPayment, share,
+    canDelete: lock.can('delete'), // D4: deleting needs the Delete switch
     openEdit: () => { if (inv) nav.openCreate({ invoiceId: inv.id }); },
   };
 }
@@ -173,7 +174,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
     <>
       <DetailMain s={s} theme={theme} />
       <PaymentSheet s={s} theme={theme} />
-      {/* The invoice picture for the Image and WhatsApp shares: laid out off screen, captured on tap. */}
+      {/* The invoice picture for the Share button: laid out off screen, captured on tap. */}
       <View pointerEvents="none" style={{ position: 'absolute', left: -IMAGE_WIDTH * 2, top: 0 }}>
         <View ref={d.imageRef} collapsable={false}>
           <InvoiceImage inv={s.inv} lines={s.lines} settings={s.settings} />
@@ -187,7 +188,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
 // Main
 // ---------------------------------------------------------------------------
 
-// S3 — the one scroller, capped at the reading width: header row, bill-to, actions, items, totals, Edit / Delete.
+// S3 — the one scroller, capped at the reading width: header row, bill-to (with the Share button), items, totals, Edit / Delete.
 function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <ScrollView contentContainerStyle={{
@@ -196,7 +197,6 @@ function DetailMain({ s, theme }: { s: Loaded; theme: Theme }) {
     }}>
       <HeaderRow s={s} theme={theme} />
       <BillToCard s={s} theme={theme} />
-      <ActionRow s={s} theme={theme} />
       <ItemsCard s={s} theme={theme} />
       <TotalsCard s={s} theme={theme} />
       <EditDeleteRow s={s} theme={theme} />
@@ -229,25 +229,16 @@ function BillToCard({ s, theme }: { s: Loaded; theme: Theme }) {
       <Text style={[type.heading, { color: theme.text }]}>{s.inv.party_name || '(no customer)'}</Text>
       {s.party ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.party}</Text> : null}
       {s.contact ? <Text style={[type.bodyMedium, { color: theme.textMuted }]}>{s.contact}</Text> : null}
+      {/* S3.2 last row: Share (left) | the payment method chosen in S4, Cash or UPI (right). */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3], marginTop: space[2] }}>
+        <Button label="Share" icon="share-2" theme={theme}
+          busy={s.busy === 'share'} onPress={() => s.share()} />
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <Text style={[type.overline, { color: theme.textMuted }]}>Payment</Text>
+          <Text style={[type.label, { color: theme.text }]}>{s.inv.payment_mode || 'Cash'}</Text>
+        </View>
+      </View>
     </Card>
-  );
-}
-
-// S3.3 — primary actions first, within thumb reach; the row wraps:
-// Record payment (only when something is outstanding) · WhatsApp · Image · Save · Share PDF.
-function ActionRow({ s, theme }: { s: Loaded; theme: Theme }) {
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: layout.grid }}>
-      {s.canPay ? <Button label="Record payment" icon="credit-card" theme={theme} onPress={s.askPayment} /> : null}
-      <Button label="WhatsApp" icon="message-circle" variant="outline" theme={theme}
-        busy={s.busy === 'whatsapp'} onPress={() => s.share('whatsapp')} />
-      <Button label="Image" icon="image" variant="outline" theme={theme}
-        busy={s.busy === 'image'} onPress={() => s.share('image')} />
-      <Button label="Save" icon="download" variant="outline" theme={theme}
-        busy={s.busy === 'save'} onPress={() => s.share('save')} />
-      <Button label="Share PDF" icon="share-2" variant={s.canPay ? 'tonal' : 'solid'} theme={theme}
-        busy={s.busy === 'pdf'} onPress={() => s.share('pdf')} />
-    </View>
   );
 }
 
@@ -318,12 +309,15 @@ function TotalsCard({ s, theme }: { s: Loaded; theme: Theme }) {
 }
 
 // S3.6 — Edit (glass) · Delete (solid red, white text); the invoice and its items are removed.
+// Delete only with the Delete switch (D4).
 function EditDeleteRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: layout.grid }}>
       <Button label="Edit" icon="edit-2" theme={theme} onPress={s.openEdit} />
-      <Button label="Delete" icon="trash-2" theme={theme} onPress={s.deleteThisInvoice}
-        style={{ backgroundColor: theme.destructive }} />
+      {s.canDelete ? (
+        <Button label="Delete" icon="trash-2" theme={theme} onPress={s.deleteThisInvoice}
+          style={{ backgroundColor: theme.destructive }} />
+      ) : null}
     </View>
   );
 }

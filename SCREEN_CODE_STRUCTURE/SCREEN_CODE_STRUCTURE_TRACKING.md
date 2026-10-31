@@ -233,3 +233,77 @@ The skill was created in Prompt 24: `.claude/skills/three-slot-screen/SKILL.md`.
 | A new size-check profile `phone5`: 720 × 1280 px at 320 dpi = 360 × 640 dp (sm) | A 5-inch 16:9 phone is as wide as `sm` but 160 dp shorter than the `sm` profile (360 × 800); the height is what changes what fits above the footer, FAB and nav. Older 5-inch phones (480 × 854 at 240 dpi = 320 × 569 dp) are the existing `xs` profile. | Re-use `sm`. |
 | The map gets one line per screen under the phone column, `small`, with what the 5-inch check showed, not a third wireframe column | The blocks are the same at every phone size (the method's one-pane layout); what differs is how much fits above the fold, which is one sentence per screen. A third column would repeat the left one. | A separate "5-inch" tab per screen. |
 | The same line goes into section 8 of each tree file, with the Prompt number | Section 8 is where sizes live; the map and the tree file say the same thing. | Map only. |
+
+## 2026-10-27 — S2 FilterRow: calendar button removed
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Remove the calendar `IconButton` and also `DateRangeRow` (S2.3a), the `from` / `to` / `dateOpen` state and `S2.filterGap` / `S2.dateRowPull` | The button was the only way to open the date row; without it the row and its state could never be reached. | Keep `DateRangeRow` and its state as dead code. |
+| `FilterRow` stays a function with one cell (the search field, `flex: 1`) | The owner points at blocks by function name; the row still exists on screen. | Inline the `SearchField` in `ListPane`. |
+| `listInvoices` keeps its optional `from` / `to` parameters | Data-layer API; S2 simply stops passing them. | Remove them from the repo function too. |
+
+## 2026-10-27 — WhatsApp share image: top row
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Drop the business address line (Settings address, city, pincode) from `InvoiceImage`; keep the name, subtitle and contact lines | The owner asked to remove "Tirupur, 641 607", which is that line. Settings still stores the address; the PDF is unchanged. | Clear the address in Settings. |
+| Top row becomes three columns: business (`flex: 1`) · Payment (auto, centred) · invoice no and date (`flex: 1`, right) | Equal outer columns put the payment block on the image's centre line whatever the business name's length. | `justifyContent: 'space-between'` alone (the middle drifts with the outer widths). |
+| The middle shows an overline "Payment" over `inv.payment_mode` (falls back to "Cash") | Same overline-over-value pattern as the "Invoice" block on the right; the value is what was picked in the S4 Payment card (schema v8). | The bare word "Cash" / "UPI". |
+
+## 2026-10-27 — S4 LineItemCard: Qty stepper
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| A kit component `StepperInput` (C4, `src/ui/components.tsx`): − and + inside one 50-tall field with Input's frame, the number typeable in the middle | Reusable (S5 stock quantities could use it); one field reads as one value, as in the Input it replaces. | Two separate `IconButton`s beside an `Input` (three cells in one Columns cell). |
+| Buttons 40 wide with 4 dp `hitSlop` on the outer side only | 44 + 44 left no room for "100" in the ≈ 109 dp Qty cell at 411 dp; outward hitSlop keeps the 44 × 48 target (rule 7) without overlapping the number. | 44-wide buttons and a narrower number; 36 with hitSlop on both sides (inner slop would catch taps on the number). |
+| `S4.lineWeights` [1, 1, 1.4] → [1, 1.2, 1.25] | At 411 dp: Size ≈ 91 (unchanged, "Select ⌄" fits), Qty ≈ 109 (fits − 100 +), Rate ≈ 113 (was 129; "1250.00" fits). [1, 1.4, 1.2] was tried first and crushed Size and Rate. | Move Qty to its own row. |
+| Step 1, floor 0, three-decimal rounding; typing still allowed | Quantities are whole pieces here; the old Input's 0 floor and parser are kept. | Floor 1. |
+
+## 2026-10-27 — S1 Dashboard: Stock split 3D pie (S1.6)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| One card under the tiles: the disc is Actual Stock, cut into Sold and Balance (owner's choice) | Balance = Actual − Sold, so the three tile numbers overlap; a slice each would count Actual twice. | Three slices sized by the tile numbers; a small pie in each tile. |
+| Oversold (Balance < 0): the pie is all Sold, the legend keeps the real −N and adds a red "Oversold by N" | A slice can't be negative; red is a real status (CLAUDE.md exception). | Hide the pie when oversold. |
+| New ID S1.6 | S1.3 and S1.4 are retired IDs (Prompt 5); S1.5 is the FAB. | Re-use S1.3. |
+| `react-native-svg` 15.16.0 (via `npx expo install`, the SDK 58 match) and a kit component `PieChart3D` (C17) | Elliptical arcs need a vector layer; it is Expo's standard one. It adds native code, so dev and release builds were rebuilt. | Views with rotate / perspective transforms (no clean slice edges); drawing inside the existing WebView. |
+| Depth = the slice colour under `chartShade` (`alpha(darkColor, 0.25)`, `tokens.ts`) | Rule 3 forbids gradients; a flat see-through dark token gives a darker wall from the five colours. | A second "dark blue" hex (not a token). |
+| Colours: Sold `theme.accent`, Balance `theme.textMuted`, empty `theme.divider` | Theme roles, so dark mode follows (Balance turns light grey on black). | Fixed hexes. |
+| Pie 128 wide, 96 at xs | At 320 dp the 128 pie cut the legend labels ("Products …"). | Stacking the pie over the legend. |
+
+## 2026-10-28 — Sharing: a native WhatsApp intent; invoice Share asks WhatsApp / Save to phone
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Local Expo module `modules/whatsapp-share` (Kotlin): `installedPackage(list)` + `share(contentUri, mime, package)` = `ACTION_SEND`, `setPackage`, `EXTRA_STREAM` as a `Uri`, `ClipData`, `FLAG_GRANT_READ_URI_PERMISSION` | The old `expo-intent-launcher` call could not work reliably: it passes extras as **strings** (WhatsApp wants a `Uri`), the read grant only covers data / ClipData (not extras), and it needed a hard-coded screen `com.whatsapp.ContactPicker`, which differs between WhatsApp versions. Its `catch` turned every one of those errors into "WhatsApp is not installed". `setPackage` lets Android pick WhatsApp's own share screen in any version. Local modules are autolinked, so it survives prebuild and works on EAS. | `expo-sharing` (the system share sheet: every app, not WhatsApp directly); fixing the className per WhatsApp version. |
+| "Not installed" only from a real `getPackageInfo` check (WhatsApp, then WhatsApp Business; both already in `<queries>`); any other failure shows Android's own message | The owner's phone has WhatsApp and still saw "not installed": the message was a guess. | Keep one catch-all message. |
+| S3 button: "WhatsApp" (green) → "Share" (kit solid blue, `share-2`), and it calls `shareFile(uri)` with no target: the same WhatsApp / Save to phone / Cancel dialog as the Excel exports | Owner asked for the Products-style two-step choice. The button no longer means only WhatsApp, so WhatsApp green would mislead; `whatsappGreen` / `whatsappWhite` tokens removed (unused). | Keep the green button with a second "Save" button. |
+| The captured PNG is moved to cache as `<invoice no>.png` before sharing | "Save to phone" copies the file's own name; it was `ReactNative-snapshot-image….png`. | Rename in `saveToDevice`. |
+
+## 2026-10-28 — D3 invoice image: blue header and Total band
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Previews were real captures of the app's PNG (debug build + Metro on the emulator, `run-as` copy of `cache/INV-001.png`), with the code restored after each | The owner asked to see the image before applying; a capture shows exactly what WhatsApp gets (fonts, Bebas numbers, corners). | An HTML mock-up. |
+| First preview: blue on D3.1, D3.4.1–5 and D3.5; owner narrowed it to the top header and the Total + words area | Owner's choice after seeing it. | — |
+| Colours from the light theme: band `accent` (#2596be), text `accentOn` (#ffffff), secondary text `alpha(accentOn, 0.8)` | No new hex values (CLAUDE.md "only these five tokens" + see-through variants). White on #2596be is ~3.4:1, fine for the large Total and the 600 heading; the small labels are below AA, as the owner already accepted for blue buttons (CLAUDE.md exceptions). | `linkColor` #1a6f8e for more contrast (not App Blue). |
+| 1px `accent` border, `radius.card` 16, `overflow: hidden`; the root lost its padding, each part pads itself | Full-bleed bands need the padding on the parts. The PNG corners outside the radius are transparent. | A white frame around a rounded card. |
+| The emulator's test company got sample values (Sample Traders, 9876543210, `sampletraders@upi`) | To show D3.5 and the business block in the preview; emulator test data only. | — |
+
+## 2026-10-28 — S1 Dashboard: Payments · FY pie (S1.7)
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| Money per mode = `SUM(total_paise)` of the hero's invoices (this FY, issued / partial / paid) grouped by `invoices.payment_mode`; anything not 'UPI' counts as Cash | The mode is chosen on each invoice at sale (S4 Payment card); same scope as Total billed, so UPI + Cash = the hero figure. 'Cash' is the column default (older rows). | The `payments` table (P1): nothing opens P1 now, so it is empty or stale. |
+| One shared `PieLegendCard` for S1.6 and S1.7 | The two cards are the same layout; one function keeps them identical. | A copy of the S1.6 JSX. |
+| Legend labels "UPI (n)" / "Cash (n)" with ₹ values; total label "Total" | At 320 dp "Total collected" was cut ("Total collec…"). | Smaller amounts without paise. |
+| UPI blue (`accent`), Cash grey (`textMuted`) | Same roles as S1.6 (first slice blue, second grey); dark mode follows. | — |
+
+## 2026-10-29 — S2 InvoiceRow: payment pill (UPI / CASH) replaces StatusGlyph
+
+| Decision | Why | Alternatives considered |
+| --- | --- | --- |
+| The trailing pill shows `invoices.payment_mode` as "UPI" or "CASH" (anything not 'UPI' is CASH) | Owner's request; same rule as S1.7 and the share image ('Cash' is the column default for older rows). `listInvoices` is `SELECT *`, so no query change. | Keeping the status and adding a second pill (more height per row). |
+| New local `PaymentBadge` in `InvoicesScreen.tsx` on the kit `Badge` (C12): UPI tone `info` (blue tint), CASH tone `neutral` (grey) | Same colours as the Dashboard Payments pie; no new hex values; the badge is already the kit pill (4 × 10, 12/600, radius 999). Wrapped in a View with an accessibility label "Payment UPI/Cash". | A shared component in `components.tsx` (only one user so far). |
+| `StatusGlyph` stays in `components.tsx` | S3 header (S3.1) still uses it. | — |
+| Follow-up (owner: "UPI must have app Blue background Color"): UPI pill is solid `accent` #2596be with `accentOn` white text; kit `Badge` gains tone `'accent'` | Owner's choice. White on #2596be at 12/600 is below AA, the same exception the owner accepted for blue buttons (CLAUDE.md). `accent` is #2596be in light and dark. | Tone `info` (14% blue tint, black text), the first version. |

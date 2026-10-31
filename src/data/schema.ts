@@ -10,9 +10,16 @@
 // v6: invoice prefix is INV- (was PRE-); existing settings rows are switched too.
 // v7: invoice lines carry a size (S, M, L, XL, XXL, XXXL) picked on the invoice.
 // v8: invoices carry a payment mode (Cash or UPI).
+// v9: sync-ready (LAN_SYNC). Synced tables carry uid / dirty / rev / server_seq /
+// origin_device / created_by, filled and maintained by the triggers in SYNC_SQL; deletes
+// leave a row in sync_tombstones; payments link invoices through
+// payment_invoices instead of the invoice_ids CSV; Stock = Σ restocks.delta.
+// v10: people (LAN_SYNC Phase 5). `users` comes from the desktop; every synced
+// row and the company details record updated_by (the signed-in person), and
+// a tombstone records who deleted the row, so the desktop can check limits.
 // Old v1/v2/v3 databases are wiped and rebuilt (see dbCore.migrate).
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 10;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS meta (
@@ -32,6 +39,10 @@ CREATE TABLE IF NOT EXISTS meta (
   upi_id TEXT NOT NULL DEFAULT '',
   invoice_prefix TEXT NOT NULL DEFAULT 'INV-',
   next_seq INTEGER NOT NULL DEFAULT 1,
+  dirty INTEGER NOT NULL DEFAULT 0,
+  rev INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER,
+  updated_by TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -42,6 +53,13 @@ CREATE TABLE IF NOT EXISTS products (
   size TEXT NOT NULL DEFAULT '',
   unit_paise INTEGER NOT NULL DEFAULT 0,
   stock_qty REAL NOT NULL DEFAULT 0,
+  uid TEXT,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  rev INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER,
+  origin_device TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -56,6 +74,13 @@ CREATE TABLE IF NOT EXISTS restocks (
   stock_after REAL NOT NULL,
   unit_paise INTEGER NOT NULL DEFAULT 0,
   note TEXT NOT NULL DEFAULT '',
+  uid TEXT,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  rev INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER,
+  origin_device TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_restocks_product ON restocks(product_id, id);
@@ -87,6 +112,13 @@ CREATE TABLE IF NOT EXISTS invoices (
   ship_city TEXT NOT NULL DEFAULT '',
   ship_pincode TEXT NOT NULL DEFAULT '',
   payment_mode TEXT NOT NULL DEFAULT 'Cash',
+  uid TEXT,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  rev INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER,
+  origin_device TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -118,9 +150,25 @@ CREATE TABLE IF NOT EXISTS payments (
   reference_no TEXT NOT NULL DEFAULT '',
   amount_paise INTEGER NOT NULL DEFAULT 0,
   remarks TEXT NOT NULL DEFAULT '',
+  uid TEXT,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  rev INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER,
+  origin_device TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
+
+-- Which invoices a payment settles (replaces matching the invoice_ids CSV,
+-- which is still written for display and old backups).
+CREATE TABLE IF NOT EXISTS payment_invoices (
+  payment_id INTEGER NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+  invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  PRIMARY KEY (payment_id, invoice_id)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_invoices_inv ON payment_invoices(invoice_id);
 
 CREATE TABLE IF NOT EXISTS drafts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -140,9 +188,64 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   entity_type TEXT NOT NULL,
   entity_id TEXT NOT NULL DEFAULT '',
   details_json TEXT NOT NULL DEFAULT '',
+  uid TEXT,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  rev INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER,
+  origin_device TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
+
+-- A deleted synced row, so the host (and other phones) learn about the delete.
+CREATE TABLE IF NOT EXISTS sync_tombstones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tbl TEXT NOT NULL,
+  uid TEXT NOT NULL,
+  dirty INTEGER NOT NULL DEFAULT 1,
+  server_seq INTEGER,
+  deleted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  user_uid TEXT NOT NULL DEFAULT '',
+  UNIQUE (tbl, uid)
+);
+
+-- The people who use the app, made on the desktop and pulled by every phone
+-- (phones never change them). role admin = may do everything; staff = invoices
+-- and payments, plus the switches in perms (comma list of USER_PERMS).
+-- pin_hash = SHA-256 hex of "<pin_salt>:<pin>", as for the app lock.
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  uid TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'staff' CHECK (role IN ('admin', 'staff')),
+  perms TEXT NOT NULL DEFAULT '',
+  pin_salt TEXT NOT NULL DEFAULT '',
+  pin_hash TEXT NOT NULL DEFAULT '',
+  pin_len INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  dirty INTEGER NOT NULL DEFAULT 1,
+  server_seq INTEGER
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_name ON users(name COLLATE NOCASE);
+
+-- This device's sync identity and progress. applying = 1 while rows that came
+-- from the host are written, so the triggers don't mark them dirty again.
+-- user_uid is the signed-in user: new rows record it in created_by.
+-- host_id / host_name: the desktop this phone is paired with (host_url empty = not paired).
+CREATE TABLE IF NOT EXISTS sync_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  device_id TEXT NOT NULL DEFAULT '',
+  applying INTEGER NOT NULL DEFAULT 0,
+  host_url TEXT NOT NULL DEFAULT '',
+  last_pull_seq INTEGER NOT NULL DEFAULT 0,
+  last_sync_at TEXT NOT NULL DEFAULT '',
+  user_uid TEXT NOT NULL DEFAULT '',
+  host_id TEXT NOT NULL DEFAULT '',
+  host_name TEXT NOT NULL DEFAULT ''
+);
 
 CREATE TABLE IF NOT EXISTS backup_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,6 +255,79 @@ CREATE TABLE IF NOT EXISTS backup_logs (
   note TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+`;
+
+// Tables whose rows are exchanged with the host. Invoice lines travel inside
+// their invoice and payment links inside their payment, so they are not listed.
+// audit_logs goes up so the desktop's Activity log (A3) sees every device.
+export const SYNC_TABLES = ['products', 'restocks', 'invoices', 'payments', 'audit_logs'] as const;
+export type SyncTable = typeof SYNC_TABLES[number];
+
+// What a staff member may be allowed besides invoices and payments (D4).
+// Admins may do all of it.
+export const USER_PERMS = ['products', 'stock', 'delete', 'settings'] as const;
+export type UserPerm = typeof USER_PERMS[number];
+
+// Company details the host owns. invoice_prefix and next_seq stay per device
+// (each device has its own invoice series), so editing them never syncs.
+const META_SYNC_COLS = [
+  'name', 'subtitle', 'address', 'city', 'pincode', 'pan', 'contact', 'email',
+  'bank_name', 'bank_branch', 'bank_ac_no', 'bank_ifsc', 'upi_id',
+];
+
+const NOT_APPLYING = `COALESCE((SELECT applying FROM sync_state WHERE id = 1), 0) = 0`;
+const SIGNED_IN = `COALESCE((SELECT user_uid FROM sync_state WHERE id = 1), '')`;
+
+// The seeded catalog's uids come from the names ('p' + hex of the lower-cased
+// name), so every device seeds the same 12 products under the same uids and
+// the host sees one catalog. Products made later get random uids; the same
+// name made on two devices is merged by name when the second one pulls.
+export const productUidSql = (name: string) => `'p' || lower(hex(lower(trim(${name}))))`;
+export const SEED_NAMES_SQL = () => PRODUCT_SEED_NAMES.map(n => `'${n.toLowerCase()}'`).join(', ');
+
+function tableSyncSql(t: SyncTable): string {
+  return `
+CREATE UNIQUE INDEX IF NOT EXISTS uq_${t}_uid ON ${t}(uid);
+CREATE INDEX IF NOT EXISTS idx_${t}_dirty ON ${t}(dirty);
+-- New local rows get a uid, this device as origin and the signed-in user as
+-- created_by. Rows from the host arrive with uid and origin set, so the WHEN skips them.
+CREATE TRIGGER IF NOT EXISTS trg_${t}_ins AFTER INSERT ON ${t}
+WHEN NEW.uid IS NULL OR NEW.origin_device = ''
+BEGIN
+  UPDATE ${t} SET
+    uid = COALESCE(NEW.uid, lower(hex(randomblob(16)))),
+    origin_device = CASE WHEN NEW.origin_device = ''
+      THEN COALESCE((SELECT device_id FROM sync_state WHERE id = 1), '') ELSE NEW.origin_device END,
+    created_by = CASE WHEN NEW.created_by = '' THEN ${SIGNED_IN} ELSE NEW.created_by END,
+    updated_by = CASE WHEN NEW.updated_by <> '' THEN NEW.updated_by
+      WHEN NEW.created_by <> '' THEN NEW.created_by ELSE ${SIGNED_IN} END
+  WHERE id = NEW.id;
+END;
+-- Any local edit marks the row for the next push, with the signed-in person.
+-- An update that changes dirty itself (the sync engine clearing it) is left alone.
+CREATE TRIGGER IF NOT EXISTS trg_${t}_upd AFTER UPDATE ON ${t}
+WHEN NEW.dirty = OLD.dirty AND ${NOT_APPLYING}
+BEGIN
+  UPDATE ${t} SET dirty = 1, rev = rev + 1, updated_by = ${SIGNED_IN} WHERE id = NEW.id;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_${t}_del AFTER DELETE ON ${t}
+WHEN OLD.uid IS NOT NULL AND ${NOT_APPLYING}
+BEGIN
+  INSERT OR REPLACE INTO sync_tombstones (tbl, uid, user_uid) VALUES ('${t}', OLD.uid, ${SIGNED_IN});
+END;`;
+}
+
+// Indexes on the v9 columns, the change-tracking triggers and the sync_state
+// row. Run after SCHEMA_SQL on a fresh build and at the end of the v8 -> v9
+// migration, so both paths end with the same database.
+export const SYNC_SQL = `
+INSERT OR IGNORE INTO sync_state (id, device_id) VALUES (1, lower(hex(randomblob(16))));
+${SYNC_TABLES.map(tableSyncSql).join('\n')}
+CREATE TRIGGER IF NOT EXISTS trg_meta_upd AFTER UPDATE OF ${META_SYNC_COLS.join(', ')} ON meta
+WHEN NEW.dirty = OLD.dirty AND ${NOT_APPLYING}
+BEGIN
+  UPDATE meta SET dirty = 1, rev = rev + 1, updated_by = ${SIGNED_IN} WHERE id = NEW.id;
+END;
 `;
 
 export const PRODUCT_SEED_NAMES = [
@@ -172,6 +348,6 @@ export const PRODUCT_SEED_NAMES = [
 // Catalog skeleton seeded on every fresh schema build: one row per name with
 // zero price/stock, so the Products table and invoice picker open pre-filled.
 export function productSeedSql(): string {
-  const rows = PRODUCT_SEED_NAMES.map((name, i) => `(${i + 1}, '${name}', 0, 0)`);
-  return `INSERT OR IGNORE INTO products (sl_no, name, unit_paise, stock_qty) VALUES ${rows.join(',')};`;
+  const rows = PRODUCT_SEED_NAMES.map((name, i) => `(${productUidSql(`'${name}'`)}, ${i + 1}, '${name}', 0, 0)`);
+  return `INSERT OR IGNORE INTO products (uid, sl_no, name, unit_paise, stock_qty) VALUES ${rows.join(',')};`;
 }

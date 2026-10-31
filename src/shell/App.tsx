@@ -27,6 +27,8 @@ import { ProductsScreen } from '../features/products/ProductsScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { TopAppBar } from '../ui/components';
 import { SnackbarProvider } from '../ui/Snackbar';
+import { LockProvider } from '../auth/LockProvider';
+import { SyncProvider } from '../sync/SyncProvider';
 
 export default function App() {
   return (
@@ -90,12 +92,15 @@ function Root() {
   }
 
   return (
-    <NavProvider isPhone={bp.isPhone}>
-      {/* Phones: clear the floating nav and the 52 FAB above it (16 gaps), so snackbars never cover them. */}
-      <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_HEIGHT + 52 + 2 * 16 + 8 : 0}>
-        <Shell />
-      </SnackbarProvider>
-    </NavProvider>
+    // S7: the PIN screen covers the shell until it is unlocked (src/auth/LockProvider.tsx).
+    <LockProvider>
+      <NavProvider isPhone={bp.isPhone}>
+        {/* Phones: clear the floating nav and the 52 FAB above it (16 gaps), so snackbars never cover them. */}
+        <SnackbarProvider theme={theme} bottomOffset={bp.isPhone ? NAV_HEIGHT + 52 + 2 * 16 + 8 : 0}>
+          <SyncProvider><Shell /></SyncProvider>
+        </SnackbarProvider>
+      </NavProvider>
+    </LockProvider>
   );
 }
 
@@ -121,7 +126,7 @@ function Shell() {
     if (overlay?.k === 'create-invoice') {
       return (
         <View style={{ flex: 1, backgroundColor: theme.bg }}>
-          <CreateInvoiceScreen draftId={overlay.draftId} invoiceId={overlay.invoiceId} />
+          <CreateInvoiceScreen invoiceId={overlay.invoiceId} />
         </View>
       );
     }
@@ -153,7 +158,7 @@ function Shell() {
         />
         <SafeAreaView style={{ flex: 1, minWidth: 0 }} edges={['bottom']}>
           {overlay?.k === 'create-invoice'
-            ? <CreateInvoiceScreen draftId={overlay.draftId} invoiceId={overlay.invoiceId} />
+            ? <CreateInvoiceScreen invoiceId={overlay.invoiceId} />
             : overlay?.k === 'invoice-detail' && bp.panes === 1
               // md: one pane beside the rail, so the invoice opens like on a phone.
               ? (

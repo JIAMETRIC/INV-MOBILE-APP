@@ -496,3 +496,148 @@ Rule: keep everything else identical
 ```
 Continue and Comple the Task
 ```
+
+## Prompt (screen map: Invoice detail, Issued)
+
+```
+Strictly from the folder and file: ".\SCREEN_CODE_STRUCTURE\screen-map.html": Create screen map for "INVOICE-issued" Screen (screenshot of the Issued invoice: Record payment, WhatsApp, Image, Save, Share PDF, items, totals, Edit, Delete)
+```
+
+## Prompt (screen map: refresh to the latest screens)
+
+```
+update the /screen-map to the latest Screens (with Clear infos)
+```
+
+## Prompt (S2 FilterRow: remove the calendar button)
+
+```
+Source of truth: "src/features/invoices/InvoicesScreen.tsx"
+Screen: S2 · Invoices
+Function: FilterRow
+
+Task:
+Cell:  IconButton calendar · 44
+Task: Remove "IconButton calendar · 44"
+```
+
+## Prompt (WhatsApp share image: address out, Cash/UPI top middle)
+
+```
+Remove : “Tirupur, 641 607”
+
+in Top Middle: show "Cash/UPI" whatever Selected
+```
+
+## Prompt (S4 LineItemCard: Qty − / + buttons)
+
+```
+Source of truth: "src/features/invoices/CreateInvoiceScreen.tsx"
+Screen: S4 · Create / Edit invoice
+Function: LineItemCard × n
+
+Task:
+Cell:  Qty (row - Input Description)
+Task: "Quantity Control: Add (+) and (−) symbols to increase or decrease item quantities"
+```
+
+## Prompt (S1 Dashboard: 3D pie chart for the three tiles)
+
+```
+Source of truth: "src/features/invoices/DashboardScreen.tsx"
+Screen: S1 · Dashboard
+
+Task:
+add Like a 3d Pichart for all three tiles
+```
+
+## Prompt (S1 pie: answer to "What should the 3D pie show?")
+
+```
+Stock split (Recommended)
+```
+
+## Prompt (Expo APK build)
+
+```
+Give .apk Build: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp
+```
+
+## Prompt (invoice Share: WhatsApp / Save to phone; WhatsApp "not installed" on a phone that has it)
+
+```
+the Invoice sharing Whatsapp is not wokring better i will have two step export as on the "Products" Screen Export Excel it gives two one is whatsapp and another one Save Phone modify same like this for invoice share (check the whatspp error: the phone already having Whatspp Installed)
+```
+
+## Prompt (screen map: the invoice image)
+
+```
+I want Modify the inovice image UI: give me map
+```
+
+## Prompt (D3 invoice image: border, blue bands — preview first)
+
+```
+Before applying just show me the image Preview
+
+and Overall invoice gets Border and Border radius
+
+D3.1
+
+D3.4.1–5
+
+D3.5
+
+Must get background color of App Blue and Fonts Must go to #ffffff and it variants
+```
+
+## Prompt (D3: blue only on the Total area and the top header)
+
+```
+only this area and Top header must get Background color
+```
+(with a screenshot of the Total + "Rupees One Hundred Only" band)
+
+## Prompt (D3: approve)
+
+```
+Apply it
+```
+
+## Prompt (S3 Bill to: show Payment Cash / UPI beside Share)
+
+```
+Give "Payment" option UPI/cash based on the method selected
+```
+(with a screenshot of S3, the empty space right of the Share button marked)
+
+## Prompt (S1 Dashboard: Payments graph, UPI vs Cash)
+
+```
+Add one more graph for Payments How much Collected for UPI or CASH
+```
+(with a screenshot of the Dashboard, the space under Stock split marked)
+
+## Prompt (during the above)
+
+```
+do; Local_build_apk
+```
+
+## Prompt (S2 Invoices: row pill shows UPI / CASH)
+
+```
+Source of truth: "src/features/invoices/InvoicesScreen.tsx"
+Screen: S2 · Invoices
+Function: InvoiceListCard - InvoiceRow × n
+
+Task:
+Cell:  StatusGlyph
+Task: Replace "StatusGlyph" with payment status option UPI or CASH
+```
+
+## Prompt (during the above)
+
+```
+UPI must have app Blue background Color
+```

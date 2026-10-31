@@ -81,9 +81,6 @@ time.sleep(2)
 relaunch()
 shot("S1_dashboard")
 tap(label="Invoices") and shot("S2_invoices")
-if tap(label="Date range"):
-    shot("S2_invoices_dates")
-    tap(label="Date range (set)") or tap(label="Date range")
 if tap(text="aSAsda"):
     shot("S3_detail")
     # One-pane sizes open S3 as an overlay under an "Invoice" back bar: go back to the list.

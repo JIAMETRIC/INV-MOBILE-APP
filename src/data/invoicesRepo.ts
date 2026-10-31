@@ -1,6 +1,7 @@
 import { getDb, withTx } from './db';
 import { allocateInvoiceNo } from './settingsRepo';
 import { numberToWordsIndian } from './money';
+import { logAudit } from './auditRepo';
 import type { Invoice, InvoiceForm, InvoiceLine, InvoiceTotals } from './types';
 
 export interface InvoiceFilters {
@@ -124,12 +125,15 @@ export async function saveInvoice(
 }
 
 export async function setStatus(id: number, status: Invoice['status']): Promise<void> {
-  await withTx(async db => {
+  const no = await withTx(async db => {
     await db.runAsync(
       `UPDATE invoices SET status=?, updated_at=datetime('now') WHERE id=?`,
       status, id,
     );
+    return (await db.getFirstAsync<{ invoice_no: string }>('SELECT invoice_no FROM invoices WHERE id=?', id))?.invoice_no;
   });
+  // Voids are on the Activity log's watch list (A3), whichever screen voids.
+  if (status === 'void' && no) await logAudit('invoice.void', 'invoice', no);
 }
 
 export async function deleteInvoice(id: number): Promise<void> {

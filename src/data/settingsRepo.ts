@@ -1,4 +1,5 @@
 import { getDb, withTx } from './db';
+import { logAudit } from './auditRepo';
 import { formatInvoiceNo } from './money';
 import type { Settings } from './types';
 
@@ -16,8 +17,8 @@ const EDITABLE: ReadonlyArray<keyof Settings> = [
 ];
 
 export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
-  return withTx(async db => {
-    const cols = EDITABLE.filter(k => patch[k] !== undefined);
+  const cols = EDITABLE.filter(k => patch[k] !== undefined);
+  const saved = await withTx(async db => {
     if (cols.length > 0) {
       const set = cols.map(k => `${k} = ?`).join(', ');
       await db.runAsync(
@@ -27,6 +28,9 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
     }
     return (await db.getFirstAsync<Settings>('SELECT * FROM meta WHERE id = 1'))!;
   });
+  // After the transaction: logAudit uses its own statement.
+  if (cols.length > 0) await logAudit('settings.update', 'settings', 'company', { fields: cols });
+  return saved;
 }
 
 // Port of desktop RecordService.sync_next_invoice_sequence: next_seq must be

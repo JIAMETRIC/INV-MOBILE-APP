@@ -9,7 +9,7 @@ The filtered list of invoices, with the selected invoice beside it on tablets. O
 | Slot | What is there | Function | Lines |
 | --- | --- | --- | --- |
 | Header | `TopAppBar large`: caption "N invoice(s)" over the "Invoices" title; two glass buttons: `download` = Export list to Excel, `book` = Export consolidated register, each with a busy spinner while its export runs | `Header` | 132-146 |
-| Below | none; the filters (S2.1 to S2.3a) live inside Main so that on short screens they can scroll as the list's header | — | — |
+| Below | none; the search row (S2.1) lives inside Main so that on short screens they can scroll as the list's header | — | — |
 | Main | one pane: `ListPane`, a column of the filters and the list card, whose `FlatList` is the one scroller. lg+: a `View` row of panes, `ListPane` plus `DetailPane` (plus `ActivityPane`). The card ends `useNavInset()` above the nav and its content adds `useFabClearance()` on long lists | `ListPane` / `InvoicesScreen()` | 149-175 / 122-126 |
 | Footer | none (no screen-level action bar; the actions are the row tap and the FAB) | — | — |
 | FAB | "New invoice" on phones → `nav.openCreate()`; the `fab` slot of `<Screen>` | in `InvoicesScreen()` | 109, 114 |
@@ -23,7 +23,7 @@ The filtered list of invoices, with the selected invoice beside it on tablets. O
 | 2 | `S2` | 42-50 | every number specific to this screen |
 | 3 | `useInvoiceList()` | 55-93 (type `InvoiceList` at 94) | all state, data and actions (no JSX) |
 | 4 | `InvoicesScreen()` | 99-129 | the one-pane / panes switch on `<Screen>`; `showActivity` and the phone FAB |
-| 5 | `Header` · `ListPane` · `FilterRow` · `DateRangeRow` · `InvoiceListCard` · `InvoiceRow` (memo) | 132-272 | one function per region, in on-screen order |
+| 5 | `Header` · `ListPane` · `FilterRow` · `InvoiceListCard` · `InvoiceRow` (memo) | 132-272 | one function per region, in on-screen order |
 | 6 | `DetailPane` · `ActivityPane` | 275-300 | the tablet-only panes |
 
 ## 3. Tree
@@ -41,11 +41,8 @@ InvoicesScreen()                                                        line 99
 │    │                        gap 16; the filters are built once (152-158)
 │    │                        bp.height < S2.shortScreen: the filters become
 │    │                        the card's `header` and the card gets `fill`   161-168
-│    ├─ FilterRow       S2.1 + S2.3  [ SearchField flex 1 | IconButton 44 ]    178
-│    │                        plain row, gap S2.filterGap, top 4 (not Columns)
+│    ├─ FilterRow       S2.1  [ SearchField full width ]  plain row, top 4
 │    ├─ SegmentedControl S2.2  the STATUSES tabs, one line (kit control)       155
-│    ├─ DateRangeRow    S2.3a  [ Input From | Input To ]  Columns kind="input"  191
-│    │                        only while list.dateOpen; marginBottom S2.dateRowPull
 │    └─ InvoiceListCard S2.5  Card list: flexShrink 1, marginBottom navInset,  206
 │         │                   overflow hidden (`fill`: flex 1, top 4)
 │         ├─ FlatList         flexGrow 0 (`fill`: flex 1); ListHeaderComponent  223
@@ -56,7 +53,7 @@ InvoicesScreen()                                                        line 99
 │              ├─ ListItem flush: initials avatar (leadingAlt on odd rows),
 │              │   party name or "(no party)", "no · date"; divider except
 │              │   the last row; selected tint (tablets only)
-│              └─ trailing column: ₹ total (MoneyText small) over StatusGlyph  264
+│              └─ trailing column: ₹ total (MoneyText small) over PaymentBadge (UPI solid App Blue · CASH grey)  218
 │
 └─ fab slot (phones)    S2.6  FAB "New invoice" → nav.openCreate()             109
 
@@ -73,8 +70,6 @@ lg+ (panes):  Header · row [ ListPane flex 1 | DetailPane | ActivityPane ]     
 
 | Key | Value | ID | Means |
 | --- | --- | --- | --- |
-| `filterGap` | 10 | S2.1 | between the search field and the calendar button |
-| `dateRowPull` | `-space[4]` (−16) | S2.3a | pulls the list card up under the date inputs' bottom gap |
 | `longList` | 6 | S2.5 | more rows than this on a phone: the list's content pads by `useFabClearance()` so the last row clears the FAB (0 on tablets, where no `fab` is set) |
 | `detailWidth` | `{ 2: '50%', 3: '42%' }` | S2.7 | detail pane width by pane count: 42 % only while the activity pane shows |
 | `activityWidth` | `'26%'` | S2.8 | activity pane width |
@@ -87,10 +82,9 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 
 | Row | Function | Cells | Rule |
 | --- | --- | --- | --- |
-| S2.1 + S2.3 filter row | `FilterRow` | 2: search field · calendar button | **not `Columns`**: the field grows (`flex: 1`) and the button keeps its 44 width, while `Columns` gives every cell a flex weight. Gap `S2.filterGap`, `paddingTop` 4 |
+| S2.1 filter row | `FilterRow` | 1: search field | the field takes the full width (`flex: 1`), `paddingTop` 4. The calendar button (S2.3) was removed 2026-10-27 |
 | S2.2 status tabs | `SegmentedControl` inside `ListPane` | 5 tabs | one line; the kit control (C8a) lays out its own tabs (they truncate at 320 dp, see § 8) |
-| S2.3a date fields | `DateRangeRow` | 2: From · To | `Columns kind="input"`: stacks under 128 dp per cell (`CELL_MIN.input`), gap 12. Never at phone widths: inside the pane's 20 dp sides a cell is about 134 at 320 dp. `stackAt="sm"` would force a stack |
-| S2.5 row trailing | `InvoiceRow` | amount over status pill | a column (`alignItems: 'flex-end'`, gap 4) in `ListItem`'s `trailing` slot, not a row |
+| S2.5 row trailing | `InvoiceRow` | amount over payment pill (`PaymentBadge`: UPI / CASH, was `StatusGlyph` until 2026-10-29) | a column (`alignItems: 'flex-end'`, gap 4) in `ListItem`'s `trailing` slot, not a row |
 | lg+ panes | `InvoicesScreen()` | 2 or 3 panes | **not `Columns`**: pane widths are percentages from `S2` and `ListPane` takes the rest with `flex: 1` (the method's rule for panes) |
 
 ## 6. State and actions (`useInvoiceList()`)
@@ -100,13 +94,10 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 | `rows` | the invoices from `listInvoices` for the current filters, at most 500 |
 | `search`, `setSearch` | the search text; trimmed before the query |
 | `status`, `setStatus` | the active tab, `'all'` or an `InvoiceStatus`; `'all'` sends no status filter |
-| `dateOpen`, `toggleDates` | whether the date fields (S2.3a) show; the calendar button toggles it |
-| `from`, `setFrom`, `to`, `setTo` | the date range as typed (`YYYY-MM-DD`); empty strings send no bound |
 | `load()` | runs the query; reruns whenever a filter changes or `nav.refreshKey` changes (any save anywhere) |
 | `runExport(kind)` | `'list'` = `exportInvoicesXlsx(rows)`, `'register'` = `exportConsolidatedRegister()`; opens the share sheet, shows an "Export failed" alert on error, keeps `busy` set while it runs |
 | `busy` | `'list'`, `'register'` or `null`: which header button shows its spinner |
-| `datesSet` | a from or to date is set (tints the calendar button) |
-| `filtered` | any filter is active (picks the "No matches" empty state) |
+| `filtered` | search text is set (picks the "No matches" empty state) |
 | `selected` | the row matching `nav.selectedInvoiceId`, or `null` (drives the tablet panes) |
 
 ## 7. Where to change what
@@ -114,10 +105,9 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 | You want to change | Go to |
 | --- | --- |
 | a status tab's name, or add / remove a tab | `STATUSES`, lines 32-38; the value must be an `InvoiceStatus` or `'all'` |
-| the gap between search and calendar, the pane widths, when the activity pane appears, the short-screen height | `S2`, lines 42-50, one line each |
+| the pane widths, when the activity pane appears, the short-screen height | `S2`, lines 42-50, one line each |
 | the order of search / tabs / date fields | the three lines inside `ListPane`, 154-156 |
-| the search placeholder or the calendar button's label | `FilterRow`, lines 181-182 |
-| the date fields' labels, placeholder or keyboard | `DateRangeRow`, lines 194-197; to stack them always, add `stackAt="sm"` to `Columns` at 193 |
+| the search placeholder | `FilterRow` |
 | what a row shows (avatar, title, caption, trailing) | `InvoiceRow`, lines 254-270; the trailing column is the `View` at 265 |
 | the empty-state icons and text | `InvoiceListCard`, lines 231-232 |
 | what a tap on a row does | `onPressRow` in `InvoiceListCard`, lines 215-218 |
@@ -143,3 +133,5 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 The move onto `<Screen>` (C16) was Prompt 37; the memoised rows and the `Columns` date row were Prompt 28; the restructure itself was Prompt 12. Line numbers moved with each; the function names did not.
 
 Open findings (not applied): none.
+
+2026-10-27: the calendar button (S2.3) and the From / To date row (S2.3a, `DateRangeRow`) were removed; the search field fills the row and `useInvoiceList()` no longer holds a date range. Other parts of this file (status tabs, the `book` export) were already out of date and are unchanged.

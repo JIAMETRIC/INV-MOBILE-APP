@@ -30,14 +30,20 @@ export async function recordPayment(input: PaymentInput): Promise<Payment> {
       input.amount_paise, input.remarks,
     );
     for (const invId of input.invoiceIds) {
+      await db.runAsync(
+        'INSERT OR IGNORE INTO payment_invoices (payment_id, invoice_id) VALUES (?, ?)',
+        r.lastInsertRowId, invId,
+      );
+    }
+    for (const invId of input.invoiceIds) {
       const inv = await db.getFirstAsync<{ total_paise: number; status: string }>(
         'SELECT total_paise, status FROM invoices WHERE id = ?', invId,
       );
       if (!inv || inv.status === 'void') continue;
       const paid = await db.getFirstAsync<{ n: number }>(
-        `SELECT COALESCE(SUM(amount_paise),0) n FROM payments
-         WHERE ',' || invoice_ids || ',' LIKE '%,' || ? || ',%'`,
-        String(invId),
+        `SELECT COALESCE(SUM(p.amount_paise),0) n FROM payments p
+         JOIN payment_invoices pi ON pi.payment_id = p.id WHERE pi.invoice_id = ?`,
+        invId,
       );
       const paidPaise = paid?.n ?? 0;
       const status = paidPaise >= inv.total_paise ? 'paid' : 'partial';
@@ -54,8 +60,9 @@ export async function recordPayment(input: PaymentInput): Promise<Payment> {
 export async function paidPaiseForInvoice(invoiceId: number): Promise<number> {
   const db = await getDb();
   const row = await db.getFirstAsync<{ n: number }>(
-    `SELECT COALESCE(SUM(amount_paise),0) n FROM payments WHERE ',' || invoice_ids || ',' LIKE '%,' || ? || ',%'`,
-    String(invoiceId),
+    `SELECT COALESCE(SUM(p.amount_paise),0) n FROM payments p
+     JOIN payment_invoices pi ON pi.payment_id = p.id WHERE pi.invoice_id = ?`,
+    invoiceId,
   );
   return row?.n ?? 0;
 }

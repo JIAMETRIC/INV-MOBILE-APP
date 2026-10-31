@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { alert } from '../../ui/alert';
 import { useTheme } from '../../shell/providers';
 import { useNav } from '../../shell/navigation';
+import { useLock } from '../../auth/LockProvider';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
   Badge, Button, Card, Chip, EmptyState, FAB, Input, ListItem, ListRow, MoneyInput, SearchField, SectionTitle, TopAppBar,
@@ -70,6 +71,7 @@ function AvlBadge({ avl, theme }: { avl: number; theme: Theme }) {
 // ---------------------------------------------------------------------------
 function useProducts() {
   const nav = useNav();
+  const lock = useLock(); // D4 limits: products (names, prices), stock
   const bp = useBreakpoint();
   const snack = useSnackbar();
   const [products, setProducts] = useState<ProductRow[]>([]);
@@ -202,6 +204,7 @@ function useProducts() {
     mode, setMode, rQty, setRQty, rPricePaise, setRPricePaise, rNote, setRNote,
     nameError, setNameError, qtyError, setQtyError, history, busy,
     editorTitle: mode === 'restock' ? 'Restock' : editId ? 'Edit product' : 'New product',
+    canProducts: lock.can('products'), canStock: lock.can('stock'),
     showTable,
     startEdit, save, remove, openRestock, applyRestock, exportXlsx,
   };
@@ -218,7 +221,7 @@ export function ProductsScreen() {
   const p = useProducts();
   const sidePane = bp.atLeast('lg');
   // S5.4 — the FAB floats over Main on phones; the list card clears it through useFabClearance().
-  const fab = bp.isPhone ? <FAB icon="plus" label="Add product" onPress={() => p.startEdit()} theme={theme} /> : null;
+  const fab = bp.isPhone && p.canProducts ? <FAB icon="plus" label="Add product" onPress={() => p.startEdit()} theme={theme} /> : null;
   return (
     <Screen header={<Header p={p} theme={theme} />} fab={fab}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -240,7 +243,7 @@ function Header({ p, theme }: { p: Products; theme: Theme }) {
       theme={theme}
       large
       actions={[
-        ...(bp.isPhone ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => p.startEdit() }]),
+        ...(bp.isPhone || !p.canProducts ? [] : [{ icon: 'plus' as const, label: 'New product', onPress: () => p.startEdit() }]),
         { icon: 'download', label: 'Export products to Excel', onPress: p.exportXlsx, busy: p.busy },
       ]}
     />
@@ -394,13 +397,15 @@ function EditorBody({ p, theme }: { p: Products; theme: Theme }) {
   return p.mode === 'restock' && p.editId ? <RestockForm p={p} theme={theme} /> : <ProductForm p={p} theme={theme} />;
 }
 
-// S5.6 — Product name · Quick pick chips · Price | Stock · actions · stock history.
+// S5.6 — Product name · Quick pick chips · Price | Stock · actions · stock history. Without
+// the Products switch (D4) name and price are read-only and the chips go; without Stock, stock is.
 function ProductForm({ p, theme }: { p: Products; theme: Theme }) {
   return (
     <View>
       <Input label="Product name" value={p.draft.name} error={p.nameError || undefined} autoCapitalize="words"
+        editable={p.canProducts}
         onChange={v => { p.setDraft({ ...p.draft, name: v }); p.setNameError(''); }} theme={theme} />
-      <QuickPickChips p={p} theme={theme} />
+      {p.canProducts ? <QuickPickChips p={p} theme={theme} /> : null}
       <PriceStockRow p={p} theme={theme} />
       <EditorActions p={p} theme={theme} />
       <StockHistory p={p} theme={theme} />
@@ -427,9 +432,9 @@ function QuickPickChips({ p, theme }: { p: Products; theme: Theme }) {
 function PriceStockRow({ p, theme }: { p: Products; theme: Theme }) {
   return (
     <Columns kind="input">
-      <MoneyInput label="Price (₹)" valuePaise={p.draft.unit_paise}
+      <MoneyInput label="Price (₹)" valuePaise={p.draft.unit_paise} editable={p.canProducts}
         onChangePaise={v => p.setDraft(d => ({ ...d, unit_paise: v }))} theme={theme} />
-      <Input label="Stock" value={String(p.draft.stock_qty)}
+      <Input label="Stock" value={String(p.draft.stock_qty)} editable={p.canStock}
         onChange={v => p.setDraft({ ...p.draft, stock_qty: Number(num(v)) })}
         theme={theme} keyboardType="numeric" tabular
         helper={p.editId ? `Sold ${p.draftSold} · Avl ${p.draft.stock_qty - p.draftSold}` : 'Sold counts once invoiced'} />
@@ -438,12 +443,20 @@ function PriceStockRow({ p, theme }: { p: Products; theme: Theme }) {
 }
 
 // S5.6.5 — right-aligned, wrapping: Delete (ghost, red) · Restock (glass) · Save (blue);
-// Delete and Restock only for an existing product.
+// Delete and Restock only for an existing product. D4: Delete needs Products, Restock needs
+// Stock, Save either; with neither, a line says how to get them instead.
 function EditorActions({ p, theme }: { p: Products; theme: Theme }) {
+  if (!p.canProducts && !p.canStock) {
+    return (
+      <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: space[1] }]}>
+        You can look at products. Changing them needs the Products or Stock switch, set on Invoice ERP Desktop.
+      </Text>
+    );
+  }
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: space[2], marginTop: space[1] }}>
-      {p.editId ? <Button label="Delete" icon="trash-2" variant="ghost" danger destructive theme={theme} onPress={p.remove} /> : null}
-      {p.editId ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={p.openRestock} /> : null}
+      {p.editId && p.canProducts ? <Button label="Delete" icon="trash-2" variant="ghost" danger destructive theme={theme} onPress={p.remove} /> : null}
+      {p.editId && p.canStock ? <Button label="Restock" icon="plus-circle" variant="tonal" theme={theme} onPress={p.openRestock} /> : null}
       <Button label="Save" theme={theme} onPress={() => void p.save()} />
     </View>
   );
@@ -483,8 +496,10 @@ function RestockForm({ p, theme }: { p: Products; theme: Theme }) {
       <Columns kind="input">
         <Input label="Qty to add" value={p.rQty} error={p.qtyError || undefined}
           onChange={v => { p.setRQty(num(v)); p.setQtyError(''); }} theme={theme} keyboardType="numeric" tabular />
-        <MoneyInput label="New price (₹)" valuePaise={p.rPricePaise} onChangePaise={p.setRPricePaise}
-          theme={theme} placeholder="Keep current" helper="Blank keeps price" />
+        {p.canProducts ? (
+          <MoneyInput label="New price (₹)" valuePaise={p.rPricePaise} onChangePaise={p.setRPricePaise}
+            theme={theme} placeholder="Keep current" helper="Blank keeps price" />
+        ) : null}
       </Columns>
       <Input label="Note (lot / supplier)" value={p.rNote}
         onChange={p.setRNote} theme={theme} placeholder="Optional" />

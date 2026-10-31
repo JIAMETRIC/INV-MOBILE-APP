@@ -29,6 +29,7 @@ type ButtonProps = {
   // solid = kit primary button · tonal / outline = glass button · ghost = text link.
   variant?: 'solid' | 'tonal' | 'outline' | 'ghost';
   icon?: IconName;
+  iconColor?: string; // overrides the icon colour only (the label keeps its colour)
   danger?: boolean;
   destructive?: boolean; // a delete action: red text and icon (theme.destructive)
   disabled?: boolean;
@@ -38,7 +39,7 @@ type ButtonProps = {
 };
 
 export function Button({
-  label, onPress, theme, variant = 'solid', icon, danger, destructive, disabled, busy, style, labelStyle,
+  label, onPress, theme, variant = 'solid', icon, iconColor, danger, destructive, disabled, busy, style, labelStyle,
 }: ButtonProps) {
   const off = disabled || busy;
   const solid = variant === 'solid';
@@ -76,7 +77,7 @@ export function Button({
     >
       {busy ? <ActivityIndicator color={color} /> : (
         <>
-          {icon ? <Feather name={icon} size={18} color={color} /> : null}
+          {icon ? <Feather name={icon} size={18} color={iconColor ?? color} /> : null}
           <Text style={[
             solid ? type.heading : variant === 'ghost' ? { ...type.label, fontFamily: font.semibold } : { ...type.body, fontFamily: font.medium },
             { color }, labelStyle,
@@ -184,6 +185,57 @@ export function Input({
           {error ?? helper}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+// Number field with − and + buttons inside it (quantities). Same frame as Input:
+// label above, 50 tall, radius 14, focus ring. The buttons are 40 wide plus 4 of
+// hitSlop on their outer side (a 44 target that never overlaps the number), blue
+// icons; − goes grey and stops at `min`. The number can still be typed.
+export function StepperInput({ label, value, onChange, theme, min = 0, step = 1 }: {
+  label: string; value: number; onChange: (v: number) => void; theme: Theme; min?: number; step?: number;
+}) {
+  const [focused, setFocused] = useState(false);
+  const set = (v: number) => onChange(Math.max(min, Math.round(v * 1000) / 1000));
+  const atMin = value <= min;
+  const button = (icon: 'minus' | 'plus', name: string, delta: number, disabled: boolean) => (
+    <Pressable
+      onPress={() => set(value + delta)}
+      hitSlop={icon === 'minus' ? { left: 4 } : { right: 4 }}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`${name} ${label.toLowerCase()}`}
+      accessibilityState={{ disabled }}
+      android_ripple={ripple(theme, true)}
+      style={({ pressed }) => [{ width: touch.min - 4, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+        pressScale(pressed, motion.pressScaleSmall), pressedDim(pressed)]}
+    >
+      <Feather name={icon} size={18} color={disabled ? theme.textDisabled : theme.accent} />
+    </Pressable>
+  );
+  return (
+    <View style={{ marginBottom: space[4] }}>
+      <Text style={[type.labelMedium, { color: theme.textMuted, marginBottom: space[2] }]}>{label}</Text>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', height: touch.input,
+        borderWidth: 1, borderColor: focused ? theme.focus : theme.inputBorder, borderRadius: radius.control,
+        backgroundColor: theme.inputFill, boxShadow: focused ? theme.focusRing : undefined,
+      }}>
+        {button('minus', 'Decrease', -step, atMin)}
+        <TextInput
+          value={String(value)}
+          onChangeText={v => set(Number(v.replace(/[^0-9.]/g, '')) || 0)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          keyboardType="decimal-pad"
+          accessibilityLabel={label}
+          cursorColor={theme.focus}
+          selectionColor={theme.primaryTint}
+          style={[type.numberField, { flex: 1, minWidth: 0, padding: 0, textAlign: 'center', color: theme.text }]}
+        />
+        {button('plus', 'Increase', step, false)}
+      </View>
     </View>
   );
 }
@@ -298,9 +350,12 @@ export function StatusGlyph({ status, theme }: { status: InvoiceStatus; theme: T
 }
 
 export function Badge({ label, tone, theme }: {
-  label: string; tone: keyof Theme['tone'] | 'error'; theme: Theme;
+  label: string; tone: keyof Theme['tone'] | 'error' | 'accent'; theme: Theme;
 }) {
-  const t = tone === 'error' ? { bg: theme.errorContainer, fg: theme.onErrorContainer } : theme.tone[tone];
+  // 'accent' = solid App Blue with white text (the blue-button exception in CLAUDE.md).
+  const t = tone === 'error' ? { bg: theme.errorContainer, fg: theme.onErrorContainer }
+    : tone === 'accent' ? { bg: theme.accent, fg: theme.accentOn }
+    : theme.tone[tone];
   return (
     <View style={{
       backgroundColor: t.bg, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: space[1],

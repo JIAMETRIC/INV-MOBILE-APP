@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:">
+  <title>Invoice ERP Desktop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Desktop host status (LAN_SYNC Phase 2). Layout follows design/screens/02-dashboard:
+       header, info bar, KPI tiles, list cards. Filled by app.js. -->
+  <main class="page">
+    <header class="between">
+      <div class="greeting">
+        <span class="greeting-hi" id="hostLine">Desktop host</span>
+        <h1 class="greeting-name" id="company">Invoice ERP</h1>
+      </div>
+      <div class="row gap-8">
+        <span class="badge" id="state">Starting…</span>
+        <button class="icon-btn" id="openData" aria-label="Open data folder" title="Open data folder">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="info-bar" aria-live="polite">
+      <svg class="accent" width="22" height="22" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+      <div class="list-text">
+        <span class="list-title" id="address">Looking for this PC's network address…</span>
+        <span class="list-sub">Phones sync when they are on the same Wi-Fi or router as this PC.</span>
+      </div>
+    </section>
+
+    <section class="grid-3">
+      <div class="card card--sm kpi">
+        <div class="chip"><svg width="18" height="18" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+        <span class="kpi-label">Phones paired</span>
+        <span class="kpi-value" id="kPhones">–</span>
+      </div>
+      <div class="card card--sm kpi">
+        <div class="chip"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <span class="kpi-label">Invoices</span>
+        <span class="kpi-value" id="kInvoices">–</span>
+      </div>
+      <div class="card card--sm kpi">
+        <div class="chip"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+        <span class="kpi-label">Products</span>
+        <span class="kpi-value" id="kProducts">–</span>
+      </div>
+    </section>
+
+    <section class="card card--list">
+      <div class="between card-head">
+        <span class="overline">Phones</span>
+        <button class="btn-primary btn-sm" id="addPhone">
+          <svg width="20" height="20" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add phone
+        </button>
+      </div>
+      <div id="devices"></div>
+    </section>
+
+    <section class="card card--list">
+      <div class="between card-head">
+        <span class="overline">People</span>
+        <button class="btn-glass" id="addPerson">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Add person
+        </button>
+      </div>
+      <div id="people"></div>
+    </section>
+
+    <section class="card card--list">
+      <div class="card-head"><span class="overline">Sync log</span></div>
+      <div id="log"></div>
+    </section>
+
+    <footer class="footer">
+      <label class="check">
+        <input type="checkbox" id="startWithWindows">
+        <span>Start with Windows (in the tray, so phones can sync all day)</span>
+      </label>
+      <span class="list-sub" id="dataDir"></span>
+    </footer>
+  </main>
+
+  <div class="overlay" id="pairDialog" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pairTitle">
+      <h2 class="dialog-title" id="pairTitle">Add a phone</h2>
+      <ol class="steps">
+        <li>On the phone, open Invoice ERP, then Settings, then Sync.</li>
+        <li>Tap Pair with desktop and scan this code.</li>
+      </ol>
+      <div class="qr-frame"><img id="qr" alt="Pairing code" width="280" height="280"></div>
+      <span class="list-sub center" id="pairExpiry"></span>
+      <details class="link">
+        <summary>Show the pairing link</summary>
+        <code id="pairUri"></code>
+      </details>
+      <div class="row gap-12 end">
+        <button class="btn-glass" id="newCode">New code</button>
+        <button class="btn-primary btn-sm" id="pairDone">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="personDialog" hidden>
+    <form class="dialog" role="dialog" aria-modal="true" aria-labelledby="personTitle" id="personForm" novalidate>
+      <h2 class="dialog-title" id="personTitle">Add a person</h2>
+      <label class="field">
+        <span>Name</span>
+        <input id="pName" autocomplete="off" maxlength="40" required>
+      </label>
+      <div class="field">
+        <span id="pRoleLabel">Role</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="pRoleLabel">
+          <button type="button" role="radio" data-role="staff" aria-checked="true">Staff</button>
+          <button type="button" role="radio" data-role="admin" aria-checked="false">Owner</button>
+        </div>
+        <span class="list-sub" id="pRoleHelp"></span>
+      </div>
+      <fieldset class="perms" id="pPerms">
+        <legend class="list-sub">Besides invoices and payments, this person may also:</legend>
+        <label class="check"><input type="checkbox" value="products"><span>Add and change products and prices</span></label>
+        <label class="check"><input type="checkbox" value="stock"><span>Restock and correct stock</span></label>
+        <label class="check"><input type="checkbox" value="delete"><span>Delete or void invoices</span></label>
+        <label class="check"><input type="checkbox" value="settings"><span>Change company details, restore backups, unpair</span></label>
+      </fieldset>
+      <label class="field">
+        <span id="pPinLabel">PIN (4 to 6 digits)</span>
+        <input id="pPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" type="password">
+      </label>
+      <label class="check" id="pActiveRow"><input type="checkbox" id="pActive" checked><span>Can sign in (switch off instead of deleting: their invoices stay theirs)</span></label>
+      <span class="error" id="pError" role="alert"></span>
+      <div class="row gap-12 end">
+        <button type="button" class="btn-glass" id="pCancel">Cancel</button>
+        <button type="submit" class="btn-primary btn-sm" id="pSave">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

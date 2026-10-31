@@ -183,3 +183,33 @@ Shared spacing comes from `src/ui/tokens.ts`: `layout.side` 20, `layout.gap` 16,
 | lg 800 · xl 961 · xxl 1280 | master-detail: the 300-dp list with the tinted selected row and the version line, the section in the pane capped at 720 with its two-column rows side by side | Prompt 52 (lg), Prompt 30 (lg, xl, xxl: as designed) |
 
 Open findings (not applied): none.
+
+## 2026-10-29 addendum: S6.6 Security
+
+`SecurityPane` (SettingsScreen.tsx, line 368) is a fourth section, between Company and Backup in `SECTIONS`: an "App lock" card, a list card (Fingerprint / face unlock `Switch` · Change PIN › · New recovery code ›) and a solid **Lock now**. `useSettings()` gains `lock = useLock()` and `toggleBio(on)`. The header caption is now "Company, security, backup". The PIN screens are S7: see `AuthScreen_S7_tree.md`. (Line numbers above are from 2026-10-23 and have moved.)
+
+## 2026-10-30 addendum: S6.7 Sync with desktop (LAN_SYNC Phase 4)
+
+`SECTIONS` has a fifth entry, **sync**, second after Company; the header caption is "Company, sync, security, backup".
+
+| Region | Function | Line | Content |
+| --- | --- | --- | --- |
+| S6.7 | `SyncPane` | 416 | `PairedCard` or `PairCard`, the last error (red, `type.bodyMedium`), the scanner overlay |
+| S6.7.1 | `PairCard` | 430 | "Desktop" card: text · Scan pairing code · link `Input` (pulled by `S6.inputPull`) · Pair (outline) |
+| S6.7.2 / S6.7.3 | `PairedCard` | 450 | list card (Desktop · Invoice series · Last sync · refused-changes row with an error `Badge`), then Sync now \| Unpair in one row (`layout.grid` gap, 1:1) |
+| S6.7.4 | `PairScanner` | `PairScanner.tsx` | `Modal` with `CameraView` (QR only), dark `TopAppBar`, aiming frame `S67.frame` 240 / `S67.frameBorder` 2, `radius.frame` |
+
+- **Helper:** `syncTime(utc)` (line 61) turns the last sync time into "today 10:42" or "29 Oct, 18:05".
+- **State:** `useSettings()` gains `sync = useSync()` (status, busy, lastError, pair, syncNow, unpair from `src/sync/SyncProvider.tsx`), `scanning`, `pairLink`, and the actions `pairWith(code)`, `syncNow()`, `unpair()` (lines 174-202).
+- **Numbers:** no new `S6` numbers; the series example reuses `S6.numberPad`.
+- **Sizes:** not size-checked yet (`/size-check` on the emulator is pending).
+
+## 2026-10-30 addendum 2: limits and the signed-in person (LAN_SYNC Phase 5)
+
+- `useSettings()` adds `canSettings` (`lock.can('settings')`) and `companyEditable` (line 215: Settings switch, and on a paired phone someone signed in).
+- `CompanyForm` (348) shows Save or the S6.2.5 note.
+- `ExportRestoreRow` (565) shows Restore with the Settings switch.
+- `PairedCard` (467) shows Unpair with it.
+- `SecurityPane` (496) adds S6.6.1 (Signed in as · Switch person → `lock.lockNow`, which opens the person flow) and moves the device-PIN list card into `DeviceLockCard` (521), hidden for signed-in staff.
+
+Checked on the emulator as Ravi: Security shows "Signed in as Ravi · Staff · Switch person" and Lock now, no device-PIN card.

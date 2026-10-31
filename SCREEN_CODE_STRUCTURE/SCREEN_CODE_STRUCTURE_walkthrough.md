@@ -493,3 +493,139 @@ Prompt 67 was a review of the prompt (answered in chat). Prompt 68: `STATUSES` (
 | --- | --- |
 | `npx tsc --noEmit` | no errors |
 | On the emulator | not run |
+
+## 2026-10-26: S3 screen map refreshed (Invoice detail · Issued)
+
+`scripts/screen-map.py` S3 entry rewritten from `InvoiceDetail.tsx`: ActionRow now WhatsApp · Image · Save · Share PDF (Excel removed), `EditVoidRow` is `EditDeleteRow` (Edit blue, Delete red), and the off-screen `InvoiceImage` capture block was added. Regenerated `screen-map.html`. The `_tree.md` file for S3 still describes the old Excel / Void layout.
+
+## 2026-10-26: screen map refreshed to the latest screens (S2, S3, S4, S6)
+
+`scripts/screen-map.py`, then `screen-map.html` regenerated (date 2026-10-26):
+
+- **S2 Invoices:** Draft tab and the status SegmentedControl removed; header has one action (download = Export all invoices to Excel, all details, ignores filters); book removed.
+- **S3 Invoice detail:** ActionRow removed; WhatsApp is now the last child of BillToCard (fill #25D366, white icon and label). PaymentSheet marked unreachable (no button opens it).
+- **S4 Create / Edit:** Save draft and draft autosave removed (leaving loses unsaved input); BillToCard is Customer name · Mobile · Invoice date; line item has Size | Qty | Rate; PaymentCard (Cash | UPI) added to ItemsSection.
+- **S6 Settings:** Drafts section removed (three sections).
+- The `small` (5-inch) notes for S2, S4 and S6 were dropped because they described layouts that changed; re-run `/size-check` to restore them.
+- The S2, S3, S4 and S6 `_tree.md` files still describe the old layouts.
+
+## 2026-10-27: S2 FilterRow, calendar button removed
+
+`src/features/invoices/InvoicesScreen.tsx`: `FilterRow` is now only the `SearchField` (full width). Removed with it, since nothing else could open them: `DateRangeRow` (S2.3a), the `dateOpen` / `from` / `to` state, `datesSet`, `S2.filterGap`, `S2.dateRowPull`, and the `Columns`, `Input` and `IconButton` imports. `filtered` now means "search text is set". Docs: `scripts/screen-map.py` (then `screen-map.html` regenerated), `scripts/size-tour.py` (the date-range step), `SCREEN_LAYOUT_REFERENCE.md` (S2 wireframe, S2.3 / S2.3a rows, C15 users), `InvoicesScreen_S2_tree.md`, `SharedComponents_C1-C4_tree.md`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Release APK (`gradlew assembleRelease`, `JAVA_HOME` = Android Studio `jbr`), `adb install -r` on `Medium_Phone_API_37.0` | installed over the existing release build; data kept (2 invoices) |
+| S2 on the phone (411 dp) | search field spans the row under the header; no calendar button; list card, FAB and nav as before |
+| Tablets / landscape | not checked |
+
+## 2026-10-27: WhatsApp share image, address out and Cash/UPI in the top middle
+
+`src/features/invoices/InvoiceImage.tsx`: the `from` line (Settings address, city, pincode) is gone; the top row has a centred middle column, overline "Payment" over `inv.payment_mode`. `scripts/screen-map.py` InvoiceImage note updated, `screen-map.html` regenerated.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Debug build on `Medium_Phone_API_37.0` (Metro), WhatsApp tapped on INV-002 and INV-001; the PNG copied out of the app cache with `run-as` (WhatsApp is not installed, so the share stops after the capture) | both images: no "Tirupur, 641 607"; "PAYMENT / UPI" centred between the business name and the invoice block |
+| Saved mode | both invoices are UPI in their Edit → Items → Payment card, so "UPI" is right; a Cash invoice was not captured (none exists) |
+| Release build | rebuilt and reinstalled afterwards |
+
+## 2026-10-27: S4 LineItemCard, Qty − / + stepper
+
+`src/ui/components.tsx`: new `StepperInput`. `src/features/invoices/CreateInvoiceScreen.tsx`: Qty `Input` → `StepperInput`; `S4.lineWeights` [1, 1.2, 1.25]. Docs: `scripts/screen-map.py` (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` (S4.B.3, C4), `CreateInvoiceScreen_S4_tree.md`, `SharedComponents_C1-C4_tree.md`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Debug build + Metro, phone 411 dp, New invoice → Items → Add free line (not saved) | row Size \| Qty \| Rate = 91 · 109 · 113 dp; + three times and − once: 1 → 3, Amount ₹750 at rate 250; typed qty 100 × rate 1250 = ₹1,25,000.00; "100" fits between the buttons |
+| First weights tried, [1, 1.4, 1.2] | Size 84 ("Select" touched its chevron), Rate 104: rejected |
+| 360 dp (`wm density 480`) | the row stacks; the stepper is full width, − left, + right |
+| Rate field hugging its left edge right after typing | Android keeps the typing scroll; re-opening the step shows the normal 16 padding. Not caused by this change |
+| Tablets | not checked (`/size-check` not run) |
+
+## 2026-10-27: S1 Dashboard, Stock split 3D pie (S1.6)
+
+New: `src/ui/PieChart3D.tsx` (C17), `chartShade` in `src/ui/tokens.ts`, dependency `react-native-svg` 15.16.0. `src/features/dashboard/DashboardScreen.tsx`: `useDashboard()` also returns `stock`; `StockPieCard` after `StatTilesRow`; `S1.pieWidth` / `pieWidthXs` / `pieTilt` / `pieDepth` / `swatch`. Docs: `scripts/screen-map.py` (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` (S1 wireframe, S1.6, C17), `DashboardScreen_S1_tree.md`, `README.md` (UI row).
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors (one fix: `parts[0]` possibly undefined under `noUncheckedIndexedAccess`) |
+| Debug APK rebuilt (new native module), 411 dp, real data (Sold 2, Balance −2, Actual 0) | the disc is all blue with a darker blue wall; legend 2 / −2 / 0 and red "Oversold by 2" |
+| Same, with sample values Sold 3 / Balance 5 / Actual 8 put in for one screenshot, then reverted | blue wedge 135° (3 / 8), grey the rest, each wall shaded; 1px white slice edges |
+| Dark mode (`cmd uimode night yes`) | card dark glass, Balance dot light grey, red note lighter red; reset afterwards |
+| 320 dp (`wm density 540`) | with a 128 pie the legend labels cut off; with 96 they fit; scrolled to the end the card clears the FAB |
+| Tablets | not checked |
+
+## 2026-10-27: Expo cloud APK, build 3
+
+`eas build --platform android --profile preview --non-interactive` from commit `29f4d02` (uploads 3.5 MB; `.easignore` keeps `/android` out, so EAS prebuilds all ABIs). Remote keystore `XunsAMGKSH`, the same as build 2. Build `97fce4d7-1229-47b4-98df-4ca5aa366ccd`: FINISHED, version 1.0.1 / versionCode 3 (from `app-version.json`, already 3). Page: https://expo.dev/accounts/jiametrics-team/projects/invoice-erp/builds/97fce4d7-1229-47b4-98df-4ca5aa366ccd. Not installed on a phone yet; not downloaded into `release/`. README row added.
+
+## 2026-10-28: sharing fixed (native WhatsApp intent) and invoice Share asks WhatsApp / Save to phone
+
+New `modules/whatsapp-share/` (`expo-module.config.json`, `android/build.gradle`, `WhatsAppShareModule.kt`, `index.ts`). `src/export/pdf.ts`: `sendToWhatsApp` uses it (no `expo-intent-launcher`). `src/features/invoices/InvoiceDetail.tsx`: Share button, `<invoice no>.png`, `shareFile(uri)`. `src/ui/tokens.ts`: WhatsApp colours removed. `scripts/screen-map.py` (+ `screen-map.html`).
+
+Root cause read from `node_modules/expo-intent-launcher/android/.../IntentLauncherModule.kt`: `packageName` is used only together with `className`; extras go through `putExtras(Bundle)` as strings; `FLAG_GRANT_READ_URI_PERMISSION` was added but there was no data / ClipData for it to apply to. `sendToWhatsApp` caught every exception and threw "WhatsApp is not installed".
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Local release APK (EAS key), `verify_apk.py` | RESULT OK; build output lists `whatsapp-share (1.0.0)` among the autolinked modules |
+| Emulator (no WhatsApp): Products → export → WHATSAPP | "WhatsApp is not installed on this phone": now from a real package check, and true here |
+| Stand-in test: package list temporarily `com.google.android.apps.messaging` (+ its `<queries>` entry), Products → export → WHATSAPP | Messages opened straight on its own share screen ("Select recipients"), no chooser |
+| Same stand-in, test invoice INV-001 (created on the emulator) → Share | dialog "Share file: WHATSAPP · SAVE TO PHONE · CANCEL"; WHATSAPP → Messages; its log: `attachments=[Attachment(type=image/png, uri=content://com.jiametric.invoiceerp.FileSystemFileProvider/cached_expo_files/INV-001.png)]`, then dropped as `ATTACHMENTS_NOT_SUPPORTED` because the emulator has MMS off (`MmsEnabled=false`). The file arrives as a real Uri attachment with the right name |
+| Stand-in reverted (`WHATSAPP_PACKAGES = ['com.whatsapp', 'com.whatsapp.w4b']`, manifest restored), rebuilt, reinstalled | RESULT OK |
+| On the owner's phone with WhatsApp | **not tested** (no WhatsApp on the emulator) |
+| Save to phone | not re-tested (unchanged code; the folder picker is the system's) |
+
+## 2026-10-28: screen map, new D3 tab (invoice image)
+
+`scripts/screen-map.py`: new entry D3 "Invoice image (Share)" from `src/features/invoices/InvoiceImage.tsx`. One function with inline regions, so the blocks are named by region with IDs D3.1 top row, D3.2 bill to, D3.3 items table (D3.3.h header · D3.3.r rows), D3.4 totals (D3.4.1–D3.4.5), D3.5 UPI footer; right column = where it comes from (S3 Share → off-screen host → capture → `shareFile`). The renderer now takes optional `phone_label` / `tablet_label` (D3 is not a screen). `SCREEN_LAYOUT_REFERENCE.md`: D3 row in the app map and a D3 section (wireframe + table), so every map ID exists there. `screen-map.html` regenerated (7 tabs) and republished to the Screen Map artifact (https://claude.ai/artifact/2eSJt98Zy4PqVMXvF4QwKe, version 3; it was still the 2026-10-23 version). D3 tab checked in the browser pane.
+
+## 2026-10-28: D3 invoice image, blue header and Total band
+
+`src/features/invoices/InvoiceImage.tsx`: root = 1px `accent` border, `radius.card`, `overflow: hidden`; D3.1 in a blue band (padding 20, white / 80 % white text); white body (padding 20, gap 4) with D3.2, D3.3 and D3.4.1–3; D3.4.4–5 in a blue band (padding 16 × 20); D3.5 white footer. Docs: `scripts/screen-map.py` D3 entry (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` D3 section.
+
+| Check | Result |
+| --- | --- |
+| Debug build with the EAS key (`assembleDebug`) installed over the release build; Metro on 8081 | first launch: red "loadJSBundleFromAssets" screen because the "nearby devices" (local network, API 37) prompt had been declined; `pm grant … ACCESS_LOCAL_NETWORK` on the emulator, then it loaded from Metro |
+| Preview 1 (blue on D3.1, D3.4.1–5, D3.5), captured from `cache/INV-001.png` | sent to the owner; code restored |
+| Preview 2 (blue on D3.1 and D3.4.4–5 only) | sent; approved ("Apply it") |
+| Applied; `npm run typecheck` | no errors |
+| Final capture vs the approved preview | byte-identical PNG (same hash) |
+| Release APK (`assembleRelease`), `verify_apk.py` | RESULT OK, signature MATCH; installed on the emulator |
+
+## 2026-10-28: S3 Bill to, Payment (Cash / UPI) beside Share
+
+`src/features/invoices/InvoiceDetail.tsx` `BillToCard`: the Share button and a right-aligned Payment block (overline "Payment", `inv.payment_mode`, falls back to "Cash") share the last row (space-between). Read-only: the method is chosen in S4's Payment card (Edit). Docs: `scripts/screen-map.py` S3.2 (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` S3.2.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Release APK built and installed on the emulator; INV-001 (Cash) opened | "PAYMENT / Cash" at the right of the Share button, in the space the owner marked; rest of S3 unchanged |
+| A UPI invoice | not opened (same field as the share image's Payment, which showed UPI for INV-001/002 earlier) |
+
+## 2026-10-28: S1 Dashboard, Payments · FY pie (S1.7)
+
+`src/data/dashboardRepo.ts`: `getPaymentSplit()`. `src/features/dashboard/DashboardScreen.tsx`: `useDashboard()` loads it; `PaymentsPieCard` after `StockPieCard`; both now render `PieLegendCard`. Docs: `scripts/screen-map.py` (+ `screen-map.html`), `SCREEN_LAYOUT_REFERENCE.md` (S1 wireframe, S1.7, C17 users), `DashboardScreen_S1_tree.md`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | no errors |
+| Emulator test data: INV-001 Cash ₹100 + a new INV-002 "UpiCustomer" UPI ₹250 | Payments card: UPI (1) ₹250.00 · Cash (1) ₹100.00 · Total ₹350.00 = Total billed ₹350.00; blue slice 250 / 350 |
+| Stock split after the refactor | unchanged (all zero, grey disc) |
+| 320 dp | "Total collected" cut → renamed "Total"; after the rebuild nothing is cut |
+| Local-Build-apk (owner: "do; Local_build_apk"): `assembleRelease`, `verify_apk.py` | RESULT OK (arm64-v8a + x86_64, offline, signature MATCH); installed on the emulator |
+
+## 2026-10-29: S2 InvoiceRow, payment pill UPI / CASH (replaces StatusGlyph)
+
+`src/features/invoices/InvoicesScreen.tsx`: `InvoiceRow`'s trailing column renders `PaymentBadge` (new, after `InvoiceRow`) instead of `StatusGlyph`; `PaymentBadge` = kit `Badge` "UPI" tone `info` / "CASH" tone `neutral`, a11y label "Payment UPI|Cash". Import: `Badge` in, `StatusGlyph` out. Docs: `scripts/screen-map.py` S2.5.r (+ `screen-map.html`), `InvoicesScreen_S2_tree.md`, `SCREEN_LAYOUT_REFERENCE.md` S2.5.
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` | no errors |
+| `assembleRelease` (local Gradle), `adb install -r` on emulator-5554 (data kept) | BUILD SUCCESSFUL; Success |
+| S2 on the 411 dp phone | INV-002 UpiCustomer ₹250.00 over a blue "UPI" pill; INV-001 TestCustomer ₹100.00 over a grey "CASH" pill; pills right-aligned under the amount, row height unchanged |
+| Dashboard after the install | 2 invoices · ₹350.00; Payments UPI (1) ₹250 · Cash (1) ₹100 (unchanged) |
+| Tablet / dark mode | not checked |
+| Follow-up: UPI pill solid App Blue (`Badge` tone `'accent'` in `src/ui/components.tsx`) | tsc no errors; rebuilt + `adb install -r`; S2 shows a solid #2596be "UPI" pill with white text, CASH unchanged grey |

@@ -130,6 +130,12 @@ Input({ label, value, onChange, onBlur, theme, placeholder, keyboardType = 'defa
      │    placeholder textDisabled · cursor focus · selection primaryTint · a11y label = label ?? placeholder   155, 161-163
      └─ helper / error  type.caption, marginTop 4; error wins          181-185
 
+StepperInput({ label, value, onChange, theme, min = 0, step = 1 })
+└─ label (as Input) · row 50 tall, Input's border / radius / fill / focus ring
+     [ − Pressable 40 + hitSlop left 4 ] [ TextInput flex 1, centred, numberField ] [ + Pressable 40 + hitSlop right 4 ]
+     set(v) = max(min, round(v × 1000) / 1000) · − disabled (textDisabled) at min · icons theme.accent 18
+     a11y: "Decrease <label>", "Increase <label>", field = label
+
 MoneyInput({ valuePaise, onChangePaise, ...Input props })             192
 └─ Input with keyboardType decimal-pad, tabular, placeholder '0.00'   202-207
      fmt: 0 → '' · else (p / 100).toFixed(2)                           195
@@ -372,6 +378,7 @@ The clearance numbers live only here; the method forbids writing `52 + 16` or `N
 | `Chip` | `label`, `active`, `onPress`, `theme` · `icon` | |
 | `SegmentedControl<T>` | `options: { value: T; label }[]`, `value`, `onChange`, `theme`, `label` (a11y) · `style` | |
 | `Input` | `value`, `onChange`, `theme` · `label` · `onBlur` · `placeholder` · `keyboardType` · `autoCapitalize` · `multiline` · `editable` · `tabular` · `helper` · `error` · `maxLength` | `keyboardType` `'default'`, `editable` true |
+| `StepperInput` | `label`, `value: number`, `onChange(number)`, `theme` · `min` · `step` | `min` 0, `step` 1 |
 | `MoneyInput` | `valuePaise`, `onChangePaise`, `theme` · the `Input` props except `value`, `onChange`, `keyboardType`, `tabular` | `placeholder` `'0.00'` |
 | `SearchField` | `value`, `onChange`, `placeholder`, `theme` · `style` | |
 | `Card` | `children`, `theme` · `style` · `small` · `list` · `variant` (ignored) | large card shadow, padding 16 |
@@ -434,12 +441,13 @@ Screens: S0 shell (`src/shell/App.tsx`) · S1 Dashboard · S2 Invoices · S3 Inv
 | Component | Screens (call sites) |
 | --- | --- |
 | `TopAppBar` | S1 `Header` 90 (large) · S2 135 (large, 2 export actions with `busy`) · S4 `Header` 383 (back; an eye / pencil action when `eye`, passed as `md` at 363) · S5 236 (large; "New product" action off phones, export with `busy`) · S6 `Header` 224 (`large={!open}`, back when a section is `open`) · S0 `App.tsx` 131 and 161 ("Invoice" + back above the hosted S3) |
-| `IconButton` | inside `TopAppBar` (325, 345), `SearchField` (241), `Sheet` (81) · S2 182 (glass calendar, `selected` and `color` when dates are set) · S4 586 (trash per line) · S6 405 (delete draft, as a `ListItem` trailing) |
+| `IconButton` | inside `TopAppBar` (325, 345), `SearchField` (241), `Sheet` (81) · S4 586 (trash per line) · S6 405 (delete draft, as a `ListItem` trailing) |
 | `Button` | S3 (7: Record payment 217, Share PDF 218 tonal or solid with `busy`, Excel 220 outline with `busy`, Edit 296 outline, Void 297 ghost danger, P1 Cancel 316 ghost and Save payment 317) · S4 (5: Add from products 551 ghost, Add free line 558 outline, Save draft 707 outline, Update / Issue invoice 708 solid, Next 794 solid in `TotalBar`) · S5 (5: Delete 465 ghost danger, Restock 466 tonal, Save 467, Back 513 ghost, Add to stock 514) · S6 (3: Save 305, Export 431, Restore 432 outline, all with `busy`). Not on S1 or S2 |
 | `FAB` | S1 81 "New invoice" · S2 109 "New invoice" · S5 220 "Add product"; phones only (`bp.isPhone`) |
 | `Chip` | S4 619 "Ship to address" (icon truck) · S5 421 (quick names), 436 (sizes), 439 "No size" |
 | `SegmentedControl` | S2 155 "Status" · S3 313 "Payment mode" (P1) · S4 720 "Page size" |
 | `Input` | S2 (2: From / To dates 195, 197, tabular, maxLength 10) · S3 (1: payment amount 311, P1, with `error`) · S4 (14, among them City 505, Pincode 506 maxLength 6, dates 534 and 537 tabular, Qty 591 tabular, Discount % 614 tabular, notes 626 multiline) · S5 (4: Product name 403 with `error`, Stock 452 with `helper`, Qty to add 504 with `error`, Note 509) · S6 (15, among them Address 318 multiline, Pincode 321, PAN 324, A/C no 345, IFSC 346, Next number 364 `editable={false}`) |
+| `StepperInput` | S4 `LineItemCard` "Qty" |
 | `MoneyInput` | S4 594 "Rate (₹)" · S5 450 "Price (₹)" and 506 "New price (₹)" with `placeholder` and `helper` |
 | `SearchField` | S2 181 · S4 747 (catalogue pane) and 807 (P2) · S5 269 |
 | `Card` | S1 (2: hero, stat tile 149 `small`) · S2 (2: list card 220 `list`, `ActivityPane` card 289 `small` on 3-pane tablets) · S3 (3) · S4 (8; 677 and 748 `list`) · S5 (2; 283 `list`) · S6 (8; 259, 379, 442, 459 `list`) |

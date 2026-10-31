@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "files": ["electron/main.ts", "electron/preload.ts", "../src/data/db.ts"]
+}

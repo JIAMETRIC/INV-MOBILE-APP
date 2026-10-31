@@ -6,7 +6,7 @@
 //   Header … TotalBar     one function per region, in the order they appear on screen
 //   CatalogSheet          P2
 // IDs (S4.A, S4.B.3 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList, Platform, Pressable, ScrollView, Text, View,
 } from 'react-native';
@@ -19,7 +19,7 @@ import { useBreakpoint } from '../../ui/useBreakpoint';
 import { Screen, useMainInset } from '../../ui/Screen';
 import {
   Badge, Button, Card, Chip, IconButton, Input, ListItem, MoneyInput, MoneyText, SearchField, SectionTitle,
-  SegmentedControl, TopAppBar, TotalRow, EmptyState,
+  SegmentedControl, StepperInput, TopAppBar, TotalRow, EmptyState,
 } from '../../ui/components';
 import { Columns } from '../../ui/Columns';
 import { Dropdown } from '../../ui/Dropdown';
@@ -34,7 +34,6 @@ import { getSettings } from '../../data/settingsRepo';
 import { listProducts } from '../../data/productsRepo';
 import { saveInvoice } from '../../data/invoicesRepo';
 import { getInvoice, getLines } from '../../data/invoicesRepo';
-import { deleteDraft, getDraft, saveDraft, type DraftPayload } from '../../data/draftsRepo';
 import { logAudit } from '../../data/auditRepo';
 import { buildInvoiceHtml } from '../../export/pdfTemplate';
 import type { InvoiceForm, ProductRow, Settings } from '../../data/types';
@@ -54,7 +53,7 @@ const S4 = {
   pageSizeControl: 180, // S4.E: width of the A4 / Letter control
   previewMinHeight: 400, // S4.E: the printed page frame
   lineSizes: ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'], // S4.B.3: the Size dropdown
-  lineWeights: [1, 1, 1.4], // S4.B.3: Size | Qty | Rate column weights
+  lineWeights: [1, 1.2, 1.25], // S4.B.3: Size | Qty | Rate column weights; at 411 dp ≈ 91 | 109 | 113, Qty fits − n +
   lineMinCell: 96, // S4.B.3: a Size | Qty | Rate cell narrower than this stacks the row
   inputPull: -space[4], // last input in a card: pulls the card's bottom padding up under the field
 } as const;
@@ -86,16 +85,15 @@ function blankForm(): InvoiceForm {
 type Line = InvoiceForm['lines'][number];
 
 // ---------------------------------------------------------------------------
-// State and data: the form, its totals, the draft autosave, the catalog, the
-// preview HTML, and every action (issue, save draft, leave, Back).
+// State and data: the form, its totals, the catalog, the
+// preview HTML, and every action (issue, leave, Back).
 // ---------------------------------------------------------------------------
-function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: number }) {
+function useInvoiceForm({ invoiceId }: { invoiceId?: number }) {
   const nav = useNav();
   const bp = useBreakpoint();
   const snack = useSnackbar();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [form, setForm] = useState<InvoiceForm>(blankForm);
-  const [draftRowId, setDraftRowId] = useState<number | null>(null);
   const [editInvoiceId, setEditInvoiceId] = useState<number | null>(null);
   const [previewNo, setPreviewNo] = useState('NEW');
   const [step, setStep] = useState(0);
@@ -104,7 +102,6 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [tabPreview, setTabPreview] = useState(false);
   const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
-  const autosaved = useRef(false);
 
   useEffect(() => {
     void (async () => {
@@ -137,19 +134,9 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
           return;
         }
       }
-      if (draftId) {
-        const d = await getDraft(draftId);
-        if (d) {
-          const payload = JSON.parse(d.payload_json) as DraftPayload;
-          setDraftRowId(d.id);
-          setPreviewNo(payload.invoiceNo);
-          setForm(payload.form);
-          return;
-        }
-      }
       setPreviewNo(formatInvoiceNo(s.invoice_prefix, s.next_seq));
     })();
-  }, [draftId, invoiceId]);
+  }, [invoiceId]);
 
   const totals = useMemo(
     () => computeTotals(form.lines, form.discountPercent),
@@ -158,19 +145,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
 
   const patch = useCallback((p: Partial<InvoiceForm>) => {
     setForm(f => ({ ...f, ...p }));
-    autosaved.current = false;
   }, []);
-
-  const autosave = useCallback(async () => {
-    if (!settings) return;
-    const payload: DraftPayload = {
-      form,
-      invoiceNo: editInvoiceId ? previewNo : formatInvoiceNo(settings.invoice_prefix, settings.next_seq),
-    };
-    const id = await saveDraft(draftRowId, payload, totals.total);
-    setDraftRowId(id);
-    autosaved.current = true;
-  }, [settings, form, totals.total, draftRowId, previewNo, editInvoiceId]);
 
   const previewInvoice = useMemo(() => {
     if (!settings) return null;
@@ -280,7 +255,6 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
         : {},
     );
     await logAudit(editInvoiceId ? 'invoice.update' : 'invoice.issue', 'invoice', res.invoiceNo);
-    if (draftRowId) await deleteDraft(draftRowId);
     nav.refresh();
     nav.closeOverlay();
     snack(`${res.invoiceNo} ${editInvoiceId ? 'updated' : 'issued'} · ₹${formatPaise(totals.total)}`, {
@@ -288,19 +262,7 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
     });
   };
 
-  const saveAsDraft = async () => {
-    await autosave();
-    nav.refresh();
-    nav.closeOverlay();
-    snack('Saved to drafts');
-  };
-
-  // Leaving keeps work: anything typed since the last autosave goes to drafts first.
-  const leave = () => {
-    const dirty = !autosaved.current && (!!form.party.party_name.trim() || form.lines.length > 0);
-    if (dirty && !editInvoiceId) void saveAsDraft();
-    else nav.closeOverlay();
-  };
+  const leave = () => nav.closeOverlay();
 
   // Back (the app bar and Android) walks back one step on the phone stepper before leaving.
   const back = () => {
@@ -320,8 +282,8 @@ function useInvoiceForm({ draftId, invoiceId }: { draftId?: number; invoiceId?: 
     catalogOpen, closeCatalog: () => setCatalogOpen(false), catalogSearch, products, narrowCatalog,
     tabPreview, togglePreview: () => setTabPreview(p => !p),
     pageSize, setPageSize, previewHtml,
-    patch, autosave, openCatalog, searchCatalog, addLine, addBlankLine, updateLine, removeLine,
-    issue, saveAsDraft, leave, back,
+    patch, openCatalog, searchCatalog, addLine, addBlankLine, updateLine, removeLine,
+    issue, leave, back,
   };
 }
 type Form = ReturnType<typeof useInvoiceForm>;
@@ -330,10 +292,10 @@ type Form = ReturnType<typeof useInvoiceForm>;
 // The screen: phone = header + stepper + step body + TOTAL bar;
 // xl = header + [catalog | form | preview]; md / lg = header + [form | preview].
 // ---------------------------------------------------------------------------
-export function CreateInvoiceScreen({ draftId, invoiceId }: { draftId?: number; invoiceId?: number }) {
+export function CreateInvoiceScreen({ invoiceId }: { invoiceId?: number }) {
   const theme = useTheme();
   const bp = useBreakpoint();
-  const f = useInvoiceForm({ draftId, invoiceId });
+  const f = useInvoiceForm({ invoiceId });
   const sheet = <CatalogSheet
     open={f.catalogOpen} onClose={f.closeCatalog} theme={theme}
     products={f.products} onSearch={f.searchCatalog} searchValue={f.catalogSearch} onPick={f.addLine}
@@ -484,18 +446,16 @@ function FormPane({ f, theme, width, maxWidth }: { f: Form; theme: Theme; width?
 }
 
 // S4.A — Bill to: Customer name · Mobile · Invoice date.
-// Every field autosaves the draft on blur.
 function BillToCard({ f, theme }: { f: Form; theme: Theme }) {
   const party = f.form.party;
   const set = (k: keyof typeof party) => (v: string) => f.patch({ party: { ...party, [k]: v } });
-  const blur = () => void f.autosave();
   return (
     <Card theme={theme} style={{ backgroundColor: theme.sheet }}>
       <SectionTitle title="Bill to" theme={theme} />
       <Input label="Customer name *" value={party.party_name} autoCapitalize="words"
-        onChange={set('party_name')} onBlur={blur} theme={theme} />
+        onChange={set('party_name')} theme={theme} />
       <Input label="Mobile" value={party.party_mobile}
-        onChange={set('party_mobile')} onBlur={blur} theme={theme} keyboardType="phone-pad" />
+        onChange={set('party_mobile')} theme={theme} keyboardType="phone-pad" />
       <DatesRow f={f} theme={theme} />
     </Card>
   );
@@ -506,7 +466,7 @@ function DatesRow({ f, theme }: { f: Form; theme: Theme }) {
   return (
     <View style={{ marginBottom: S4.inputPull }}>
       <Input label="Invoice date" value={f.form.invoiceDate}
-        onChange={v => f.patch({ invoiceDate: v })} onBlur={() => void f.autosave()}
+        onChange={v => f.patch({ invoiceDate: v })}
         theme={theme} tabular placeholder="YYYY-MM-DD" />
     </View>
   );
@@ -563,9 +523,8 @@ function EmptyItemsCard({ xl, theme }: { xl: boolean; theme: Theme }) {
 }
 
 // S4.B.3 — one line-item card: "ITEM n · FROM PRODUCTS / FREE LINE" + trash ·
-// Description · Qty | Rate (1 : 1.4) · "Amount … ₹value".
+// Description · Size | Qty (− n +) | Rate · "Amount … ₹value".
 function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: number; theme: Theme }) {
-  const blur = () => void f.autosave();
   return (
     <Card theme={theme} style={{ backgroundColor: theme.sheet }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: space[2], marginTop: -space[2] }}>
@@ -576,15 +535,13 @@ function LineItemCard({ f, line, index, theme }: { f: Form; line: Line; index: n
           color={white} fill={theme.destructive} />
       </View>
       <Input label="Description" value={line.description}
-        onChange={v => f.updateLine(index, { description: v })} onBlur={blur} theme={theme} />
+        onChange={v => f.updateLine(index, { description: v })} theme={theme} />
       <Columns kind="input" minCell={S4.lineMinCell} weights={[...S4.lineWeights]}>
         <Dropdown label="Size" value={line.size} options={[...S4.lineSizes]} theme={theme}
           onChange={v => f.updateLine(index, { size: v })} />
-        <Input label="Qty" value={String(line.qty)}
-          onChange={v => f.updateLine(index, { qty: Math.max(0, Number(v.replace(/[^0-9.]/g, '')) || 0) })}
-          onBlur={blur} theme={theme} keyboardType="decimal-pad" tabular />
+        <StepperInput label="Qty" value={line.qty} onChange={v => f.updateLine(index, { qty: v })} theme={theme} />
         <MoneyInput label="Rate (₹)" valuePaise={line.unit_paise}
-          onChangePaise={p => f.updateLine(index, { unit_paise: p })} onBlur={blur} theme={theme} />
+          onChangePaise={p => f.updateLine(index, { unit_paise: p })} theme={theme} />
       </Columns>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={[type.bodyMedium, { color: theme.textMuted }]}>Amount</Text>
@@ -667,11 +624,10 @@ function ReviewSection({ f, theme }: { f: Form; theme: Theme }) {
   );
 }
 
-// S4.F — right-aligned: Save draft (glass) · Issue invoice / Update (blue).
+// S4.F — right-aligned: Issue invoice / Update (blue).
 function ActionButtons({ f, theme }: { f: Form; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: space[2], justifyContent: 'flex-end' }}>
-      <Button label="Save draft" variant="outline" theme={theme} onPress={() => void f.saveAsDraft()} />
       <Button label={f.editInvoiceId ? 'Update' : 'Issue invoice'} icon={f.editInvoiceId ? 'check' : 'send'} theme={theme}
         onPress={() => void f.issue()} />
     </View>
@@ -740,7 +696,7 @@ function CatalogPanel({ f, theme }: { f: Form; theme: Theme }) {
 // ---------------------------------------------------------------------------
 
 // S4.L1.3 — phone: floating glass bar (bottom-nav recipe) with the running TOTAL and the
-// step's primary action: Next on steps 1–2, Save draft + Issue on the Review step.
+// step's primary action: Next on steps 1–2, Issue on the Review step.
 // <Screen> keeps it in the flex column (it rises with the keyboard) and pads the gesture inset.
 function TotalBar({ f, theme }: { f: Form; theme: Theme }) {
   return (

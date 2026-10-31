@@ -5,14 +5,14 @@
 //   Header … ActivityPane         one function per region, in the order they appear on screen
 // IDs (S6.1, S6.2.1 …) are from SCREEN_LAYOUT_REFERENCE/SCREEN_LAYOUT_REFERENCE.md.
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Switch, Text, View } from 'react-native';
 import { alert } from '../../ui/alert';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../../shell/providers';
 import { useBackIntercept, useNav } from '../../shell/navigation';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import {
-  Button, Card, EmptyState, IconButton, Input, ListItem, SectionTitle, TopAppBar, initials, type IconName,
+  Badge, Button, Card, EmptyState, Input, ListItem, SectionTitle, TopAppBar, initials, type IconName,
 } from '../../ui/components';
 import { useNavInset } from '../../ui/navMetrics';
 import { Screen } from '../../ui/Screen';
@@ -20,21 +20,24 @@ import { Columns } from '../../ui/Columns';
 import { useSnackbar } from '../../ui/Snackbar';
 import { layout, space, type } from '../../ui/tokens';
 import type { Theme } from '../../ui/tokens';
-import { formatPaise, formatDateDisplay } from '../../data/money';
 import { getSettings, updateSettings } from '../../data/settingsRepo';
-import { listDrafts, deleteDraft } from '../../data/draftsRepo';
 import { exportDbBackup, listBackups, restoreDbBackup } from '../../data/backupRepo';
 import { recentAudit } from '../../data/auditRepo';
 import { shareFile } from '../../export/pdf';
-import type { Draft, Settings } from '../../data/types';
+import { LOCK, useLock } from '../../auth/LockProvider';
+import { useSync } from '../../sync/SyncProvider';
+import { PairScanner } from './PairScanner';
+import { bioUnlock } from '../../auth/biometrics';
+import type { Settings } from '../../data/types';
 import appVersion from '../../../app-version.json';
 
-type Section = 'company' | 'drafts' | 'backup' | 'activity';
+type Section = 'company' | 'sync' | 'security' | 'backup' | 'activity';
 
-// S6.1 — the four sections, in order: key · label · hint · Feather icon.
+// S6.1 — the five sections, in order: key · label · hint · Feather icon.
 const SECTIONS: Array<{ key: Section; label: string; hint: string; icon: IconName }> = [
   { key: 'company', label: 'Company', hint: 'Business details, bank, invoice numbering', icon: 'briefcase' },
-  { key: 'drafts', label: 'Drafts', hint: 'Autosaved invoices not yet issued', icon: 'file' },
+  { key: 'sync', label: 'Sync with desktop', hint: 'Pair with Invoice ERP Desktop, share invoices and stock', icon: 'refresh-cw' },
+  { key: 'security', label: 'Security', hint: 'PIN, fingerprint, recovery code, lock', icon: 'lock' },
   { key: 'backup', label: 'Backup & restore', hint: 'Encrypted database export and import', icon: 'upload-cloud' },
   { key: 'activity', label: 'Activity log', hint: 'Recent changes made in the app', icon: 'clock' },
 ];
@@ -54,6 +57,15 @@ const S6 = {
   numberPad: 3, // S6.2.3: "INV-002" pads the sequence to 3 digits
 } as const;
 
+// S6.7.2 "Last sync": SQLite UTC "YYYY-MM-DD HH:MM:SS" → "today 10:42" / "29 Oct, 18:05".
+function syncTime(utc: string): string {
+  if (!utc) return 'Not yet';
+  const d = new Date(utc.replace(' ', 'T') + 'Z');
+  const hm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString()
+    ? `today ${hm}` : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${hm}`;
+}
+
 type Backup = Awaited<ReturnType<typeof listBackups>>[number];
 type AuditRow = Awaited<ReturnType<typeof recentAudit>>[number];
 
@@ -68,10 +80,13 @@ function useSettings() {
   const [section, setSection] = useState<Section>('company');
   const [openOnPhone, setOpenOnPhone] = useState<Section | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [backups, setBackups] = useState<Backup[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(false);
+  const lock = useLock();
+  const sync = useSync();
+  const [scanning, setScanning] = useState(false);
+  const [pairLink, setPairLink] = useState('');
 
   // One pane (phones, md): system Back returns to the section list before leaving Settings.
   useBackIntercept(() => {
@@ -81,7 +96,6 @@ function useSettings() {
 
   const load = useCallback(async () => {
     setSettings(await getSettings());
-    setDrafts(await listDrafts());
     setBackups(await listBackups());
     setAudit(await recentAudit(S6.auditRows));
   }, []);
@@ -156,22 +170,55 @@ function useSettings() {
     }
   };
 
-  const removeDraft = useCallback((d: Draft) => {
-    alert('Delete draft?', d.draft_no, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: () => { void deleteDraft(d.id).then(() => { void load(); snack('Draft deleted'); }); },
-      },
-    ]);
-  }, [load, snack]);
+  // S6.7: pair from the scanner or the pasted link; the first sync starts right after.
+  const pairWith = async (code: string) => {
+    setScanning(false);
+    setBusy(true);
+    try {
+      await sync.pair(code);
+      setPairLink('');
+      snack('Paired with the desktop');
+    } catch (e) {
+      alert('Pairing did not work', e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  const openDraft = useCallback((d: Draft) => nav.openCreate({ draftId: d.id }), [nav]);
+  const syncNow = async () => {
+    const r = await sync.syncNow();
+    if (r) snack(r.pushed + r.pulled > 0 ? `Synced: ${r.pushed} sent, ${r.pulled} received` : 'Up to date');
+  };
+
+  const unpair = () => {
+    alert(
+      'Unpair from the desktop?',
+      'This phone stops syncing. Its invoices stay here and on the desktop. To sync again, pair with a new code.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Unpair', style: 'destructive', onPress: () => void sync.unpair() },
+      ],
+    );
+  };
+
+  // S6.6: turning fingerprint unlock on asks for a fingerprint first, so it is known to work.
+  const toggleBio = async (on: boolean) => {
+    if (on && !(await bioUnlock('Confirm your fingerprint'))) return;
+    await lock.setBio(on);
+    snack(on ? 'Fingerprint unlock on' : 'Fingerprint unlock off');
+  };
+
+  // D4 (LAN_SYNC Phase 5): company details, restore and unpair need the Settings
+  // switch. A paired phone with nobody signed in takes company details from the
+  // desktop (the desktop would undo a change made here).
+  const canSettings = lock.can('settings');
+  const companyEditable = canSettings && !(sync.status?.paired && !lock.person);
 
   return {
+    canSettings, companyEditable,
     section, setSection, openOnPhone, setOpenOnPhone,
-    settings, drafts, backups, audit, busy,
-    setField, saveCompany, exportBackup, importBackup, removeDraft, openDraft,
+    settings, backups, audit, busy, lock, sync, scanning, setScanning, pairLink, setPairLink,
+    setField, saveCompany, exportBackup, importBackup, toggleBio, pairWith, syncNow, unpair,
   };
 }
 type SettingsState = ReturnType<typeof useSettings>;
@@ -223,7 +270,7 @@ function Header({ s, theme, open }: { s: Loaded; theme: Theme; open?: (typeof SE
   return (
     <TopAppBar
       title={open ? open.label : 'Settings'}
-      subtitle={open ? undefined : 'Company, drafts, backup'}
+      subtitle={open ? undefined : 'Company, sync, security, backup'}
       theme={theme}
       large={!open}
       onBack={open ? () => s.setOpenOnPhone(null) : undefined}
@@ -284,7 +331,8 @@ function SectionListPane({ s, theme }: { s: Loaded; theme: Theme }) {
 function SectionBody({ s, theme, section }: { s: Loaded; theme: Theme; section: Section }) {
   switch (section) {
     case 'company': return <CompanyForm s={s} theme={theme} />;
-    case 'drafts': return <DraftsPane s={s} theme={theme} />;
+    case 'sync': return <SyncPane s={s} theme={theme} />;
+    case 'security': return <SecurityPane s={s} theme={theme} />;
     case 'backup': return <BackupPane s={s} theme={theme} />;
     case 'activity': return <ActivityPane s={s} theme={theme} />;
   }
@@ -295,14 +343,23 @@ function FieldRow({ children }: { children: React.ReactNode }) {
   return <Columns kind="input">{children}</Columns>;
 }
 
-// S6.2 — Company: the Business, Bank / UPI and Invoice numbering cards, then Save (S6.2.4).
+// S6.2 — Company: the Business, Bank / UPI and Invoice numbering cards, then Save (S6.2.4),
+// or (S6.2.5) the line saying where these are changed when this person may not.
 function CompanyForm({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ gap: layout.gap }}>
       <BusinessCard s={s} theme={theme} />
       <BankCard s={s} theme={theme} />
       <NumberingCard s={s} theme={theme} />
-      <Button label="Save" icon="check" theme={theme} busy={s.busy} onPress={() => void s.saveCompany()} />
+      {s.companyEditable
+        ? <Button label="Save" icon="check" theme={theme} busy={s.busy} onPress={() => void s.saveCompany()} />
+        : (
+          <Text style={[type.bodyMedium, { color: theme.textMuted }]}>
+            {s.canSettings
+              ? 'Company details come from Invoice ERP Desktop. Change them there, or sign in as the owner.'
+              : 'Company details are changed by the owner, or by someone with the Settings switch on Invoice ERP Desktop.'}
+          </Text>
+        )}
     </View>
   );
 }
@@ -369,43 +426,123 @@ function NumberingCard({ s, theme }: { s: Loaded; theme: Theme }) {
   );
 }
 
-// S6.3 — Drafts: "Drafts (n)" title on lg+ (the header says it on one pane), then a list card
-// of DraftRows or "No drafts".
-function DraftsPane({ s, theme }: { s: Loaded; theme: Theme }) {
-  const bp = useBreakpoint();
+// S6.7 — Sync with desktop: not paired = what it does + Scan (S6.7.1) or paste a link;
+// paired = desktop · series · last sync (S6.7.2), then Sync now | Unpair (S6.7.3).
+// The scanner (S6.7.4) is a full-screen overlay.
+function SyncPane({ s, theme }: { s: Loaded; theme: Theme }) {
+  const st = s.sync.status;
   return (
-    <View>
-      {bp.panes === 1 ? null : <SectionTitle title={`Drafts (${s.drafts.length})`} theme={theme} />}
-      <Card theme={theme} list>
-        {s.drafts.length === 0
-          ? <EmptyState icon="file" title="No drafts" text="Invoices you leave unfinished are autosaved here." theme={theme} />
-          : s.drafts.map((d, i) => (
-            <DraftRow key={d.id} d={d} alt={i % 2 === 1} last={i === s.drafts.length - 1}
-              onOpen={s.openDraft} onDelete={s.removeDraft} theme={theme} />
-          ))}
-      </Card>
+    <View style={{ gap: layout.gap }}>
+      {st?.paired ? <PairedCard s={s} theme={theme} /> : <PairCard s={s} theme={theme} />}
+      {s.sync.lastError ? (
+        <Text style={[type.bodyMedium, { color: theme.error }]} accessibilityLiveRegion="polite">{s.sync.lastError}</Text>
+      ) : null}
+      <PairScanner visible={s.scanning} onCode={code => void s.pairWith(code)} onClose={() => s.setScanning(false)} />
     </View>
   );
 }
 
-// S6.3 row — avatar · party · "draft no · n lines · ₹total · date" · trash (confirm). Tap opens S4 with the draft.
-const DraftRow = React.memo(function DraftRow({ d, alt, last, onOpen, onDelete, theme }: {
-  d: Draft; alt: boolean; last: boolean; onOpen: (d: Draft) => void; onDelete: (d: Draft) => void; theme: Theme;
-}) {
+// S6.7.1 — not paired: what pairing does, Scan pairing code, or paste the link (emulators, no camera).
+function PairCard({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
-    <ListItem
-      theme={theme}
-      flush
-      leadingText={initials(d.party_name)}
-      leadingAlt={alt}
-      divider={!last}
-      title={d.party_name || '(no customer)'}
-      subtitle={`${d.draft_no} · ${d.items_count} lines · ₹${formatPaise(d.total_paise)} · ${formatDateDisplay(d.updated_at.slice(0, 10))}`}
-      onPress={() => onOpen(d)}
-      trailing={<IconButton icon="trash-2" label={`Delete draft ${d.draft_no}`} theme={theme} onPress={() => onDelete(d)} />}
-    />
+    <Card theme={theme} style={{ gap: space[4] }}>
+      <SectionTitle title="Desktop" theme={theme} />
+      <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: -space[3] }]}>
+        Pair this phone with Invoice ERP Desktop on the same Wi-Fi. Invoices, payments and stock are
+        then kept on the desktop and shared with your other phones. On the desktop, choose Add phone.
+      </Text>
+      <Button label="Scan pairing code" icon="camera" theme={theme} busy={s.busy} onPress={() => s.setScanning(true)} />
+      <View style={{ marginBottom: S6.inputPull }}>
+        <Input label="Or paste the pairing link" value={s.pairLink} onChange={s.setPairLink} theme={theme}
+          autoCapitalize="none" placeholder="invoiceerp://pair?…" />
+      </View>
+      <Button label="Pair" icon="link" variant="outline" theme={theme} busy={s.busy}
+        disabled={!s.pairLink.trim()} onPress={() => void s.pairWith(s.pairLink)} />
+    </Card>
   );
-});
+}
+
+// S6.7.2 — paired: Desktop · Invoice series · Last sync (+ waiting / needs attention), then S6.7.3
+// (Unpair only with the Settings switch, D4).
+function PairedCard({ s, theme }: { s: Loaded; theme: Theme }) {
+  const st = s.sync.status!;
+  const waiting = st.pending > 0 ? ` · ${st.pending} waiting to send` : '';
+  return (
+    <>
+      <Card theme={theme} list>
+        <ListItem theme={theme} flush leadingIcon="monitor" title="Desktop" subtitle={st.hostName || 'Invoice ERP Desktop'} />
+        <ListItem theme={theme} flush leadingIcon="hash" title="Invoice series"
+          subtitle={`${st.series}${String(1).padStart(S6.numberPad, '0')}, ${st.series}${String(2).padStart(S6.numberPad, '0')} …`} />
+        <ListItem theme={theme} flush leadingIcon="refresh-cw" title="Last sync" divider={st.attention > 0}
+          subtitle={`${syncTime(st.lastSyncAt)}${waiting}`} />
+        {st.attention > 0 ? (
+          <ListItem theme={theme} flush leadingIcon="alert-circle" divider={false}
+            title={`${st.attention} change${st.attention === 1 ? '' : 's'} not taken by the desktop`}
+            subtitle="Usually an invoice number or product name already used on another device"
+            trailing={<Badge label="Check" tone="error" theme={theme} />} />
+        ) : null}
+      </Card>
+      <View style={{ flexDirection: 'row', gap: layout.grid }}>
+        <Button label="Sync now" icon="refresh-cw" theme={theme} busy={s.sync.busy} onPress={() => void s.syncNow()} style={{ flex: 1 }} />
+        {s.canSettings ? <Button label="Unpair" icon="x" variant="outline" theme={theme} onPress={s.unpair} style={{ flex: 1 }} /> : null}
+      </View>
+    </>
+  );
+}
+
+// S6.6 — Security: when the app locks, (S6.6.1, people mode) who is signed in with Switch
+// person, then a list card (fingerprint switch · Change PIN · New recovery code: the device
+// PIN, owners only once people sign in), then Lock now. The PIN screens themselves are S7.
+function SecurityPane({ s, theme }: { s: Loaded; theme: Theme }) {
+  const { bio, person } = s.lock;
+  const minutes = LOCK.relockAfterMs / 60_000;
+  return (
+    <View style={{ gap: layout.gap }}>
+      <Card theme={theme} style={{ gap: space[4] }}>
+        <SectionTitle title="App lock" theme={theme} />
+        <Text style={[type.bodyMedium, { color: theme.textMuted, marginTop: -space[3] }]}>
+          The app asks for your PIN when it opens and after {minutes} minutes in the background.
+        </Text>
+      </Card>
+      {person ? (
+        <Card theme={theme} list>
+          <ListItem theme={theme} flush leadingText={initials(person.name)} leadingAlt={person.role !== 'admin'}
+            title={`Signed in as ${person.name}`} subtitle={person.role === 'admin' ? 'Owner' : 'Staff'}
+            chevron divider={false} onPress={s.lock.lockNow} trailing={<Text style={[type.label, { color: theme.accent }]}>Switch person</Text>} />
+        </Card>
+      ) : null}
+      {person && person.role !== 'admin' ? null : <DeviceLockCard s={s} theme={theme} bio={bio} />}
+      <Button label="Lock now" icon="lock" theme={theme} onPress={s.lock.lockNow} />
+    </View>
+  );
+}
+
+// S6.6 list — the device PIN: fingerprint / face unlock switch · Change PIN · New recovery code.
+function DeviceLockCard({ s, theme, bio }: { s: Loaded; theme: Theme; bio: Loaded['lock']['bio'] }) {
+  return (
+    <>
+      <Card theme={theme} list>
+        <ListItem theme={theme} flush leadingIcon="smartphone"
+          title="Fingerprint / face unlock"
+          subtitle={bio.available ? 'Unlock without typing the PIN' : 'Add a fingerprint in Android Settings to use this'}
+          trailing={(
+            <Switch
+              value={bio.available && bio.enabled}
+              disabled={!bio.available}
+              onValueChange={on => void s.toggleBio(on)}
+              accessibilityLabel="Fingerprint or face unlock"
+              trackColor={{ true: theme.accent, false: theme.outline }}
+              thumbColor={theme.accentOn}
+            />
+          )} />
+        <ListItem theme={theme} flush leadingIcon="key" title="Change PIN" subtitle="Enter the current PIN, then a new one"
+          chevron onPress={s.lock.changePin} />
+        <ListItem theme={theme} flush leadingIcon="file-text" title="New recovery code" subtitle="The old code stops working"
+          chevron divider={false} onPress={s.lock.showNewCode} />
+      </Card>
+    </>
+  );
+}
 
 // S6.4 — Backup & restore: the info card with Export | Restore, then "Recent backups" when there are any.
 function BackupPane({ s, theme }: { s: Loaded; theme: Theme }) {
@@ -424,12 +561,14 @@ function BackupPane({ s, theme }: { s: Loaded; theme: Theme }) {
   );
 }
 
-// S6.4 row — one row, two equal columns: Export (blue) | Restore (glass).
+// S6.4 row — one row, two equal columns: Export (blue) | Restore (glass; Settings switch only, D4).
 function ExportRestoreRow({ s, theme }: { s: Loaded; theme: Theme }) {
   return (
     <View style={{ flexDirection: 'row', gap: layout.grid }}>
       <Button label="Export" icon="share" theme={theme} busy={s.busy} onPress={() => void s.exportBackup()} style={{ flex: 1 }} />
-      <Button label="Restore" icon="download" variant="outline" theme={theme} busy={s.busy} onPress={() => void s.importBackup()} style={{ flex: 1 }} />
+      {s.canSettings ? (
+        <Button label="Restore" icon="download" variant="outline" theme={theme} busy={s.busy} onPress={() => void s.importBackup()} style={{ flex: 1 }} />
+      ) : null}
     </View>
   );
 }

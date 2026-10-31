@@ -19,6 +19,7 @@ Every screen, section, row, column and function in the app, each with a **stable
 ```
 App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
    └─ Root: loading screen → error screen → ready
+        └─ LockProvider (S7 PIN screen over everything until unlocked; the shell stays mounted under it)
         └─ NavProvider (tab + overlay state, Android Back)
              └─ SnackbarProvider
                   └─ Shell
@@ -35,11 +36,13 @@ App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
 | S4 | Create / Edit invoice | `src/features/invoices/CreateInvoiceScreen.tsx` | FAB / Rail **+** / "Edit" in S3 / a draft in S6 |
 | S5 | Products | `src/features/products/ProductsScreen.tsx` | tab **Products** |
 | S6 | Settings | `src/features/settings/SettingsScreen.tsx` | tab **Settings** |
+| S7 | Sign in (app lock: PIN, fingerprint, recovery code) | `src/features/auth/AuthScreen.tsx`, `src/auth/` | app start; back after 5 min away; S6.6 Lock now / Change PIN / New recovery code |
 | P1 | Record-payment sheet | inside `InvoiceDetail.tsx` | S3 "Record payment" |
 | P2 | Add-from-products (catalog) sheet | `CatalogSheet` in `CreateInvoiceScreen.tsx` | S4 "Add from products" |
 | P3 | Product editor / Restock sheet | inside `ProductsScreen.tsx` | S5 row tap or FAB (phone, md) |
 | D1 | Invoice PDF / print layout | `src/export/pdfTemplate.ts` | S3 "Share PDF", S4 preview |
 | D2 | Excel exports | `src/export/xlsx.ts` | S2, S3, S5 export buttons |
+| D3 | Invoice image (Share) | `src/features/invoices/InvoiceImage.tsx` | S3 "Share" (WhatsApp / Save to phone) |
 
 ### Breakpoints (`src/ui/useBreakpoint.ts`)
 
@@ -66,7 +69,7 @@ App.tsx ─ SafeAreaProvider ─ ThemeProvider (light/dark from system)
 | --- | --- | --- | --- |
 | S0.1.1 | Loading | centred column: spinner, "Invoice ERP" (title), "Unlocking database…" | App.tsx:55-64 |
 | S0.1.2 | Error | centred column: alert icon (40), "Cannot open the database", error text | App.tsx:65-74 |
-| S0.1.3 | Ready | NavProvider → SnackbarProvider → Shell | App.tsx:76-83 |
+| S0.1.3 | Ready | LockProvider (S7) → NavProvider → SnackbarProvider → Shell | App.tsx:93-103 |
 
 Start-up work: `getDb()` → `syncNextSeq()` → ready → `ensureDailyBackup()` in the background (App.tsx:41-53).
 
@@ -143,6 +146,20 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 │ Sold    ││ Stock   ││ Stock   │
 │ 3       ││ 12      ││ 15      │
 └─────────┘└─────────┘└─────────┘
+┌─────────────────────────────┐
+│ STOCK SPLIT                 │ S1.6 stock pie card
+│  (3D pie)   ● Sold        3 │       Actual = whole disc,
+│  Sold|Bal   ● Balance    12 │       Sold blue · Balance grey
+│             ─────────────── │
+│             Actual       15 │       (+ red "Oversold by N")
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│ PAYMENTS · FY               │ S1.7 payments pie card
+│  (3D pie)   ● UPI (1) ₹250  │       same card as S1.6 (PieLegendCard)
+│  UPI|Cash   ● Cash (1) ₹100 │       UPI blue · Cash grey
+│             ─────────────── │
+│             Total     ₹350  │       = Total billed (S1.1)
+└─────────────────────────────┘
                [+ New invoice]   S1.5 FAB (52, radius 12, blue)
 ┌─────────────────────────────┐
 │ [■]   [ ]    [ ]    [ ]     │ S0.4.2 floating bottom nav
@@ -161,6 +178,8 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S1.2.a | "Products Sold" | `stock.soldQty` = Σ qty on product-linked lines of non-void invoices (all time; = SOLD in S5) · `shopping-cart` | | `STOCK_TILES` |
 | S1.2.b | "Balance Stock" | `stock.avlQty` = Actual − Sold (= AVL in S5; can go negative) · `box` | | `STOCK_TILES` |
 | S1.2.c | "Actual Stock" | `stock.stockQty` = Σ `products.stock_qty` (= STOCK in S5) · `layers` | | `STOCK_TILES` |
+| S1.6 | Stock split | glass card, gap 12: overline "Stock split" · row (gap 16): `PieChart3D` (C17) width 128 (96 at xs), tilt 0.55, depth 16, slices Sold `theme.accent` · Balance `theme.textMuted` (negatives drawn as 0; all zero → `theme.divider` disc), then the legend (`flex: 1`): dot 10 + label 13/400 `#666` + value `type.number` (Bebas 16) for Sold and Balance, divider, "Actual Stock" 13/500 + value; Balance < 0 adds "Oversold by N" in `theme.error` | `S1.pieWidth`, `S1.pieWidthXs`, `S1.pieTilt`, `S1.pieDepth`, `S1.swatch` | `StockPieCard` |
+| S1.7 | Payments · FY | the S1.6 card (`PieLegendCard`) for money: `getPaymentSplit()` (`dashboardRepo.ts`) = the hero's invoices (this FY, issued / partial / paid) split by `invoices.payment_mode`: 'UPI', everything else Cash. Pie weights = ₹; legend "UPI (n)" / "Cash (n)" with `₹` amounts (`type.number`), divider, "Total" (= S1.1 Total billed). UPI `theme.accent`, Cash `theme.textMuted` | `S1.pieWidth`, `S1.pieWidthXs`, `S1.pieTilt`, `S1.pieDepth`, `S1.swatch` | `PaymentsPieCard`, `PieLegendCard` |
 | S1.5 | FAB "New invoice" | phone only, 20 from the right, 16 above the nav (C9); the `fab` slot of `<Screen>` | | `DashboardScreen` |
 | — | Scroll container | side padding 20, gap 16, bottom = `useMainInset()` (clears nav + FAB; from `<Screen fab>`), maxWidth max(720, `S1.readShare` 90% width) | | `DashboardMain` |
 
@@ -185,9 +204,8 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 ```
  1 invoice                [⬇] [▤]   S2.0 flat header + 2 glass export buttons
  Invoices
-[🔍 Search invoice no or party] [📅]  S2.1 search field + S2.3 date-range button
+[🔍 Search invoice no or customer      ]  S2.1 search field (full width)
 ( All | Issued | Partial | Paid | Void )  S2.2 segmented control
-[From YYYY-MM-DD] [To YYYY-MM-DD]   S2.3a date fields (only when 📅 is on)
 ┌─────────────────────────────┐
 │ (AS) Party       ₹1,200.00  │ S2.5 list card: hugs its rows,
 │      PRE-003 · date [Paid]  │      scrolls once it fills the space
@@ -214,9 +232,9 @@ Snackbar sits above the nav bar and FAB on phones: `bottomOffset = NAV_HEIGHT + 
 | S2.0 | Header | `Header`: `TopAppBar large`, caption "N invoice(s)", title "Invoices"; glass icon buttons `download` = Export list to Excel (current filtered rows), `book` = Export consolidated register | `Header` |
 | S2.1 | Search | `FilterRow`: `SearchField` (50 tall, glass) "Search invoice no or party", flex 1 | `FilterRow` |
 | S2.2 | Status filter | `SegmentedControl` over `STATUSES` (All, Issued, Partial, Paid, Void), inside `ListPane` | `STATUSES`, `ListPane` |
-| S2.3 | Date-range button | `FilterRow`: glass `IconButton` `calendar`; tinted when open or when a date is set | `FilterRow` |
-| S2.3a | Date fields | `DateRangeRow`: 2 columns (gap 12): From, To, `YYYY-MM-DD`, numeric, max 10 | `DateRangeRow` |
-| S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + status). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
+| S2.3 | Date-range button | removed 2026-10-27 (S2 has no date filter) | — |
+| S2.3a | Date fields | removed 2026-10-27 with S2.3 | — |
+| S2.5 | List card | `InvoiceListCard`: `Card list` with `flexShrink: 1` + `FlatList` `flexGrow: 0`; rows = `InvoiceRow` (`ListItem flush` with avatar, party, `no · date`, amount + payment pill UPI / CASH). Phone tap → S3 overlay; tablet tap → select (tinted row). Long lists (> `S2.longList`) get `S2.fabClearance` at the bottom | `InvoiceListCard`, `InvoiceRow` |
 | S2.5.e | Empty states | filtered → "No matches"; unfiltered → "No invoices yet" | `InvoiceListCard` |
 | S2.6 | FAB | phone only, "New invoice"; the `fab` slot of `<Screen>` in `InvoicesScreen()`; the list card clears it with `useFabClearance()` | `InvoicesScreen` |
 | S2.7 | Detail pane | `DetailPane`: lg+; width `S2.detailWidth` 50%, or 42% when the activity pane shows (xxl); left divider; renders S3 | `DetailPane` |
@@ -275,11 +293,11 @@ Phone: full screen under a "Invoice" back app bar (App.tsx:112-119). Tablet: ins
 | --- | --- | --- | --- |
 | S3.0 | Loading | centred spinner until the invoice loads | `InvoiceDetail` |
 | S3.1 | Header row | left column: invoice_no (title) + date · due; right: StatusGlyph | `HeaderRow` |
-| S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`) | `BillToCard` |
+| S3.2 | Bill-to card | filled Card: "BILL TO", party (heading), address line, contact line (`Ph … · email`); last row (space-between, gap 12): Share button (left) · Payment block (right, right-aligned: overline "Payment", `inv.payment_mode` Cash / UPI in `type.label`, read-only; changed with Edit → Items → Payment) | `BillToCard` |
 | S3.3 | Primary actions | wrap row, gap 12 (`layout.grid`): **Record payment** (solid, only if `canPay`) · **Share PDF** (tonal if canPay, else solid) · **Excel** (outline) | `ActionRow` |
 | S3.4 | Items table | SectionTitle "Items (n)"; `ItemsHeader` Item/Qty/Rate/Amount with **flex 2.6 : 0.8 : 1.3 : 1.3** (`S3.itemColumns`, read by the header and the rows), numbers right-aligned; each `LineRow` (memo) padded 12, bottom border; description up to 2 lines | `ItemsCard`, `ItemsHeader`, `LineRow` |
 | S3.5 | Totals block | `TotalRow`s: Gross · Discount (only if > 0) · Round off · **Total** (strong) · Paid (if > 0) · Balance due (if paid and outstanding) · amount in words · notes | `TotalsCard` |
-| S3.6 | Secondary actions | not void → **Edit** (outline, opens S4 in edit mode) · **Void** (ghost, red) | `EditVoidRow` |
+| S3.6 | Secondary actions | **Edit** (opens S4 in edit mode) · **Delete** (solid red, confirm; only with the Delete switch, D4 / LAN_SYNC Phase 5) | `EditDeleteRow` |
 | P1 | Record-payment sheet | see P1 below | `PaymentSheet` |
 
 ### Functions
@@ -328,7 +346,7 @@ There are **three different layouts** built from the same blocks:
 | S4.B | **Items** (`ItemsSection`) | | `ItemsSection` |
 | S4.B.1 | Items title | "Items (n)" + "Add from products" ghost button (hidden at xl, where S4.L3 shows the catalog panel) | `ItemsSection` |
 | S4.B.2 | Empty card | "No items yet" | `EmptyItemsCard` |
-| S4.B.3 | Line-item card | header row "ITEM n · FROM PRODUCTS / FREE LINE" + trash IconButton · Description (full) · **Qty \| Rate (₹)** as `Columns` weights **1 : 1.4** (`S4.qtyRateWeights`) · footer row "Amount" … ₹value | `LineItemCard` |
+| S4.B.3 | Line-item card | header row "ITEM n · FROM PRODUCTS / FREE LINE" + trash IconButton · Description (full) · **Size \| Qty \| Rate (₹)** as `Columns` weights **1 : 1.2 : 1.25** (`S4.lineWeights`); Qty is a `StepperInput` (− n +) · footer row "Amount" … ₹value | `LineItemCard` |
 | S4.B.4 | "Add free line" | outline button, left-aligned | inside `ItemsSection` |
 | S4.B.5 | Adjustments | "Adjustments" title · row: Discount % (flex 1, clamped 0–100) \| "Ship to address" chip (flex 1) | `AdjustmentsCard` |
 | S4.B.6 | Shipping fields | only when the chip is on: Consignee (full) · Address (full) · `CityPincodeRow`; all printed in D1.2 | `ShippingFields` |
@@ -462,7 +480,7 @@ md: table, but the editor opens as P3 (dialog)
 | S5.6.2 | "Quick pick" chips = `QUICK_PICKS` (`PRODUCT_SEED_NAMES`, src/data/schema.ts) | `QuickPickChips` |
 | S5.6.3 | "Size" chips = `SIZES` (`PRODUCT_SIZES`) + "No size" | `SizeChips` |
 | S5.6.4 | Price (₹) \| Stock (`Columns kind="input"`); Stock helper = "Sold n · Avl n" | `PriceStockRow` |
-| S5.6.5 | Buttons right-aligned: Delete (ghost red, edit only) · Restock (tonal, edit only) · Save | `EditorActions` |
+| S5.6.5 | Buttons right-aligned: Delete (ghost red, edit only, Products switch) · Restock (tonal, edit only, Stock switch) · Save (either switch). With neither switch: one line instead, "You can look at products. Changing them needs the Products or Stock switch, set on Invoice ERP Desktop." Without Products: name and price read-only, Quick pick hidden, no "Add product" (FAB / header button), no New price in S5.7; without Stock: stock read-only (D4, LAN_SYNC Phase 5) | `EditorActions`, `ProductForm`, `PriceStockRow` |
 | S5.6.6 | Stock history list: icon (restock / edit) · "Restock +n → stock m" · date · note | `StockHistory` |
 | S5.7.1 | Info line: "name · size — current stock n" | `RestockForm` |
 | S5.7.2 | Qty to add \| New price (₹) (`Columns kind="input"`; a blank price keeps the current one) | `RestockForm` |
@@ -489,7 +507,7 @@ md: table, but the editor opens as P3 (dialog)
 
 **File:** `src/features/settings/SettingsScreen.tsx`
 
-Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **backup**, **activity**.
+Sections are defined in `SECTIONS`: **company**, **sync** (S6.7, since 2026-10-30), **security** (S6.6, since 2026-10-29), **backup**, **activity**. (Drafts, S6.3, is no longer in the list.)
 
 ### Phone: list, then drill-in
 
@@ -525,10 +543,18 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 | S6.2.1 | Business | Business name · Subtitle · Address (multiline) · City \| Pincode · PAN \| Contact (`FieldRow` = `Columns`) · Email | `BusinessCard` |
 | S6.2.2 | Bank / UPI | title · Bank \| Branch · A/C no \| IFSC · UPI ID | `BankCard` |
 | S6.2.3 | Invoice numbering | title · Prefix \| Next number (read-only, e.g. `PRE-002`, padded to `S6.numberPad`) | `NumberingCard` |
-| S6.2.4 | Save | the Save button at the end of the form | `CompanyForm` |
+| S6.2.4 | Save | the Save button at the end of the form (with the Settings switch, and on a paired phone only when someone is signed in) | `CompanyForm` |
+| S6.2.5 | Read-only note | instead of Save: "Company details are changed by the owner, or by someone with the Settings switch on Invoice ERP Desktop." / on a paired phone with nobody signed in: "Company details come from Invoice ERP Desktop. Change them there, or sign in as the owner." | `CompanyForm` |
 | S6.3 | **Drafts** | `DraftsPane`: "Drafts (n)" (lg+) · Card list of `DraftRow` (memo): title party · subtitle `draft_no · n lines · ₹total · date` · trailing trash (confirm). Tap → S4 with `draftId`. Empty: "No drafts" | `DraftsPane`, `DraftRow` |
 | S6.4 | **Backup & restore** | `BackupPane`: info text · `ExportRestoreRow` (Export \| Restore, 1:1) · `RecentBackups`: archive icon · file name · `kind · KB · date` | `BackupPane` |
 | S6.5 | **Activity log** | `ActivityPane`: ListItem: `action — entity_type entity_id` · date (latest `S6.auditRows` 50) | `ActivityPane` |
+| S6.6 | **Security** | `SecurityPane`: "App lock" card (when it locks, `LOCK.relockAfterMs` 5 min) · S6.6.1 · list card (`DeviceLockCard`, the device PIN; hidden for staff once people sign in): Fingerprint / face unlock (`Switch`, greyed when nothing is enrolled) · Change PIN › · New recovery code › · **Lock now** (solid). The PIN screens are S7 | `SecurityPane` |
+| S6.6.1 | Signed in (people mode) | list card: initials · "Signed in as <name>" · Owner / Staff · "Switch person" (blue) › → the S7 person flow | `SecurityPane` |
+| S6.7 | **Sync with desktop** (LAN_SYNC) | `SyncPane`: S6.7.1 or S6.7.2 + S6.7.3, then the last error (red) when the last sync failed | `SyncPane` |
+| S6.7.1 | Not paired | "Desktop" card: what pairing does · **Scan pairing code** (solid, camera) · "Or paste the pairing link" input · **Pair** (outline, disabled while empty) | `PairCard` |
+| S6.7.2 | Paired | list card: Desktop (monitor · host name) · Invoice series (hash · `INV-A001, INV-A002 …`) · Last sync (refresh · "today 10:42 · n waiting to send") · when the desktop refused changes: alert row + red **Check** badge | `PairedCard` |
+| S6.7.3 | Actions | one row, 1:1: **Sync now** (solid, busy while syncing) \| **Unpair** (outline, confirm) | `PairedCard` |
+| S6.7.4 | Scanner | full-screen overlay, dark recipe: camera · top bar "Scan pairing code" / "Desktop: Add phone" with back · 240 blue aiming frame (radius 16) · one line of help; no camera access: the reason + **Allow camera** | `PairScanner.tsx` |
 
 ### Functions
 
@@ -542,6 +568,66 @@ Sections are defined in `SECTIONS` (lines 26-31): **company**, **drafts**, **bac
 | `exportBackup()` | `exportDbBackup` → share | in `useSettings` |
 | `importBackup()` | pick a file → confirm → `restoreDbBackup` (takes a safety copy first) | in `useSettings` |
 | `removeDraft(d)` / `openDraft(d)` | confirm → `deleteDraft` / S4 with the draft | in `useSettings` |
+| `toggleBio(on)` | S6.6: on asks for a fingerprint first, then `lock.setBio` → snackbar | in `useSettings` |
+| `pairWith(code)` | S6.7: closes the scanner, `sync.pair(code)` (pairs, then the first sync) → snackbar; failure → alert with the reason | in `useSettings` |
+| `syncNow()` | S6.7.3: `sync.syncNow()` → snackbar "Synced: n sent, n received" / "Up to date"; a failure shows under the cards | in `useSettings` |
+| `unpair()` | S6.7.3: confirm → `sync.unpair()` (forgets the desktop; data and series stay) | in `useSettings` |
+
+---
+
+## S7 — Sign in (app lock)
+
+**Files:** `src/features/auth/AuthScreen.tsx` (screen), `src/auth/LockProvider.tsx` (when it shows), `src/auth/authStore.ts` (PIN / recovery hashes, lockout, fingerprint switch in expo-secure-store), `src/auth/biometrics.ts` (expo-local-authentication).
+
+Always the dark Sign In recipe (`design/screens/04-sign-in`), in light and dark mode. Shown as an absolute cover over the shell, which stays mounted (state survives a lock) and is hidden from screen readers while covered.
+
+### Wireframe (phone, PIN steps)
+
+```
+┌──────────────────────────────┐  black (#000), top 88, sides 24, gap 28
+│            [🔒]              │  S7.0 logo 64, radius 16, App Blue, white lock 30, shadow.secondary
+│        Welcome back          │       H1 28/600 white
+│ Enter your PIN to open …     │       15 #ebeaea
+│ ┌──────────────────────────┐ │
+│ │       ○ ○ ○ ○            │ │  S7.1 dark-glass card, radius 18, padding 24: dots 14 (blue when typed)
+│ │  [ Continue ] (create)   │ │       Continue only on "create"
+│ │  Wrong PIN. (red)        │ │       message line, 2 lines kept so the keys never move
+│ └──────────────────────────┘ │
+│      (1)   (2)   (3)         │  S7.2 keypad: round dark glass 72 (60 under 700 tall), Inter 300 28
+│      (4)   (5)   (6)         │
+│      (7)   (8)   (9)         │
+│      [fp]  (0)   [⌫]         │       fingerprint only when on and enrolled; ⌫ ghost
+│ Forgot PIN? Use recovery code│  S7.3 footer links (14 #ebeaea, link 600 white), pinned to the bottom
+└──────────────────────────────┘
+Short landscape phone (< 600 tall): [header (no logo) + card + footer] | keypad 60.
+Tablets: the same column, max width 400, centred.
+```
+
+### Steps (`useAuthFlow`)
+
+| Flow (`LockProvider` gate) | Steps |
+| --- | --- |
+| `setup` (no PIN yet) | create → confirm → code (recovery code shown once) → bio (only if a fingerprint is enrolled) → app |
+| `unlock` (app start, back after `LOCK.relockAfterMs`, Lock now) | enter (fingerprint prompt opens by itself when on) → app; "Use recovery code" → recover → create → confirm → code → app. Once the phone has people (below), a right device PIN leads on to `person` |
+| `person` (paired phone whose desktop has people, LAN_SYNC Phase 5; replaces `unlock`) | pick (who's using) → enter (that person's PIN, their length of dots) → app; "Not <name>? Choose another person" and Back return to pick. No recovery code (the owner resets PINs on the desktop) and no fingerprint (it can't tell people apart) |
+| `change` (S6.6 Change PIN) | enter current → create → confirm → app. Cancel / Back returns |
+| `new-code` (S6.6 New recovery code) | enter current → code → app. Cancel / Back returns |
+
+### Sections
+
+| ID | Region | Content | Function |
+| --- | --- | --- | --- |
+| S7.0 | Header | logo · title · line under it (`TEXT[step]`; `VERIFY_TEXT` for change / new-code; "Hi, <name>" / "Enter your PIN" in the person flow) | `Header` |
+| S7.1 | Step card | `PeoplePicker` (pick: ListItem per person: initials (blue = owner, grey = staff) · name · Owner / Staff · chevron; then "Forgot your PIN? The owner can set a new one on Invoice ERP Desktop.") · `PinEntry` (dots + Continue) · `RecoveryEntry` (Input + Continue) · `RecoveryCode` (code + "I have written it down") · `BioOffer` (Turn on · Not now) · `Message` | `StepCard` |
+| S7.2 | Keypad | 3 × 4, `KeypadKey` × 12 | `Keypad`, `KeypadKey` |
+| S7.3 | Footer | Forgot PIN? Use recovery code · Not <name>? Choose another person (person flow) · Back to PIN · Cancel | `Footer` |
+
+### Rules
+
+- PIN 4–6 digits (`PIN`); unlock and confirm check as soon as enough digits are in; create moves on at 6 or on Continue.
+- 5 wrong tries in a row (PIN or recovery code) → wait 30 s, then 1 min, 2 min … up to 15 min (`LOCKOUT`); the counter survives restarts and resets on success.
+- Recovery code: 12 characters from 32 (no I, O, 0, 1), shown as `ABCD-EFGH-JKLM`; typing is case- and dash-insensitive. Using it lets you set a new PIN and issues a new code.
+- Android Back: recover → PIN; change / new-code → cancel; otherwise the app closes (never reveals the shell).
 
 ---
 
@@ -582,6 +668,41 @@ Page A4 210×297mm or Letter 216×279mm · padding 10mm × 9mm · Inter 9.5px (e
 
 PDF generation and sharing: `src/export/pdf.ts` (`exportInvoicePdfAndShare`, `shareFile`).
 
+## D3 — Invoice image (`src/features/invoices/InvoiceImage.tsx`)
+
+**File:** `src/features/invoices/InvoiceImage.tsx` · `InvoiceImage({ inv, lines, settings })`, one function (regions inline). Drawn off screen by S3 (`InvoiceDetail`) at `IMAGE_WIDTH` 390, captured with `react-native-view-shot` as `<invoice no>.png`, then the Share dialog (WhatsApp / Save to phone). Light palette in every theme: white page, black text, `#666` labels; numbers in Bebas Neue. 1px App Blue border, radius 16 (`radius.card`); D3.1 and D3.4.4–5 are App Blue bands with white text (`accentOn`, labels at 80 %).
+
+```
+╭──────────────────────────────────────────────╮ 1px blue border, radius 16
+│▓Business name▓▓▓▓▓PAYMENT▓▓▓▓▓▓▓▓▓▓INVOICE▓▓▓│ D3.1 BLUE band, white text:
+│▓subtitle▓▓▓▓▓▓▓▓▓▓UPI▓▓▓▓▓▓▓▓▓▓▓▓▓▓INV-002▓▓▓│      flex 1 | centred | flex 1
+│▓contact · email▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓26 Oct 26▓│
+├──────────────────────────────────────────────┤
+│ BILL TO                                      │ D3.2 bill to
+│ Jia                                          │
+│ address · mobile · email                     │
+├──────────────────────────────────────────────┤
+│ ITEM          SIZE   QTY    RATE     AMOUNT  │ D3.3.h header (44 / 40 / 70 / 80)
+│ Polo T-Shirt  M        1  250.00     250.00  │ D3.3.r one row per line
+├──────────────────────────────────────────────┤
+│ Subtotal                             250.00  │ D3.4.1
+│ Discount (n%)                        -x.xx   │ D3.4.2 (only if > 0)
+│ Round off                              0.00  │ D3.4.3
+│▓Total▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓₹250.00▓▓▓│ D3.4.4 BLUE band (heading · Bebas 28, white)
+│▓Rupees Two Hundred Fifty Only▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│ D3.4.5 (italic, 80 % white)
+│ UPI: name@bank                               │ D3.5 white (only if Settings has a UPI ID)
+╰──────────────────────────────────────────────╯
+```
+
+| ID | Section | Spec |
+| --- | --- | --- |
+| D3 | Page | `View` width 390, background `paper`, 1px `accent` border, `radius.card` 16, `overflow: hidden`; three parts: blue D3.1 band · white body (padding 20, gap 4: D3.2 to D3.4.3, dividers 1px `divider`, margin 12) · blue Total band · white UPI footer |
+| D3.1 | Top row (blue band, padding 20, white text) | business (`flex: 1`): `settings.name` heading (or "Invoice"), subtitle, contact · email · payment (centred): overline "Payment", `inv.payment_mode` (Cash / UPI) · invoice (`flex: 1`, right): overline "Invoice", invoice no, date |
+| D3.2 | Bill to | overline, party name (label), address / city / pincode, mobile · email (captions, each only if set) |
+| D3.3 | Items table | header row (overline) and one row per line, gap 8: Item `flex: 1` (2 lines max) · Size 44 · Qty 40 · Rate 70 · Amount 80 (right-aligned, Bebas) |
+| D3.4 | Totals | D3.4.1–3 in the white body: Subtotal · Discount (only if > 0) · Round off. D3.4.4–5 in a blue band (padding 16 × 20): Total (heading + `type.figure`, white) · amount in words (italic, 80 % white) |
+| D3.5 | UPI footer | white, padding 16 × 20: "UPI: <id>" (caption `#666`), only when `settings.upi_id` is set |
+
 ## D2 — Excel exports (`src/export/xlsx.ts`)
 
 | ID | Export | Sheet → columns (width) | Triggered from |
@@ -601,7 +722,7 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C1 | `TopAppBar` | flat header on the screen background (no gradient), top padding = status bar + 8, sides 20. `large`: caption 14 `#666` above an H2 title (24/600), glass action buttons right. Otherwise: glass back button (`chevron-left`) · centred title 16/600 + caption · glass actions | all screens | components.tsx:319 |
 | C2 | `Button` | `solid` = kit primary button (52 tall, radius 12, blue, white 16/600, `shadow.secondary`); `tonal` / `outline` = glass button (50 tall, glass fill, white border, `shadow.primary`, 15/500 black); `ghost` = text link (link colour, 14/600). `danger` = red. Press scale 0.98 | everywhere | components.tsx:39 |
 | C3 | `IconButton` | 44×44. `glass` = kit icon button (radius 12, glass fill, white border, `shadow.primary`, black 20px icon); default = ghost button (radius 10, `#666` icon) | headers, row actions, sheet close | components.tsx:92 |
-| C4 | `Input` / `MoneyInput` | label 13/500 `#666` above (gap 8); field 50 tall, radius 12, padding 16, 15/400; focus = blue border + focus ring; `helper`, `error`, `tabular` (Inter, tabular digits) | forms | components.tsx:138 / 192 |
+| C4 | `Input` / `MoneyInput` / `StepperInput` | label 13/500 `#666` above (gap 8); field 50 tall, radius 12, padding 16, 15/400; focus = blue border + focus ring; `helper`, `error`, `tabular` (Inter, tabular digits). `StepperInput`: the same frame with − and + buttons inside (40 wide + 4 hitSlop outward = 44 target, blue icons, − grey at `min`), number typeable | forms | components.tsx:138 / 192 |
 | C5 | `SearchField` | 50 tall, radius 12, glass icon-button recipe, search glyph, clear button | S2, S4, S5 | components.tsx:218 |
 | C6 | `Card` | kit glass card: 55% white, 1px white border, radius 16, padding 16, `theme.cardShadow`. `small` = tile shadow; `list` = 8 × 16 padding for `flush` rows | all screens | components.tsx:375 |
 | C6a | `IconChip` | 36×36, radius 10, blue tint, blue 18px icon | stat tiles, list rows | components.tsx:396 |
@@ -615,7 +736,8 @@ Change one of these and **every screen that uses it changes**. They implement th
 | C12 | `StatusGlyph` / `Badge` | kit badge: pill, padding 4 × 10, 12/600, tinted fill; status adds a Feather glyph (circle, clock, pie-chart, check-circle, x-circle) | lists, S3 | components.tsx:282 / 299 |
 | C13 | `SectionTitle`, `TotalRow`, `MoneyText`, `EmptyState` | overline (12/600 upper-case `#666`) with right slot · label/value row · amount in Bebas Neue (strong = larger) · icon + title + text | many | components.tsx:359 / 264 / 247 / 490 |
 | C14 | `alert()` | native dialog (web: confirm/alert) | confirms, errors | alert.ts:13 |
-| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S2.3a, S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
+| C15 | `Columns` | one row of equal columns (`flex: 1`, or `weights=[1, 1.4]`), gap 12. `kind` sets the usable cell minimum (`touch` 44 · `input` 128 · `button` 96; `minCell` overrides); when cells would be narrower it stacks, or with `wrap` flows onto more lines (4 inputs = 2 + 2 on a phone); `stackAt` forces a stack. Decides from its own measured width, so it is right inside tablet panes (Three-Slot Screen rule 4; decision in `columnsMode.ts`, tests `npm run test:columns`) | S4.A row 5, S5.6.4, S5.7.2 | Columns.tsx:21 |
+| C17 | `PieChart3D` | a pie as a tilted disc (react-native-svg): top = ellipse (height = width × `tilt`) cut into slices with 1px white lines; the front half has a `depth`-tall side wall per slice, slice colour under `chartShade` (black 25 %: flat, no gradient). `emptyColor` disc when all values are 0; `accessibilityRole="image"` + `label` | S1.6, S1.7 | PieChart3D.tsx |
 | C16 | `Screen` | the Three-Slot scaffold: `header` · `below` (stepper) · Main (children, `flex: 1`) · `footer` (in the flex column, padded by the gesture inset, rises with the keyboard) · `fab` (floats over Main); `overlay` = no bottom nav underneath. `useMainInset()` = what Main's scroller pads at the bottom (nav inset or 32 in an overlay, + FAB clearance); `useFabClearance()` = 52 + 16 when a `fab` is set, else 0 | S2, S4 | Screen.tsx:23 |
 
 ### Design tokens (`src/ui/tokens.ts`)

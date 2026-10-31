@@ -4,7 +4,7 @@
 // expo-sqlite / expo-secure-store / expo-crypto mocked.
 // Run from mobile/: npm run test:integration
 import { execFileSync } from 'node:child_process';
-import { rmSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -133,18 +133,22 @@ execFileSync('npx', ['tsc', '--ignoreConfig',
   'src/data/db.ts', 'src/data/settingsRepo.ts',
   'src/data/productsRepo.ts', 'src/data/invoicesRepo.ts', 'src/data/paymentsRepo.ts',
   'src/data/draftsRepo.ts', 'src/data/dashboardRepo.ts', 'src/data/auditRepo.ts',
-  'src/export/xlsx.ts',
-  '--outDir', outDir, '--rootDir', 'src', '--module', 'nodenext', '--moduleResolution', 'nodenext',
+  'src/data/syncRepo.ts', 'src/export/xlsx.ts',
+  // rootDir is the project, not src/: pdf.ts imports modules/whatsapp-share.
+  '--outDir', outDir, '--rootDir', '.', '--module', 'nodenext', '--moduleResolution', 'nodenext',
   '--target', 'es2022', '--skipLibCheck', '--esModuleInterop'], { stdio: 'inherit', shell: true });
 
-const db = require(path.join(outDir, 'data', 'db.js'));
-const settingsRepo = require(path.join(outDir, 'data', 'settingsRepo.js'));
-const productsRepo = require(path.join(outDir, 'data', 'productsRepo.js'));
-const invoicesRepo = require(path.join(outDir, 'data', 'invoicesRepo.js'));
-const paymentsRepo = require(path.join(outDir, 'data', 'paymentsRepo.js'));
-const draftsRepo = require(path.join(outDir, 'data', 'draftsRepo.js'));
-const dashboardRepo = require(path.join(outDir, 'data', 'dashboardRepo.js'));
-const money = require(path.join(outDir, 'data', 'money.js'));
+const out = (...p) => path.join(outDir, 'src', ...p);
+const db = require(out('data', 'db.js'));
+const dbCore = require(out('data', 'dbCore.js'));
+const syncRepo = require(out('data', 'syncRepo.js'));
+const settingsRepo = require(out('data', 'settingsRepo.js'));
+const productsRepo = require(out('data', 'productsRepo.js'));
+const invoicesRepo = require(out('data', 'invoicesRepo.js'));
+const paymentsRepo = require(out('data', 'paymentsRepo.js'));
+const draftsRepo = require(out('data', 'draftsRepo.js'));
+const dashboardRepo = require(out('data', 'dashboardRepo.js'));
+const money = require(out('data', 'money.js'));
 
 // ---------- scenario ----------
 
@@ -182,9 +186,9 @@ const mkLine = (sno, desc, qty, unitPaise, productId = null) => ({
 await t('DB opens, migrates, seeds meta singleton', async () => {
   const d = await db.getDb();
   assert.ok(d);
-  assert.equal((await d.getFirstAsync('PRAGMA user_version')).user_version, 4);
+  assert.equal((await d.getFirstAsync('PRAGMA user_version')).user_version, 10);
   const s = await settingsRepo.getSettings();
-  assert.equal(s.invoice_prefix, 'PRE-');
+  assert.equal(s.invoice_prefix, 'INV-');
   assert.equal(s.next_seq, 1);
 });
 
@@ -216,38 +220,38 @@ await t('no clients/GST/items tables or columns remain in schema', async () => {
   }
 });
 
-await t('catalog seed: 12 names x 5 sizes = 60 product rows', async () => {
+await t('catalog seed: one product row per name (v5)', async () => {
   const all = await productsRepo.listProducts();
-  assert.equal(all.length, 60);
+  assert.equal(all.length, 12);
   const hoodies = await productsRepo.listProducts('Hoodie');
-  assert.equal(hoodies.length, 5);
-  assert.deepEqual(hoodies.map(p => p.size), ['L', 'M', 'S', 'XL', 'XXL']); // case-insensitive name order, size alpha
+  assert.equal(hoodies.length, 1);
+  assert.equal(hoodies[0].size, '');
 });
 
 let hoodieL;
-await t('product CRUD + name+size UNIQUE guard', async () => {
-  // The seed already ships "Hoodie · L" — exercise the update path on it…
-  hoodieL = (await productsRepo.listProducts('Hoodie')).find(p => p.size === 'L');
+await t('product CRUD + name UNIQUE guard', async () => {
+  // The seed already ships "Hoodie": exercise the update path on it…
+  hoodieL = (await productsRepo.listProducts('Hoodie'))[0];
   hoodieL = await productsRepo.upsertProduct({
-    name: 'Hoodie', size: 'L', unit_paise: 550000, stock_qty: 40,
+    name: 'Hoodie', unit_paise: 550000, stock_qty: 40,
   }, hoodieL.id);
   assert.equal(hoodieL.stock_qty, 40);
   assert.equal(hoodieL.unit_paise, 550000);
   // …then a fresh insert that collides case-insensitively must reject.
   let rejected = false;
   try {
-    await productsRepo.upsertProduct({ name: 'hoodie', size: 'l', unit_paise: 1, stock_qty: 1 });
+    await productsRepo.upsertProduct({ name: 'hoodie', unit_paise: 1, stock_qty: 1 });
   } catch {
     rejected = true;
   }
-  assert.ok(rejected, 'duplicate name+size must reject (case-insensitive)');
+  assert.ok(rejected, 'duplicate name must reject (case-insensitive)');
   const again = await productsRepo.getProduct(hoodieL.id);
   assert.equal(again.unit_paise, 550000); // rollback left the DB usable, original intact
 });
 
 await t('restock adds to balance, re-prices, and writes ledger history', async () => {
   const polo = (await productsRepo.listProducts('Polo T-Shirt'))
-    .find(p => p.name === 'Polo T-Shirt' && p.size === 'M');
+    .find(p => p.name === 'Polo T-Shirt');
   await productsRepo.restockProduct(polo.id, 50, 70000, 'Lot A');
   let row = await productsRepo.getProduct(polo.id);
   assert.equal(row.stock_qty, 50);
@@ -258,7 +262,7 @@ await t('restock adds to balance, re-prices, and writes ledger history', async (
   // Editor overwrites are logged as deltas so Stock = Σ ledger rows.
   row = await productsRepo.getProduct(polo.id);
   await productsRepo.upsertProduct(
-    { name: row.name, size: row.size, unit_paise: row.unit_paise, stock_qty: 55 }, row.id);
+    { name: row.name, unit_paise: row.unit_paise, stock_qty: 55 }, row.id);
   const hist = await productsRepo.listRestocks(polo.id);
   assert.equal(hist.length, 3);
   assert.equal(hist[0].kind, 'edit');
@@ -281,7 +285,7 @@ await t('issue invoice #1: atomic numbering + stored totals match integer math',
   const lines = [mkLine(1, 'Junior Shorts', 100, 15000), mkLine(2, 'Mini Pants', 2, 20000)];
   const totals = money.computeTotals(lines, 10);
   inv1 = await invoicesRepo.saveInvoice(formFor(lines, 10), totals, {});
-  assert.equal(inv1.invoiceNo, 'PRE-001');
+  assert.equal(inv1.invoiceNo, 'INV-001');
   const s = await settingsRepo.getSettings();
   assert.equal(s.next_seq, 2);
   const stored = await invoicesRepo.getInvoice(inv1.invoiceId);
@@ -301,7 +305,7 @@ await t('issue invoice #2: rupee round-off half-up', async () => {
     formFor(lines, 0, { ...baseParty, party_name: 'Delhi Trader' }),
     totals, {},
   );
-  assert.equal(res.invoiceNo, 'PRE-002');
+  assert.equal(res.invoiceNo, 'INV-002');
   const stored = await invoicesRepo.getInvoice(res.invoiceId);
   // raw 47.25 → Math.round half-up = 47.00, round-off -0.25
   assert.equal(stored.gross_paise, 4725);
@@ -313,9 +317,9 @@ await t('edit invoice keeps its number and replaces lines', async () => {
   const lines = [mkLine(1, 'Hoodie - L', 50, 15000, hoodieL.id)];
   const totals = money.computeTotals(lines, 0);
   const res = await invoicesRepo.saveInvoice(formFor(lines), totals, {
-    invoiceId: inv1.invoiceId, invoiceNo: 'PRE-001',
+    invoiceId: inv1.invoiceId, invoiceNo: 'INV-001',
   });
-  assert.equal(res.invoiceNo, 'PRE-001');
+  assert.equal(res.invoiceNo, 'INV-001');
   const storedLines = await invoicesRepo.getLines(inv1.invoiceId);
   assert.equal(storedLines.length, 1);
   const stored = await invoicesRepo.getInvoice(inv1.invoiceId);
@@ -327,8 +331,8 @@ await t('edit invoice keeps its number and replaces lines', async () => {
 await t('draft autosave round-trip (save → update → reload payload)', async () => {
   const form = formFor([mkLine(1, 'Junior Shorts', 4, 15000)]);
   const totals = money.computeTotals(form.lines, 0);
-  const id = await draftsRepo.saveDraft(null, { form, invoiceNo: 'PRE-003' }, totals.total);
-  const again = await draftsRepo.saveDraft(id, { form, invoiceNo: 'PRE-003' }, totals.total);
+  const id = await draftsRepo.saveDraft(null, { form, invoiceNo: 'INV-003' }, totals.total);
+  const again = await draftsRepo.saveDraft(id, { form, invoiceNo: 'INV-003' }, totals.total);
   assert.equal(again, id);
   const d = await draftsRepo.getDraft(id);
   assert.equal(d.draft_no, 'DRAFT-001');
@@ -356,7 +360,7 @@ await t('payments: partial then paid status transitions', async () => {
 });
 
 await t('sold = non-void invoice lines; avl = stock − sold', async () => {
-  // PRE-001 now carries 50 of hoodieL (edit test). Add a product-linked void.
+  // INV-001 now carries 50 of hoodieL (edit test). Add a product-linked void.
   const lines = [mkLine(1, 'Hoodie - L', 25, 15000, hoodieL.id)];
   const totals = money.computeTotals(lines, 0);
   const res = await invoicesRepo.saveInvoice(
@@ -379,11 +383,11 @@ await t('void lifecycle + KPIs exclude void, FY scoping works', async () => {
   );
   await invoicesRepo.setStatus(res.invoiceId, 'void');
   const k = await dashboardRepo.getKpis();
-  assert.equal(k.invoiceCount, 2); // PRE-001 paid, PRE-002 issued; voids excluded
+  assert.equal(k.invoiceCount, 2); // INV-001 paid, INV-002 issued; voids excluded
   const aging = await dashboardRepo.getAging();
   assert.equal(aging.length, 1);
-  assert.equal(aging[0].invoice_no, 'PRE-002');
-  // PRE-001 (50) + void PRE-003 (25) + void PRE-004 (1): voids never count.
+  assert.equal(aging[0].invoice_no, 'INV-002');
+  // INV-001 (50) + void INV-003 (25) + void INV-004 (1): voids never count.
   const row = await productsRepo.getProduct(hoodieL.id);
   assert.equal(row.sold_qty, 50);
   assert.equal(row.avl_qty, -10);
@@ -396,15 +400,15 @@ await t('stock totals match the per-product rows', async () => {
   assert.equal(tot.stockQty, sum('stock_qty'));
   assert.equal(tot.soldQty, sum('sold_qty'));
   assert.equal(tot.avlQty, sum('avl_qty'));
-  assert.equal(tot.soldQty >= 50, true, 'PRE-001 hoodie lines count as sold');
+  assert.equal(tot.soldQty >= 50, true, 'INV-001 hoodie lines count as sold');
 });
 
 await t('delete + syncNextSeq never moves the sequence backwards', async () => {
   const before = await settingsRepo.getSettings();
   assert.equal(before.next_seq, 5); // 001..004 allocated
-  const rows = await invoicesRepo.listInvoices({ search: 'PRE-003' });
+  const rows = await invoicesRepo.listInvoices({ search: 'INV-003' });
   await invoicesRepo.deleteInvoice(rows[0].id);
-  // Cascade removed the voided PRE-003 lines; sold stays at the 50 issued on PRE-001.
+  // Cascade removed the voided INV-003 lines; sold stays at the 50 issued on INV-001.
   const row = await productsRepo.getProduct(hoodieL.id);
   assert.equal(row.sold_qty, 50);
   await settingsRepo.syncNextSeq();
@@ -415,16 +419,16 @@ await t('delete + syncNextSeq never moves the sequence backwards', async () => {
   const lines = [mkLine(1, 'x', 1, 100)];
   const totals = money.computeTotals(lines, 0);
   const res = await invoicesRepo.saveInvoice(formFor(lines), totals, {});
-  assert.equal(res.invoiceNo, 'PRE-005');
+  assert.equal(res.invoiceNo, 'INV-005');
 });
 
 await t('audit trail records and reads back actions', async () => {
-  const auditRepo = require(path.join(outDir, 'data', 'auditRepo.js'));
-  await auditRepo.logAudit('invoice.issue', 'invoice', 'PRE-001');
+  const auditRepo = require(out('data', 'auditRepo.js'));
+  await auditRepo.logAudit('invoice.issue', 'invoice', 'INV-001');
   await auditRepo.logAudit('product.upsert', 'product', 1);
-  await auditRepo.logAudit('payment.record', 'invoice', 'PRE-001');
-  await auditRepo.logAudit('invoice.void', 'invoice', 'PRE-003');
-  await auditRepo.logAudit('invoice.delete', 'invoice', 'PRE-003');
+  await auditRepo.logAudit('payment.record', 'invoice', 'INV-001');
+  await auditRepo.logAudit('invoice.void', 'invoice', 'INV-003');
+  await auditRepo.logAudit('invoice.delete', 'invoice', 'INV-003');
   const rows = await auditRepo.recentAudit(50);
   const actions = new Set(rows.map(r => r.action));
   for (const a of ['invoice.issue', 'product.upsert', 'payment.record', 'invoice.void', 'invoice.delete']) {
@@ -433,7 +437,7 @@ await t('audit trail records and reads back actions', async () => {
 });
 
 await t('consolidated register: one row per invoice, one per line item', async () => {
-  const xlsx = require(path.join(outDir, 'export', 'xlsx.js'));
+  const xlsx = require(out('export', 'xlsx.js'));
   // A 3-line invoice: before the fix it was listed 3 times on the register.
   const lines = [mkLine(1, 'a', 1, 100), mkLine(2, 'b', 2, 200), mkLine(3, 'c', 3, 300)];
   const { invoiceNo } = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
@@ -446,6 +450,252 @@ await t('consolidated register: one row per invoice, one per line item', async (
   assert.equal(lineItems.length, items.n, 'line-item rows = invoice_items');
   assert.equal(register.filter(r => r[0] === invoiceNo).length, 1, 'multi-line invoice listed once');
   assert.equal(lineItems.filter(r => r[0] === invoiceNo).length, 3);
+});
+
+// ---------- v9 sync bookkeeping (LAN_SYNC) ----------
+
+const setApplying = async on => (await db.getDb()).runAsync('UPDATE sync_state SET applying = ? WHERE id = 1', on ? 1 : 0);
+
+const SYNCED = ['products', 'restocks', 'invoices', 'payments', 'audit_logs'];
+
+await t('v9: every row has a uid and this device as origin, and starts dirty', async () => {
+  const d = await db.getDb();
+  const { device_id } = await syncRepo.getSyncState();
+  assert.match(device_id, /^[0-9a-f]{32}$/);
+  for (const tbl of SYNCED) {
+    const rows = await d.getAllAsync(`SELECT uid, origin_device, dirty FROM ${tbl}`);
+    assert.ok(rows.length > 0, `${tbl} has rows by now`);
+    assert.equal(new Set(rows.map(r => r.uid)).size, rows.length, `${tbl} uids are unique`);
+    for (const r of rows) {
+      assert.match(r.uid, tbl === 'products' ? /^(p[0-9a-f]+|[0-9a-f]{32})$/ : /^[0-9a-f]{32}$/, `${tbl} uid filled`);
+      assert.equal(r.origin_device, device_id, `${tbl} origin is this device`);
+      assert.equal(r.dirty, 1, `${tbl} new rows wait for the first push`);
+    }
+  }
+});
+
+await t('v9: a local edit marks a pushed row dirty again; host-applied writes do not', async () => {
+  const d = await db.getDb();
+  // Simulate a finished push: the engine clears dirty (that update changes dirty, so no trigger).
+  await d.runAsync('UPDATE products SET dirty = 0, server_seq = 1 WHERE id = ?', hoodieL.id);
+  let row = await d.getFirstAsync('SELECT dirty, rev FROM products WHERE id = ?', hoodieL.id);
+  assert.equal(row.dirty, 0);
+  const rev = row.rev;
+  await productsRepo.upsertProduct({ name: 'Hoodie', unit_paise: 560000, stock_qty: 40 }, hoodieL.id);
+  row = await d.getFirstAsync('SELECT dirty, rev FROM products WHERE id = ?', hoodieL.id);
+  assert.equal(row.dirty, 1, 'price edit must be pushed');
+  assert.ok(row.rev > rev, 'rev bumps so a stale ack cannot clear a newer edit');
+  // A row written from a pull stays clean.
+  await d.runAsync('UPDATE products SET dirty = 0 WHERE id = ?', hoodieL.id);
+  await setApplying(true);
+  await d.runAsync('UPDATE products SET unit_paise = 570000 WHERE id = ?', hoodieL.id);
+  await setApplying(false);
+  row = await d.getFirstAsync('SELECT dirty FROM products WHERE id = ?', hoodieL.id);
+  assert.equal(row.dirty, 0);
+});
+
+await t('v9: company details sync, invoice numbering does not', async () => {
+  const d = await db.getDb();
+  await d.runAsync('UPDATE meta SET dirty = 0 WHERE id = 1');
+  const lines = [mkLine(1, 'x', 1, 100)];
+  await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  assert.equal((await d.getFirstAsync('SELECT dirty FROM meta')).dirty, 0, 'next_seq is per device');
+  await settingsRepo.updateSettings({ invoice_prefix: 'INV-' });
+  assert.equal((await d.getFirstAsync('SELECT dirty FROM meta')).dirty, 0, 'prefix is per device');
+  await settingsRepo.updateSettings({ name: 'Barathy Garments' });
+  assert.equal((await d.getFirstAsync('SELECT dirty FROM meta')).dirty, 1, 'company name goes to the host');
+});
+
+await t('v9: deletes leave tombstones (not for host-applied deletes)', async () => {
+  const d = await db.getDb();
+  const lines = [mkLine(1, 'gone', 1, 100)];
+  const res = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  const { uid } = await d.getFirstAsync('SELECT uid FROM invoices WHERE id = ?', res.invoiceId);
+  const before = (await syncRepo.pendingChanges()).deletes;
+  await invoicesRepo.deleteInvoice(res.invoiceId);
+  const tomb = await d.getFirstAsync("SELECT * FROM sync_tombstones WHERE tbl = 'invoices' AND uid = ?", uid);
+  assert.ok(tomb, 'tombstone written');
+  assert.equal((await syncRepo.pendingChanges()).deletes, before + 1);
+  const other = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  await setApplying(true);
+  await invoicesRepo.deleteInvoice(other.invoiceId);
+  await setApplying(false);
+  assert.equal((await syncRepo.pendingChanges()).deletes, before + 1, 'a delete from the host is not echoed back');
+});
+
+await t('v9: payments link invoices through payment_invoices', async () => {
+  const d = await db.getDb();
+  const lines = [mkLine(1, 'p', 1, 1000)];
+  const a = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  const b = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  const p = await paymentsRepo.recordPayment({
+    payment_date: '2026-10-30', party_name: 'Acme Co', invoiceIds: [a.invoiceId, b.invoiceId],
+    mode: 'UPI', reference_no: '', amount_paise: 2000, remarks: '',
+  });
+  const links = await d.getAllAsync('SELECT invoice_id FROM payment_invoices WHERE payment_id = ? ORDER BY invoice_id', p.id);
+  assert.deepEqual(links.map(l => l.invoice_id), [a.invoiceId, b.invoiceId]);
+  assert.equal(await paymentsRepo.paidPaiseForInvoice(a.invoiceId), 2000);
+  assert.equal((await invoicesRepo.getInvoice(b.invoiceId)).status, 'paid');
+});
+
+await t('v9: new rows record the signed-in user; host rows keep theirs', async () => {
+  const d = await db.getDb();
+  await d.runAsync("UPDATE sync_state SET user_uid = 'user-ravi' WHERE id = 1");
+  const lines = [mkLine(1, 'who', 1, 100)];
+  const res = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  await paymentsRepo.recordPayment({
+    payment_date: '2026-10-30', party_name: 'Acme Co', invoiceIds: [res.invoiceId],
+    mode: 'Cash', reference_no: '', amount_paise: 100, remarks: '',
+  });
+  const polo = (await productsRepo.listProducts('Hoodie'))[0];
+  await productsRepo.restockProduct(polo.id, 1, 0, 'by Ravi');
+  await settingsRepo.updateSettings({ city: 'Tirupur' });
+  for (const [tbl, where] of [
+    ['invoices', `id = ${res.invoiceId}`], ['payments', 'id = (SELECT MAX(id) FROM payments)'],
+    ['restocks', 'id = (SELECT MAX(id) FROM restocks)'], ['audit_logs', 'id = (SELECT MAX(id) FROM audit_logs)'],
+  ]) {
+    const r = await d.getFirstAsync(`SELECT created_by FROM ${tbl} WHERE ${where}`);
+    assert.equal(r.created_by, 'user-ravi', `${tbl}.created_by`);
+  }
+  // A row pulled from the host already names its device and user.
+  await d.runAsync(`INSERT INTO audit_logs (action, entity_type, uid, origin_device, created_by)
+    VALUES ('invoice.issue', 'invoice', 'host-row-1', 'phone-b', 'user-anu')`);
+  const host = await d.getFirstAsync("SELECT created_by, origin_device FROM audit_logs WHERE uid = 'host-row-1'");
+  assert.deepEqual(host, { created_by: 'user-anu', origin_device: 'phone-b' });
+  await d.runAsync("UPDATE sync_state SET user_uid = '' WHERE id = 1");
+});
+
+await t('v9: settings saves and voids are logged', async () => {
+  const auditRepo = require(out('data', 'auditRepo.js'));
+  await settingsRepo.updateSettings({ upi_id: 'barathy@upi' });
+  let rows = await auditRepo.recentAudit(5);
+  assert.equal(rows[0].action, 'settings.update');
+  const lines = [mkLine(1, 'v', 1, 100)];
+  const res = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  await invoicesRepo.setStatus(res.invoiceId, 'void');
+  rows = await auditRepo.recentAudit(5);
+  assert.equal(rows[0].action, 'invoice.void');
+  assert.equal(rows[0].entity_id, res.invoiceNo);
+  assert.equal(rows[0].origin_device, (await syncRepo.getSyncState()).device_id);
+  // Saving nothing logs nothing.
+  const before = (await auditRepo.recentAudit(1))[0].id;
+  await settingsRepo.updateSettings({});
+  assert.equal((await auditRepo.recentAudit(1))[0].id, before);
+});
+
+await t('v9: Stock always equals the restock ledger', async () => {
+  const d = await db.getDb();
+  const drift = await d.getAllAsync(`SELECT p.name FROM products p
+    WHERE abs(p.stock_qty - COALESCE((SELECT SUM(delta) FROM restocks r WHERE r.product_id = p.id), 0)) > 1e-9`);
+  assert.deepEqual(drift, []);
+});
+
+await t('v8 -> v9 migration keeps the data and ends like a fresh v9 build', async () => {
+  const w = new NodeSQLiteWrapper(new DatabaseSync(':memory:'));
+  w.execSync(readFileSync(path.join(root, 'scripts', 'fixtures', 'schema-v8.sql'), 'utf8'));
+  w.execSync(`
+    INSERT INTO meta (id) VALUES (1);
+    INSERT INTO products (id, name, unit_paise, stock_qty) VALUES (1, 'Hoodie', 50000, 30), (2, 'Polo', 40000, 5);
+    INSERT INTO restocks (product_id, kind, delta, stock_after) VALUES (1, 'restock', 30, 30);
+    INSERT INTO invoices (id, invoice_no, invoice_date, party_name, total_paise)
+      VALUES (1, 'INV-001', '2026-10-01', 'A', 1000), (12, 'INV-012', '2026-10-02', 'B', 2000);
+    INSERT INTO payments (id, payment_date, invoice_ids, mode, amount_paise)
+      VALUES (1, '2026-10-03', '1,12', 'Cash', 3000), (2, '2026-10-03', '12', 'UPI', 500), (3, '2026-10-03', '99', 'UPI', 1);
+    INSERT INTO audit_logs (action, entity_type, entity_id) VALUES ('invoice.issue', 'invoice', 'INV-001');
+    PRAGMA user_version = 8;`);
+  await dbCore.migrate(w);
+  assert.equal((await w.getFirstAsync('PRAGMA user_version')).user_version, 10);
+  assert.equal((await w.getFirstAsync('SELECT COUNT(*) c FROM invoices')).c, 2, 'invoices kept');
+  const st = await w.getFirstAsync('SELECT device_id FROM sync_state');
+  for (const tbl of SYNCED) {
+    const bad = await w.getAllAsync(`SELECT id FROM ${tbl} WHERE uid IS NULL OR dirty <> 1 OR origin_device <> ?`, st.device_id);
+    assert.deepEqual(bad, [], `${tbl}: uid, dirty and origin set on old rows`);
+  }
+  const ledger = await w.getAllAsync('SELECT product_id, SUM(delta) s, COUNT(*) n FROM restocks GROUP BY product_id ORDER BY product_id');
+  assert.deepEqual(ledger, [{ product_id: 1, s: 30, n: 1 }, { product_id: 2, s: 5, n: 1 }], 'only the drifted product gets a correcting row');
+  const links = await w.getAllAsync('SELECT payment_id, invoice_id FROM payment_invoices ORDER BY payment_id, invoice_id');
+  assert.deepEqual(links, [
+    { payment_id: 1, invoice_id: 1 }, { payment_id: 1, invoice_id: 12 }, { payment_id: 2, invoice_id: 12 },
+  ], 'CSV split; unknown invoice 99 dropped');
+  // Triggers are live after the upgrade.
+  await w.runAsync("INSERT INTO products (name) VALUES ('New')");
+  assert.match((await w.getFirstAsync("SELECT uid FROM products WHERE name = 'New'")).uid, /^[0-9a-f]{32}$/);
+  // Seeded catalog names get name-based uids, so every device agrees on them;
+  // a product the shop made itself ('Polo') gets a random one.
+  assert.equal((await w.getFirstAsync("SELECT uid FROM products WHERE id = 1")).uid,
+    'p' + Buffer.from('hoodie').toString('hex'));
+  assert.match((await w.getFirstAsync("SELECT uid FROM products WHERE id = 2")).uid, /^[0-9a-f]{32}$/);
+  const freshHoodie = await (await db.getDb()).getFirstAsync("SELECT uid FROM products WHERE name = 'Hoodie'");
+  assert.equal(freshHoodie.uid, 'p' + Buffer.from('hoodie').toString('hex'), 'fresh seed uses the same uid');
+  // Same columns, indexes and triggers as a fresh v9 database.
+  const fresh = await db.getDb();
+  const shape = async conn => {
+    const objs = await conn.getAllAsync(
+      "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name");
+    const cols = {};
+    for (const o of objs.filter(x => x.type === 'table')) {
+      cols[o.name] = (await conn.getAllAsync(`PRAGMA table_info(${o.name})`)).map(c => c.name).sort();
+    }
+    return { objs, cols };
+  };
+  assert.deepEqual(await shape(w), await shape(fresh));
+  // A second open is a no-op.
+  await dbCore.migrate(w);
+  assert.equal((await w.getFirstAsync('SELECT COUNT(*) c FROM payment_invoices')).c, 3);
+});
+
+// ---------- v10 people (LAN_SYNC Phase 5) ----------
+
+await t('v10: edits record who made them; deletes record who deleted', async () => {
+  const d = await db.getDb();
+  await d.runAsync("UPDATE sync_state SET user_uid = 'u-anu' WHERE id = 1");
+  const hoodie = (await productsRepo.listProducts('Hoodie'))[0];
+  await productsRepo.upsertProduct({ name: 'Hoodie', unit_paise: 58000, stock_qty: hoodie.stock_qty }, hoodie.id);
+  assert.equal((await d.getFirstAsync('SELECT updated_by FROM products WHERE id = ?', hoodie.id)).updated_by, 'u-anu');
+  const lines = [mkLine(1, 'who', 1, 100)];
+  const res = await invoicesRepo.saveInvoice(formFor(lines), money.computeTotals(lines, 0), {});
+  const inv = await d.getFirstAsync('SELECT uid, created_by, updated_by FROM invoices WHERE id = ?', res.invoiceId);
+  assert.equal(inv.created_by, 'u-anu');
+  assert.equal(inv.updated_by, 'u-anu');
+  await d.runAsync("UPDATE sync_state SET user_uid = 'u-ravi' WHERE id = 1");
+  await invoicesRepo.setStatus(res.invoiceId, 'void');
+  const after = await d.getFirstAsync('SELECT created_by, updated_by FROM invoices WHERE id = ?', res.invoiceId);
+  assert.deepEqual(after, { created_by: 'u-anu', updated_by: 'u-ravi' }, 'created_by stays, updated_by moves');
+  await invoicesRepo.deleteInvoice(res.invoiceId);
+  assert.equal((await d.getFirstAsync("SELECT user_uid FROM sync_tombstones WHERE tbl = 'invoices' AND uid = ?", inv.uid)).user_uid, 'u-ravi');
+  await settingsRepo.updateSettings({ city: 'Tiruppur' });
+  assert.equal((await d.getFirstAsync('SELECT updated_by FROM meta')).updated_by, 'u-ravi');
+  await d.runAsync("UPDATE sync_state SET user_uid = '' WHERE id = 1");
+});
+
+await t('v9 -> v10 upgrade (phones on build 5) ends like a fresh v10 build', async () => {
+  const w = new NodeSQLiteWrapper(new DatabaseSync(':memory:'));
+  w.execSync(readFileSync(path.join(root, 'scripts', 'fixtures', 'schema-v9.sql'), 'utf8'));
+  w.execSync(`
+    INSERT INTO meta (id, name) VALUES (1, 'Barathy');
+    INSERT INTO products (name, unit_paise) VALUES ('Shorts', 100);
+    INSERT INTO sync_tombstones (tbl, uid) VALUES ('invoices', 'gone');
+    PRAGMA user_version = 9;`);
+  const before = await w.getFirstAsync("SELECT uid, origin_device FROM products WHERE name = 'Shorts'");
+  await dbCore.migrate(w);
+  assert.equal((await w.getFirstAsync('PRAGMA user_version')).user_version, 10);
+  assert.deepEqual(await w.getFirstAsync("SELECT uid, origin_device, updated_by FROM products WHERE name = 'Shorts'"),
+    { ...before, updated_by: '' }, 'existing rows keep their uid and count as the owner\'s');
+  assert.equal((await w.getFirstAsync('SELECT user_uid FROM sync_tombstones')).user_uid, '');
+  // New triggers are live.
+  await w.runAsync("UPDATE sync_state SET user_uid = 'u-anu' WHERE id = 1");
+  await w.runAsync("UPDATE products SET unit_paise = 200 WHERE name = 'Shorts'");
+  assert.equal((await w.getFirstAsync("SELECT updated_by FROM products WHERE name = 'Shorts'")).updated_by, 'u-anu');
+  const shape = async conn => {
+    const objs = await conn.getAllAsync(
+      "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name");
+    const cols = {};
+    for (const o of objs.filter(x => x.type === 'table')) {
+      cols[o.name] = (await conn.getAllAsync(`PRAGMA table_info(${o.name})`)).map(c => c.name).sort();
+    }
+    return { objs, cols };
+  };
+  assert.deepEqual(await shape(w), await shape(await db.getDb()));
 });
 
 rmSync(outDir, { recursive: true, force: true });

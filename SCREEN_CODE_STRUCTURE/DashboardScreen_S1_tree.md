@@ -23,7 +23,7 @@ The financial-year figures and the three stock totals. One layout at every width
 | 3 | `fyLabel(d)` | 45-48 | the header caption |
 | 4 | `useDashboard()` | 53-68 | state and data (no JSX) |
 | 5 | `DashboardScreen()` | 73-86 | the screen on `<Screen header fab>` |
-| 6 | `Header` · `DashboardMain` · `HeroCard` · `StatTilesRow` · `StatTile` | 89-159 | one function per region, in on-screen order |
+| 6 | `Header` · `DashboardMain` · `HeroCard` · `StatTilesRow` · `StatTile` · `StockPieCard` · `PaymentsPieCard` · `PieLegendCard` | 89-159 | one function per region, in on-screen order |
 
 ## 3. Tree
 
@@ -51,6 +51,19 @@ DashboardScreen()                                                    line 73
 │         S1.2.b  "Balance Stock"  stock.avlQty    box                         28
 │         S1.2.c  "Actual Stock"   stock.stockQty  layers                      29
 │
+│    └─ StockPieCard    S1.6  Card gap 12: overline "Stock split"
+│         └─ row (gap 16, centred)
+│              ├─ PieChart3D  width S1.pieWidth (S1.pieWidthXs at xs), tilt, depth;
+│              │              slices Sold (accent) · Balance (textMuted), ≥ 0
+│              └─ legend (flex 1): dot · label · value × 2, divider,
+│                   "Actual Stock" · value, "Oversold by N" (error) if Balance < 0
+│
+│    └─ PaymentsPieCard S1.7  the same card (PieLegendCard): "Payments · FY"
+│         slices UPI (accent) · Cash (textMuted), weights = ₹ from getPaymentSplit();
+│         legend "UPI (n)" ₹ · "Cash (n)" ₹ · divider · "Total" ₹ (= Total billed)
+│
+│    PieLegendCard (S1.6 / S1.7): Card gap 12 · overline · row [ PieChart3D | legend ]
+│
 └─ fab slot (phones)    S1.5  FAB "New invoice" → nav.openCreate()             81
 ```
 
@@ -63,6 +76,11 @@ DashboardScreen()                                                    line 73
 | `tileGap` | 10 | S1.2 | inside a stat tile: chip · label · value |
 | `tileLabelHeight` | 36 | S1.2 | two-line label floor, so the three values line up |
 | `figureMinScale` | 0.6 | S1.1 / S1.2 | how far a figure may shrink to stay on one line |
+| `pieWidth` | 128 | S1.6 | the 3D pie's width |
+| `pieWidthXs` | 96 | S1.6 | under 360 dp, so the legend labels keep about 134 dp |
+| `pieTilt` | 0.55 | S1.6 | top height / width |
+| `pieDepth` | 16 | S1.6 | side wall height |
+| `swatch` | 10 | S1.6 | legend colour dot |
 | `readShare` | 0.9 | Main | content max width = max(720, 90 % of the window) |
 
 ## 5. Rows and columns
@@ -70,6 +88,7 @@ DashboardScreen()                                                    line 73
 | Row | Function | Cells | Rule |
 | --- | --- | --- | --- |
 | S1.1 overline row | `HeroCard` | 2: overline · badge | space-between; the badge never wraps |
+| S1.6 / S1.7 pie row | `PieLegendCard` (used by `StockPieCard`, `PaymentsPieCard`) | 2: pie (fixed width) · legend (`flex: 1`) | plain row, never stacks; the pie shrinks to 96 at xs instead |
 | S1.2 tiles | `StatTilesRow` | 3 equal (`flex: 1`) | **never stacks**: the kit's dashboard is 3-across at every width and each cell holds one figure (no label + value), so rule 3 holds down to 320 dp; the labels wrap to two lines instead. Not a `Columns` row for that reason |
 
 ## 6. State and actions (`useDashboard()`)
